@@ -124,6 +124,18 @@ server.prependListener('upgrade', (req, socket) => {
   } catch (e) {}
 });
 
+// ---- Discord bridge (optional) ----
+// Wrapped in try/catch on purpose: if the discord deps are not installed yet,
+// or the env vars are missing, the chatroom must still run exactly as before.
+// A broken bridge is an inconvenience; a server that will not boot is an outage.
+try {
+  require('./discord-bridge').attachBridge(app, server, ADMIN_PASS);
+} catch (e) {
+  console.log('[bridge] not enabled:', e && e.message);
+  app.post('/bridge/join', (req, res) =>
+    res.json({ ok: false, error: 'bridge not installed on the server: ' + (e && e.message) }));
+}
+
 const peerServer = ExpressPeerServer(server, {
   path: '/',
   allow_discovery: true,       // lets the chatroom list who is in a room
