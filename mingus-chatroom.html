@@ -957,7 +957,8 @@ body.touch #qPtt{display:none}
       <div class="hint2">Sends this room's voice into your Discord voice channel while you hold it open.
         Your browser encodes the mix once and the server passes it straight through — it never decodes
         anything, which is what keeps it inside Render's free tier. Closing the tab or hitting Unlink
-        drops the bot out. Discord audio does not come back into the room yet.</div>
+        drops the bot out. Discord voices come back into the room too: they play on your speakers and
+        travel to everyone else over your voice stream. Wear headphones so they do not loop back through your mic.</div>
 
       <label>Ban list <span style="text-transform:none;letter-spacing:0;font-weight:400" id="admBanCount"></span></label>
       <div id="admBans" style="max-height:170px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
@@ -985,7 +986,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='6.0';
+var BUILD='6.1';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -2382,7 +2383,7 @@ function wireFx(){
     if(!localStream)return false;
     /* VERITY injects into fxDest, so the bare-mic shortcut must be skipped
        while he is on or his voice would never reach the outgoing track */
-    if(fxMode==='none'&&!scrAudioNode&&!(typeof VERITY!=='undefined'&&VERITY.on)){
+    if(fxMode==='none'&&!scrAudioNode&&!(typeof VERITY!=='undefined'&&VERITY.on)&&!(typeof BR!=='undefined'&&BR.bus)){
       setOut('audio',localStream.getAudioTracks()[0]);
       return true;
     }
@@ -2423,7 +2424,7 @@ function stopMic(){
   disposeFx();
   if(fxSource){try{fxSource.disconnect();}catch(e){}fxSource=null;}
   $('#micState').textContent='Off';
-  if(scrAudioNode&&fxDest&&fxDest.stream.getAudioTracks()[0])
+  if((scrAudioNode||(typeof BR!=='undefined'&&BR.bus))&&fxDest&&fxDest.stream.getAudioTracks()[0])
     setOut('audio',fxDest.stream.getAudioTracks()[0]);
   else setOut('audio',phAudio);
   bc({t:'mute',on:true});renderMembers();
@@ -3864,6 +3865,7 @@ function brStop(quiet){
   try{if(BR.rec&&BR.rec.state!=='inactive')BR.rec.stop();}catch(e){}
   try{if(BR.ws)BR.ws.close();}catch(e){}
   BR.rec=null;BR.ws=null;BR.on=false;BR.sent=0;
+  brRxReset();
   brStat('not linked');
   if(!quiet)brApi('/bridge/leave').catch(function(){});
 }
@@ -3892,6 +3894,7 @@ async function brLink(){
     var base=adminBase().replace(/^http/,'ws');
     BR.ws=new WebSocket(base+'/bridge/feed?pass='+encodeURIComponent(ADMIN_PASS));
     BR.ws.binaryType='arraybuffer';
+    BR.ws.onmessage=brOnMessage;
   }catch(e){ sys('🔗 Could not open the audio feed: '+esc(String(e.message||e)),true); brStop(true); return; }
 
   BR.ws.onopen=function(){
@@ -3908,8 +3911,10 @@ async function brLink(){
       BR.rec.onerror=function(){sys('🔗 The audio encoder stopped.',true);brStop();};
       BR.rec.start(200);                  /* 200 ms chunks: low latency, few messages */
       BR.on=true;
+      /* return path: route our outgoing audio through the bus so Discord voices reach the room */
+      try{ brBus(); if(micOn)wireFx(); }catch(e){}
       brStat('linked');
-      good('🔗 Bridged to Discord — people in the voice channel can hear this room.');
+      good('🔗 Bridged to Discord — the voice channel and this room can hear each other.');
     }catch(e){
       sys('🔗 Could not start the encoder: '+esc(String(e.message||e)),true);
       brStop();
@@ -3921,6 +3926,109 @@ async function brLink(){
   };
   BR.ws.onerror=function(){ sys('🔗 The Discord feed errored.',true); };
 }
+
+/* ---------- Discord -> room (return audio) ----------
+   The server forwards each Discord speaker's raw Opus packets untouched:
+   binary frame = [0xD1][slot u16][opus packet], plus a JSON text frame naming
+   each new slot. We decode with WebCodecs (one AudioDecoder per speaker),
+   schedule the PCM on a small jitter buffer, and push it into BR.bus. That bus
+   feeds fxDest — the same outgoing bus the mic, screen audio and VERITY use — so
+   every peer hears Discord over the voice stream that is already open, and it
+   also feeds this machine's speakers. verityMixStream() (what goes TO Discord)
+   only ever mixes the raw mic and the peers, never fxDest, so Discord does not
+   hear itself echoed back. */
+BR.rx={}; BR.bus=null; BR.names={}; BR.warnedDec=false;
+function brBus(){
+  var c=ctx(); ensureFxGraph();
+  if(!BR.bus){
+    BR.bus=c.createGain(); BR.bus.gain.value=1;
+    BR.bus.connect(fxDest);        /* out to the room */
+    BR.bus.connect(c.destination); /* and to this machine's speakers */
+  }
+  var t=fxDest.stream.getAudioTracks()[0];
+  if(t)setOut('audio',t);
+  return BR.bus;
+}
+function brRxReset(){
+  for(var k in BR.rx){ try{BR.rx[k].dec.close();}catch(e){} try{BR.rx[k].gain.disconnect();}catch(e){} }
+  BR.rx={}; BR.names={};
+  if(BR.bus){ try{BR.bus.disconnect();}catch(e){} BR.bus=null; }
+  /* give the outgoing track back to whatever the mic/FX state wants */
+  try{
+    if(micOn){ if(!wireFx()&&localStream)setOut('audio',localStream.getAudioTracks()[0]); }
+    else if(!scrAudioNode)setOut('audio',phAudio);
+  }catch(e){}
+}
+function brSlot(slot){
+  var r=BR.rx[slot]; if(r)return r;
+  if(!window.AudioDecoder||!window.EncodedAudioChunk){
+    if(!BR.warnedDec){BR.warnedDec=true;
+      sys('🔗 This browser cannot decode Discord audio (no WebCodecs), so the room will not hear Discord. '+
+          'Chrome or Edge can; the other direction still works.',true);}
+    return null;
+  }
+  var c=ctx(); var bus=brBus();
+  var g=c.createGain(); g.gain.value=1; g.connect(bus);
+  r={gain:g,next:0,ts:0,dec:null,slot:slot};
+  r.dec=new AudioDecoder({
+    output:function(ad){ try{brPlay(r,ad);}catch(e){} try{ad.close();}catch(e){} },
+    error:function(e){ sys('🔗 Discord audio decoder error: '+esc(String(e&&e.message||e)),true); delete BR.rx[slot]; }
+  });
+  r.dec.configure({codec:'opus',sampleRate:48000,numberOfChannels:2});
+  BR.rx[slot]=r; return r;
+}
+function brPcm(ad){
+  /* -> array of Float32Array planes, whatever format the decoder chose */
+  var ch=ad.numberOfChannels, n=ad.numberOfFrames, planes=[], i;
+  var fmt=ad.format||'';
+  if(fmt==='f32-planar'){
+    for(i=0;i<ch;i++){ var f=new Float32Array(n); ad.copyTo(f,{planeIndex:i}); planes.push(f); }
+    return planes;
+  }
+  try{ /* ask for planar float; supported in current Chrome/Edge */
+    for(i=0;i<ch;i++){ var p=new Float32Array(n); ad.copyTo(p,{planeIndex:i,format:'f32-planar'}); planes.push(p); }
+    return planes;
+  }catch(e){}
+  if(fmt==='f32'){ /* interleaved float */
+    var all=new Float32Array(n*ch); ad.copyTo(all,{planeIndex:0});
+    for(i=0;i<ch;i++){ var q=new Float32Array(n); for(var k=0;k<n;k++)q[k]=all[k*ch+i]; planes.push(q); }
+    return planes;
+  }
+  if(fmt==='s16'){ /* interleaved 16-bit */
+    var s16=new Int16Array(n*ch); ad.copyTo(s16,{planeIndex:0});
+    for(i=0;i<ch;i++){ var w=new Float32Array(n); for(var m=0;m<n;m++)w[m]=s16[m*ch+i]/32768; planes.push(w); }
+    return planes;
+  }
+  return null;
+}
+function brPlay(r,ad){
+  var planes=brPcm(ad); if(!planes)return;
+  var c=ctx(), n=ad.numberOfFrames, sr=ad.sampleRate||48000;
+  var buf=c.createBuffer(planes.length,n,sr);
+  for(var i=0;i<planes.length;i++)buf.copyToChannel(planes[i],i);
+  var src=c.createBufferSource(); src.buffer=buf; src.connect(r.gain);
+  var now=c.currentTime;
+  if(r.next<now+0.01)r.next=now+0.06;   /* (re)prime a 60 ms jitter buffer after silence */
+  src.start(r.next); r.next+=buf.duration;
+}
+function brOnMessage(ev){
+  if(typeof ev.data==='string'){
+    var m=null; try{m=JSON.parse(ev.data);}catch(e){return;}
+    if(!m)return;
+    if(m.t==='speaker'){ BR.names[m.slot]=m.name; if(brSlot(m.slot))brStat('linked · hearing '+m.name); }
+    else if(m.t==='quiet'){ brStat('linked · '+Math.round(BR.sent/1024)+' KB sent'); }
+    return;
+  }
+  var u=new Uint8Array(ev.data);
+  if(u.length<4||u[0]!==0xD1)return;
+  var slot=(u[1]<<8)|u[2];
+  var r=brSlot(slot); if(!r)return;
+  try{
+    r.dec.decode(new EncodedAudioChunk({type:'key',timestamp:r.ts,data:u.subarray(3)}));
+    r.ts+=20000;                        /* Discord frames are 20 ms */
+  }catch(e){}
+}
+
 $('#brLink').onclick=brLink;
 $('#brUnlink').onclick=function(){
   if(!BR.on){toast('not linked');return;}

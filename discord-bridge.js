@@ -11,7 +11,12 @@
    Render -> Environment needs:
      DISCORD_TOKEN, DISCORD_GUILD_ID, DISCORD_CHANNEL_ID
 
-   Scope: chatroom -> Discord only. Discord cannot yet be heard in the chatroom.
+   Both directions, still with no decoding here:
+     chatroom -> Discord : browser sends WebM/Opus chunks up the socket; piped to the player.
+     Discord -> chatroom : the receiver hands us each speaker's raw Opus packets; each is
+                           sent down the same socket as a binary frame [u8 0xD1][u16 slot][opus].
+                           A JSON text frame {t:'speaker',slot,id,name} announces every new slot.
+                           The browser decodes with WebCodecs and mixes it into the room.
 */
 
 const { PassThrough } = require('stream');
@@ -23,6 +28,8 @@ const state = {
   player: null,
   feed: null,       // PassThrough carrying WebM/Opus from the browser
   socket: null,     // the browser holding the bridge open
+  rx: {},           // discord userId -> { slot, stream }
+  nextSlot: 1,
   startedAt: 0,
   bytes: 0,
   lastError: '',
@@ -70,7 +77,7 @@ async function joinDiscord() {
     channelId,
     guildId,
     adapterCreator: guild.voiceAdapterCreator,
-    selfDeaf: true,    // we only send
+    selfDeaf: false,   // we listen too: Discord -> chatroom
     selfMute: false,
   });
   state.connection.on('error', (e) => { state.lastError = String(e && e.message || e); log('connection error', state.lastError); });
@@ -102,6 +109,7 @@ async function joinDiscord() {
   });
   state.player.play(resource);
   state.connection.subscribe(state.player);
+  wireReceiver(state.connection, state.client.user && state.client.user.id);
 
   state.active = true;
   state.startedAt = Date.now();
@@ -109,8 +117,41 @@ async function joinDiscord() {
   state.lastError = '';
 }
 
+
+/* Discord -> browser. One Opus subscription per speaker, forwarded raw. */
+function sendToBrowser(buf) {
+  const ws = state.socket;
+  if (ws && ws.readyState === 1) { try { ws.send(buf); } catch (e) {} }
+}
+function wireReceiver(connection, selfId) {
+  const { EndBehaviorType } = require('@discordjs/voice');
+  const receiver = connection.receiver;
+  receiver.speaking.on('start', (userId) => {
+    if (userId === selfId || state.rx[userId]) return;
+    const slot = state.nextSlot++;
+    let name = userId;
+    try {
+      const u = state.client.users.cache.get(userId);
+      if (u) name = u.globalName || u.username || userId;
+    } catch (e) {}
+    const stream = receiver.subscribe(userId, { end: { behavior: EndBehaviorType.Manual } });
+    state.rx[userId] = { slot, stream, name };
+    log('hearing', name, 'on slot', slot);
+    sendToBrowser(JSON.stringify({ t: 'speaker', slot, id: userId, name }));
+    const hdr = Buffer.alloc(3); hdr[0] = 0xD1; hdr.writeUInt16BE(slot, 1);
+    stream.on('data', (pkt) => sendToBrowser(Buffer.concat([hdr, pkt])));
+    stream.on('error', (e) => log('rx error', name, e && e.message));
+  });
+  receiver.speaking.on('end', (userId) => {
+    const r = state.rx[userId];
+    if (r) sendToBrowser(JSON.stringify({ t: 'quiet', slot: r.slot }));
+  });
+}
+
 function leaveDiscord(reason) {
   log('tearing down:', reason || 'requested');
+  for (const id in state.rx) { try { state.rx[id].stream.destroy(); } catch (e) {} }
+  state.rx = {};
   try { if (state.player) state.player.stop(true); } catch (e) {}
   try { if (state.feed) state.feed.end(); } catch (e) {}
   try { if (state.connection) state.connection.destroy(); } catch (e) {}
@@ -184,8 +225,8 @@ function attachBridgeFeed(server, adminPass) {
     if (state.socket && state.socket !== ws) { try { state.socket.close(); } catch (e) {} }
     state.socket = ws;
 
-    ws.on('message', (data) => {
-      if (!state.feed) return;
+    ws.on('message', (data, isBinary) => {
+      if (!isBinary || !state.feed) return;
       state.bytes += data.length || 0;
       try { state.feed.write(data); } catch (e) {
         state.lastError = String(e && e.message || e);
@@ -201,4 +242,4 @@ function attachBridgeFeed(server, adminPass) {
   log('bridge feed listening at /bridge/feed');
 }
 
-module.exports = { attachBridgeRoutes, attachBridgeFeed, status, leaveDiscord };
+module.exports = { attachBridgeRoutes, attachBridgeFeed, status, leaveDiscord, _test: { state, wireReceiver } };
