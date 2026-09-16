@@ -21,18 +21,30 @@ html,body{margin:0;height:100%}
    dropped — which used to leave near-white text on a default white page. */
 html{background-color:#07051a}
 body{background-color:#07051a;color:#f2ecff}
-body{
-  font-family:var(--font);color:var(--txt);
+body{font-family:var(--font);color:var(--txt);min-height:100vh;overflow-x:hidden}
+
+/* The glow used to be painted on <body>, which meant it was only as tall as the
+   body box. Once the page got taller than one screen — or once the mobile dvh
+   rule pinned the body to exactly one viewport — scrolling down ran off the
+   bottom of the gradient into flat navy. That is the "colour blobs cut off"
+   problem.
+   Now it lives on its own fixed layer that is always exactly the viewport, so
+   the dashboard glow sits behind the UI at every scroll position and never
+   runs out, on any page length. */
+#bg{position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background-color:#07051a;
   background-image:
     radial-gradient(1200px 600px at 50% -10%, #3d1a8f 0%, transparent 60%),
     radial-gradient(900px 500px at 90% 100%, #0d3a8a 0%, transparent 55%),
     radial-gradient(700px 400px at 5% 90%, #4a0f7a 0%, transparent 55%),
+    radial-gradient(800px 500px at 15% 25%, #2a1070 0%, transparent 60%),
     linear-gradient(#0a0626,#040214);
-  min-height:100vh;overflow-x:hidden;
 }
-body::before{content:"";position:fixed;left:-50%;right:-50%;top:-50%;bottom:-50%;pointer-events:none;z-index:0;
+/* the slow 360-dashboard light sweep, also viewport-fixed so it never ends */
+#bg::after{content:"";position:absolute;left:-50%;right:-50%;top:-50%;bottom:-50%;
   background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.05) 50%,transparent 60%);
-  animation:sweep 16s linear infinite;}
+  animation:sweep 16s linear infinite}
+@media (prefers-reduced-motion:reduce){#bg::after{animation:none}}
 @keyframes sweep{from{transform:translateX(-30%)}to{transform:translateX(30%)}}
 
 .wrap{max-width:1120px;margin:0 auto;padding:16px 14px 28px;position:relative;z-index:1}
@@ -197,6 +209,27 @@ body.rearcam .cam.me video{transform:none}
    is actually doing something. Screen shares spotlight themselves on arrival. */
 .cam.big{width:100%}
 .cam.big video{height:min(62vh,560px)}
+
+/* object-fit:cover CROPS to fill the box. That is fine for a face — it just
+   trims the edges — but a 16:9 screen share squeezed into a 4:3 thumbnail has
+   its sides chopped off, so you genuinely only see the middle of the sharer's
+   screen. Anything that is a screen, spotlighted or fullscreen, uses contain
+   so the whole picture is visible, letterboxed rather than cropped. */
+.cam.screen video{object-fit:contain;background:#000}
+.cam.big video{object-fit:contain;background:#000}
+
+/* A fullscreened tile still had width:196px and a fixed video height, so the
+   browser handed it the whole display and it drew a small box in the corner —
+   the "fullscreen only shows half the screen" bug. These make the tile and the
+   video actually fill it. Kept as separate rules on purpose: an unrecognised
+   pseudo-class invalidates the entire selector list in some browsers, which
+   would silently drop the standard rule along with the prefixed one. */
+.cam:fullscreen{width:100vw;height:100vh;border:0;border-radius:0;background:#000}
+.cam:fullscreen video{width:100%;height:100%;object-fit:contain;background:#000}
+.cam:fullscreen .glare2{display:none}
+.cam:-webkit-full-screen{width:100vw;height:100vh;border:0;border-radius:0;background:#000}
+.cam:-webkit-full-screen video{width:100%;height:100%;object-fit:contain;background:#000}
+.cam:-webkit-full-screen .glare2{display:none}
 .cam .ctl{position:absolute;top:6px;right:6px;z-index:4;display:flex;gap:4px;opacity:0;transition:opacity .15s}
 .cam:hover .ctl,.cam.big .ctl{opacity:1}
 body.touch .cam .ctl{opacity:1}
@@ -341,6 +374,48 @@ a.btn,a.hub{text-decoration:none}
   opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 
+/* ===================== ADMIN PRANKS =====================
+   Everything here is applied to .wrap, never to the whole document. The modals
+   and toasts live outside .wrap, so the admin panel stays usable and readable
+   while the room is upside down — otherwise whoever set the chaos off could
+   not reach the button that stops it. Every effect also expires on a timer, so
+   nothing can get stuck on. */
+@keyframes fxquake{
+  0%,100%{transform:translate(0,0) rotate(0deg)}
+  15%{transform:translate(-7px,5px) rotate(-.7deg)}
+  30%{transform:translate(6px,-4px) rotate(.6deg)}
+  45%{transform:translate(-5px,-6px) rotate(-.5deg)}
+  60%{transform:translate(7px,4px) rotate(.7deg)}
+  85%{transform:translate(-4px,6px) rotate(-.4deg)}
+}
+@keyframes fxroll{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes fxhue{to{filter:hue-rotate(360deg)}}
+@keyframes fxdrunk{
+  0%,100%{transform:skewX(0deg) scale(1)}
+  25%{transform:skewX(4deg) scale(1.03)}
+  50%{transform:skewX(0deg) scale(.97)}
+  75%{transform:skewX(-4deg) scale(1.03)}
+}
+
+/* falling-emoji overlay */
+.prank{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+.prank b{position:absolute;top:-10vh;will-change:transform;animation:fxfall linear forwards}
+@keyframes fxfall{to{transform:translateY(118vh) rotate(430deg)}}
+
+/* the Red Ring of Death. Three red quadrants, exactly like the real thing.
+   The caption names the admin who did it so nobody actually thinks their
+   machine died. */
+.prank.rrod{background:rgba(0,0,0,.85);display:grid;place-content:center;justify-items:center;gap:20px}
+.ring360{width:132px;height:132px;border-radius:50%;position:relative;
+  background:conic-gradient(#ff1b1b 0 25%,#2a0000 0 50%,#ff1b1b 0 75%,#ff1b1b 0 100%);
+  box-shadow:0 0 45px rgba(255,0,0,.85),inset 0 0 26px rgba(0,0,0,.85);
+  animation:fxrrod .9s ease-in-out infinite}
+.ring360::after{content:"";position:absolute;inset:19px;border-radius:50%;background:#0a0a0a}
+@keyframes fxrrod{0%,100%{filter:brightness(1)}50%{filter:brightness(1.7)}}
+.rrodtxt{color:#ff6b6b;text-align:center;font-size:30px;letter-spacing:3px;
+  text-shadow:0 0 18px rgba(255,0,0,.8)}
+.rrodtxt span{display:block;font-size:13px;color:#ffc2c2;letter-spacing:.4px;margin-top:10px}
+
 #banner{display:none;padding:10px 14px;margin:0 0 8px;border-radius:8px;font-size:14px;line-height:1.45;
   background-color:#5e1030;border:1px solid #ff8fa8;color:#ffe2e9}
 #banner.on{display:block}
@@ -359,7 +434,8 @@ a.btn,a.hub{text-decoration:none}
    the chrome as it shows and hides. Kept behind @supports so old browsers
    still get the vh fallback above. */
 @supports (height:100dvh){
-  html,body{height:100dvh}
+  /* min-height only. Setting an exact height here pinned the page to one
+     viewport and was what cropped the background glow. */
   body{min-height:100dvh}
 }
 
@@ -367,20 +443,14 @@ a.btn,a.hub{text-decoration:none}
 .touchonly{display:none !important}
 body.touch .touchonly{display:inline-flex !important}
 
-/* Big hold-to-talk pad. Only appears on touch devices AND only while
-   push-to-talk is armed — a floating button that does nothing would just be
-   in the way. */
-#pttPad{display:none;position:fixed;left:50%;transform:translateX(-50%);
-  bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;
-  padding:16px 34px;border-radius:999px;border:2px solid #fff;
-  font:inherit;font-size:17px;font-weight:700;color:#fff;letter-spacing:.5px;
-  background-color:#4a1bd0;background-image:linear-gradient(#9d78ff,#6a2dff 55%,#4a1bd0);
-  box-shadow:0 6px 22px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.5);
-  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-  touch-action:none}
-body.touch #pttPad.on{display:block}
-#pttPad.live{background-image:linear-gradient(#c6ff9a,#4ac41f 55%,#2f7d0d);
-  color:#0a2a00;box-shadow:0 0 0 4px rgba(140,255,90,.45),0 6px 22px rgba(0,0,0,.6)}
+/* The hold-to-talk pad has been removed. It carried class="touchonly", and
+   that rule (body.touch .touchonly{display:inline-flex !important}) beat the
+   rule that was supposed to show it only while push-to-talk was armed — so on
+   every phone it sat permanently over the UI, and tapping it did nothing
+   because the handler bails out when push-to-talk is off. Touch devices now
+   use an open mic; push-to-talk stays a desktop feature on the V key, where
+   holding a physical key is actually reliable. */
+body.touch #qPtt{display:none}
 
 @media (max-width:820px){
   .layout{grid-template-columns:1fr}
@@ -426,6 +496,7 @@ body.touch #pttPad.on{display:block}
 </style>
 </head>
 <body>
+<div id="bg" aria-hidden="true"></div>
 <div id="orbs" aria-hidden="true"></div>
 <div class="wrap">
 
@@ -489,10 +560,12 @@ body.touch #pttPad.on{display:block}
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Mic processing:</span>
       <div class="qstrip">
-        <span class="q on" id="qNS" title="kills background hiss">Noise suppression</span>
-        <span class="q on" id="qEC" title="stops your speakers echoing back">Echo cancel</span>
-        <span class="q on" id="qAGC" title="auto volume leveling">Auto gain</span>
-        <span class="q" id="qRaw" title="all processing off">RAW MODE</span>
+        <span class="q" id="qNS" title="kills background hiss">Noise suppression</span>
+        <span class="q" id="qEC" title="stops your speakers echoing back">Echo cancel</span>
+        <span class="q" id="qAGC" title="auto volume leveling">Auto gain</span>
+        <span class="q on" id="qRaw" title="all processing off — default">RAW MODE</span>
+        <span class="q on" id="qStereo" title="send two channels instead of one">Stereo</span>
+        <span class="q on" id="qAutoMic" title="switch your mic on the moment you join">Auto mic</span>
         <span class="q" id="qRelay" title="route everything through TURN — fixes hard NATs">Force TURN</span>
       </div>
     </div>
@@ -621,6 +694,23 @@ body.touch #pttPad.on{display:block}
         <button class="btn blue" id="admSend">📢 Send</button>
       </div>
 
+      <label>Pranks — fires on everyone in the room</label>
+      <div class="qstrip" id="admFx">
+        <span class="q" data-prank="quake">🌋 Earthquake</span>
+        <span class="q" data-prank="roll">🔄 Barrel roll</span>
+        <span class="q" data-prank="flip">🙃 Upside down</span>
+        <span class="q" data-prank="rave">🪩 Rave</span>
+        <span class="q" data-prank="drunk">🥴 Drunk</span>
+        <span class="q" data-prank="tiny">🔬 Tiny mode</span>
+        <span class="q" data-prank="blur">😵 Blurry</span>
+        <span class="q" data-prank="emoji">🎉 Emoji storm</span>
+        <span class="q" data-prank="rrod">💀 Red Ring</span>
+        <span class="q" data-prank="clear">✖ Stop all</span>
+      </div>
+      <div class="hint2">All of these wear off on their own after a few seconds, and the admin
+        panel itself is never affected so you can always reach Stop all. People with
+        reduced-motion turned on get the announcement without the spinning.</div>
+
       <label>Members</label>
       <div id="admList" style="max-height:230px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
 
@@ -632,14 +722,13 @@ body.touch #pttPad.on{display:block}
   </div>
 </div>
 
-<button id="pttPad" class="touchonly">🎙 HOLD TO TALK</button>
 <div class="lb" id="lb"><img id="lbimg" alt=""></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="file" hidden>
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='3.9';
+var BUILD='4.2';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -734,7 +823,18 @@ var quality='clear', msgCount=0, leaving=false, forceRelay=false;
 var actx=null, localAnalyser=null;
 var outStream=null, phAudio=null, phVideo=null, phCanvas=null, phTimer=null;
 var MEDIA_OK=true, VIDEO_OK=true, audioGesture=false;
-var micNS=true, micEC=true, micAGC=true;
+/* RAW by default now — no noise suppression, echo cancel or auto gain.
+   Worth knowing: echo cancellation is what stops your speakers being picked up
+   by your mic and sent back round. On headphones RAW sounds markedly better.
+   On laptop speakers it can cause echo for everyone else, and the fix is to
+   switch Echo cancel back on — that choice is saved from then on. */
+var micNS=false, micEC=false, micAGC=false;
+/* Stereo capture. Most laptop/headset mics are physically mono, so this mainly
+   matters for shared screen audio, music, and proper stereo interfaces — on a
+   mono mic it just sends the same signal twice. */
+var stereo=true;
+/* switch the mic on automatically as soon as you are in the room */
+var autoMic=true;
 var VIDEO_KBPS=140, rescanTimer=null, joinTimer=null;
 /* screen share */
 var scrStream=null, scrOn=false, scrAudioNode=null;
@@ -770,6 +870,33 @@ var admin=false, roomLocked=false;
 var banned={};          /* peerId -> timestamp the ban lifts (Infinity = session) */
 var everSeen={};        /* peerIds we have already accepted, so a lock only blocks NEW people */
 
+/* Moderation is keyed on GAMERTAG, not peer id.
+   Peer ids are just room slots — someone who is kicked and rejoins almost
+   always lands on a different one, so an id-keyed ban matched nothing and they
+   walked straight back in. Same trap the per-person volume memory fell into. */
+var banNames={};        /* lowercased name -> expiry timestamp (Infinity = session) */
+var muteNames={};       /* lowercased name -> true while server-muted */
+function nameKey(n){return String(n||'').toLowerCase().trim().slice(0,18);}
+function isNameBanned(n){var k=nameKey(n);return !!k&&banNames[k]>Date.now();}
+function isNameMuted(n){var k=nameKey(n);return !!k&&!!muteNames[k];}
+
+/* Moderation actions are broadcast to EVERYONE, and every client enforces them
+   locally, rather than being a private request to the person being moderated.
+   That is the difference between a suggestion and something that works: a
+   server-muted person is silenced in everyone else's speakers whether or not
+   their own browser cooperates, and a banned person is dropped by every member
+   independently.
+   The shared password rides along so a peer that never opened the admin panel
+   cannot casually issue commands. It is not real authentication — the password
+   is in the page source that everyone already has — it just stops idle
+   mischief. Anyone determined can still forge these. */
+function modBroadcast(action,name,id,mins){
+  var m={t:'mod',k:ADMIN_PASS,action:action,name:name,id:id||'',
+         until:mins?(Date.now()+mins*60000):0};
+  bc(m);
+  applyMod(m,true);
+}
+
 /* set by an admin's "server mute" — while true this client refuses to unmute
    itself, so the mute actually sticks instead of being one click to undo */
 var forceMuted=false;
@@ -797,7 +924,15 @@ function recallVol(name){
 /* ---------- mobile ---------- */
 var IS_TOUCH=false;
 try{IS_TOUCH=(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)||('ontouchstart' in window);}catch(e){}
-if(IS_TOUCH){try{document.body.classList.add('touch');}catch(e){}}
+if(IS_TOUCH){
+  try{document.body.classList.add('touch');}catch(e){}
+  /* Open mic on phones, always. Holding a region of glass is not a reliable
+     way to key a microphone — a hold that drifts a few pixels fires
+     pointerleave and cuts you off mid-word — and the pad that was meant to do
+     it was permanently stuck on screen anyway. Push-to-talk remains available
+     on desktop via the V key, where a real key-up is unambiguous. */
+  ptt=false;pttDown=false;
+}
 var camFacing='user';   /* front camera by default; flip button swaps to 'environment' */
 
 function $(s){return document.querySelector(s);}
@@ -1125,9 +1260,65 @@ function loadPeerLib(cb){
   document.body.appendChild(s);
 }
 
+/* ===================== SAVED SETTINGS =====================
+   Everything the user toggles is remembered in localStorage and restored on the
+   next visit, so nobody has to re-set their bitrate, FX, pitch and mic
+   processing every single time they open the room. Per-person volumes are
+   stored separately under mc_vol, and the signalling/TURN config under mc_cfg. */
+var PREFS_KEY='mc_prefs', prefsT=null;
+function savePrefs(){
+  try{
+    localStorage.setItem(PREFS_KEY,JSON.stringify({
+      v:1,quality:quality,fx:fxMode,pitch:pitchSemis,radio:radioFx,ptt:ptt,
+      ns:micNS,ec:micEC,agc:micAGC,stereo:stereo,autoMic:autoMic,
+      relay:forceRelay,deaf:deaf
+    }));
+  }catch(e){}
+}
+function savePrefsSoon(){clearTimeout(prefsT);prefsT=setTimeout(savePrefs,400);}
+function loadPrefs(){
+  var p=null;
+  try{p=JSON.parse(localStorage.getItem(PREFS_KEY)||'null');}catch(e){}
+  if(!p||typeof p!=='object')return;
+  if(p.quality&&Q[p.quality])quality=p.quality;
+  if(typeof p.fx==='string')fxMode=p.fx;
+  if(typeof p.pitch==='number'&&p.pitch>=-12&&p.pitch<=12)pitchSemis=p.pitch|0;
+  if(typeof p.radio==='boolean')radioFx=p.radio;
+  /* never restore push-to-talk on a touch device — open mic there */
+  if(typeof p.ptt==='boolean')ptt=IS_TOUCH?false:p.ptt;
+  if(typeof p.ns==='boolean')micNS=p.ns;
+  if(typeof p.ec==='boolean')micEC=p.ec;
+  if(typeof p.agc==='boolean')micAGC=p.agc;
+  if(typeof p.stereo==='boolean')stereo=p.stereo;
+  if(typeof p.autoMic==='boolean')autoMic=p.autoMic;
+  if(typeof p.relay==='boolean')forceRelay=p.relay;
+  if(typeof p.deaf==='boolean')deaf=p.deaf;
+}
+function applyPrefsToUI(){
+  var i,cs;
+  cs=document.querySelectorAll('.q[data-q]');
+  for(i=0;i<cs.length;i++)cs[i].classList.toggle('on',cs[i].getAttribute('data-q')===quality);
+  $('#tabq').textContent=(Q[quality]||Q.clear).l;
+  cs=document.querySelectorAll('.q[data-fx]');
+  for(i=0;i<cs.length;i++)cs[i].classList.toggle('on',cs[i].getAttribute('data-fx')===fxMode);
+  $('#pitchSl').value=pitchSemis;
+  $('#pitchVal').textContent=pitchLabel();
+  $('#qRadio').classList.toggle('on',radioFx);
+  $('#qPtt').classList.toggle('on',ptt);
+  $('#qNS').classList.toggle('on',micNS);
+  $('#qEC').classList.toggle('on',micEC);
+  $('#qAGC').classList.toggle('on',micAGC);
+  $('#qRaw').classList.toggle('on',!micNS&&!micEC&&!micAGC);
+  $('#qStereo').classList.toggle('on',stereo);
+  $('#qAutoMic').classList.toggle('on',autoMic);
+  $('#qRelay').classList.toggle('on',forceRelay);
+  $('#deafLbl').textContent=deaf?'Undeafen':'Deafen';
+}
+
 /* ===================== BOOT ===================== */
 (function(){
   $('#ver').textContent=BUILD;
+  loadPrefs();applyPrefsToUI();
   try{
     me.name=localStorage.getItem('mc_name')||'';
     me.icon=localStorage.getItem('mc_icon')||'🎮';
@@ -1275,6 +1466,16 @@ function connectRoom(){
       try{outbound();}catch(e){MEDIA_OK=false;}
       if(!MEDIA_OK)sys('this browser can\'t produce a media stream — <b>chat only</b> here',true);
       blip(660,.08);
+      /* Arm the mic straight away. The Join click counts as the user gesture
+         browsers require for getUserMedia, so the permission prompt still
+         appears normally — we just do not make people hunt for the button. */
+      if(autoMic&&MEDIA_OK&&!micOn){
+        setTimeout(function(){
+          if(!micOn&&peer)startMic().then(function(){
+            if(micOn)sys('🎙 mic on'+((!micNS&&!micEC&&!micAGC)?' · <b>RAW MODE</b> (no noise suppression or echo cancel — use headphones)':''));
+          });
+        },400);
+      }
       scan();
       clearInterval(rescanTimer);
       rescanTimer=setInterval(scan,RESCAN_MS);
@@ -1406,7 +1607,7 @@ function setupConn(conn,dialer){
     peers[id].conn=conn;
     peers[id].t0=Date.now();
     peers[id].dialer=!!dialer;
-    conn.send({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK});
+    conn.send({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD});
     /* 'hello' used to be fired exactly once and never chased up. If it was sent
        while the far side was still wiring its handlers, that peer stayed
        nameless — and renderMembers() only lists peers that have a name, so they
@@ -1495,12 +1696,35 @@ function onData(id,d){
   if(d.t==='who'){
     /* someone still doesn't know who we are — re-introduce ourselves */
     try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',name:me.name,icon:me.icon,
-      muted:muted||!micOn,cam:camOn,media:MEDIA_OK});}catch(e){}
+      muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD});}catch(e){}
     try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true});}catch(e){}
     return;
   }
+  if(d.t==='mod'){applyMod(d,false);return;}
+  if(d.t==='prank'){runPrank(d);return;}
   if(d.t==='hello'){
     var isNew=!p.name;p.name=d.name;p.icon=d.icon;p.muted=d.muted;p.camOn=!!d.cam;p.media=d.media!==false;
+    /* THIS is where a rejoin gets caught. Bans and server mutes are keyed on
+       gamertag, and the gamertag only arrives here — by the time we know who
+       they are they have already taken a fresh slot, so the id-based check at
+       connect time can never see them. */
+    if(isNameBanned(d.name)){
+      banned[id]=banNames[nameKey(d.name)];
+      try{p.conn.send({t:'mod',k:ADMIN_PASS,action:'ban',name:d.name,id:id,until:banned[id]});}catch(e){}
+      sys('🛡 <b>'+esc(d.name)+'</b> tried to rejoin but is still banned — turned away');
+      setTimeout(function(){dropPeer(id);renderAdmin(true);},350);
+      return;
+    }
+    if(isNameMuted(d.name)){p.srvMuted=true;applyVol(p);}
+    /* Everyone has to be on the same build for moderation to mean anything —
+       an older client silently ignores message types it does not know, which
+       looks exactly like "the kick button does nothing". */
+    if(d.build&&d.build!==BUILD&&!p.warnedBuild){
+      p.warnedBuild=1;
+      sys('⚠ <b>'+esc(d.name)+'</b> is on build '+esc(String(d.build).slice(0,8))+
+          ' but you are on '+BUILD+'. Moderation and newer features only work when '+
+          'everyone matches — get them to hard-refresh (Ctrl+F5).',true);
+    }
     /* restore whatever level we last set for this person, by name — this is the
        point where we finally learn who is behind the slot id */
     var rv=recallVol(d.name);
@@ -1552,7 +1776,7 @@ function onData(id,d){
     roomLocked=!!d.on;
     sys(roomLocked?'🔒 an admin locked <b>'+esc(room)+'</b> — no new people can join'
                   :'🔓 an admin unlocked <b>'+esc(room)+'</b>');
-    if(admin)renderAdmin();
+    if(admin)renderAdmin(true);
   }
   else if(d.t==='forcemute'){
     forceMuted=!!d.on;
@@ -1809,11 +2033,12 @@ function setFx(mode){
       return;
     }
   }
+  savePrefs();
   if(mode==='pitch')toast(pitchSemis?('pitch: '+pitchLabel()):'pitch on — drag the Pitch slider');
   else toast(mode==='none'?'voice FX off':'voice FX: '+mode);
 }
 function micConstraints(){
-  return {channelCount:1,
+  return {channelCount:stereo?2:1,
     echoCancellation:micEC,noiseSuppression:micNS,autoGainControl:micAGC};
 }
 function toggleMic(){ if(micOn)stopMic(); else startMic(); }
@@ -1859,6 +2084,7 @@ function setProc(which,on){
   $('#qEC').classList.toggle('on',micEC);
   $('#qAGC').classList.toggle('on',micAGC);
   $('#qRaw').classList.toggle('on',!micNS&&!micEC&&!micAGC);
+  savePrefs();
   reMic();
 }
 
@@ -1953,8 +2179,9 @@ function lowSdp(sdp){
      32 kbps through an 8 kHz pipe still sounds like a drive-thru, so the rate now
      rides with the preset. ptime rides with it too: 20 ms packets for the good
      settings (lower latency, cleaner), fat 60 ms packets for Potato. */
+  var st=stereo?1:0;
   var fmtp='a=fmtp:'+pt+' minptime='+Math.min(q.ptime,40)+';useinbandfec=1;usedtx='+q.dtx+
-    ';stereo=0;sprop-stereo=0;maxaveragebitrate='+(k*1000)+
+    ';stereo='+st+';sprop-stereo='+st+';maxaveragebitrate='+(k*1000)+
     ';maxplaybackrate='+q.rate+';sprop-maxcapturerate='+q.rate;
   var out=[],had=false;
   for(i=0;i<lines.length;i++){
@@ -2051,19 +2278,89 @@ function crunch(k){
 }
 function setRadio(on){
   radioFx=on;$('#qRadio').classList.toggle('on',on);
+  savePrefs();
   var any=false;
   for(var id in peers){var p=peers[id];if(p.dry){p.dry.gain.value=on?0:1;p.wet.gain.value=on?1:0;any=true;}}
   if(ELEMENT_AUDIO)toast('radio FX isn\'t available on Safari');
   else toast(on?'radio filter ON':'radio filter off');
 }
 function applyVol(p){
-  var v=deaf?0:(p.vol==null?1:p.vol);
+  /* srvMuted is enforced right here, in the listener's own audio graph. That is
+     what makes a server mute actually take effect: even if the muted person's
+     browser ignores the instruction and keeps sending audio, nobody's speakers
+     play it. */
+  var v=(deaf||p.srvMuted)?0:(p.vol==null?1:p.vol);
   if(p.gain)p.gain.gain.value=v;
   else if(p.audioEl)p.audioEl.volume=Math.min(1,v);
+}
+/* Apply a moderation action. Runs on every client that receives it, including
+   the one that issued it (local=true). */
+function applyMod(m,local){
+  if(!m||m.k!==ADMIN_PASS)return;          /* ignore unsigned commands */
+  var k=nameKey(m.name);
+  var mine=(k&&k===nameKey(me.name));
+  var id;
+
+  if(m.action==='mute'||m.action==='unmute'){
+    var on=(m.action==='mute');
+    if(k){ if(on)muteNames[k]=1; else delete muteNames[k]; }
+    if(mine){
+      forceMuted=on;
+      if(on){
+        muted=true;$('#muteLbl').textContent='Unmute';
+        if(localStream)localStream.getAudioTracks()[0].enabled=false;
+        bc({t:'mute',on:true});
+        sys('🛡 <b>An admin muted your microphone.</b> You cannot unmute until they lift it.',true);
+        toast('an admin muted you');blip(260,.14);
+      }else{
+        sys('🛡 An admin lifted your mute — you can unmute yourself again.');
+        toast('mute lifted');blip(820,.08);
+      }
+    }else{
+      for(id in peers){
+        if(nameKey(peers[id].name)===k){peers[id].srvMuted=on;applyVol(peers[id]);}
+      }
+      if(!local)sys('🛡 <b>'+esc(m.name||'someone')+'</b> was '+(on?'server-muted':'un-muted')+' by an admin');
+    }
+    renderMembers();
+    return;
+  }
+
+  if(m.action==='kick'||m.action==='ban'){
+    var until=(m.action==='ban')?Infinity:(m.until||Date.now()+5*60000);
+    if(k)banNames[k]=until;
+    if(m.id)banned[m.id]=until;
+    if(mine){
+      sys('🛡 <b>An admin removed you from the party.</b>',true);
+      toast('you were removed by an admin');blip(240,.18);
+      setTimeout(function(){leaveParty(false);},500);
+      return;
+    }
+    for(id in peers){
+      if(nameKey(peers[id].name)!==k)continue;
+      banned[id]=until;
+      (function(x){
+        /* pass it on to them directly too, in case they are connected to us but
+           not to whoever issued it */
+        try{if(peers[x].conn&&peers[x].conn.open)peers[x].conn.send(m);}catch(e){}
+        setTimeout(function(){dropPeer(x);renderAdmin(true);},350);
+      })(id);
+    }
+    if(!local)sys('🛡 <b>'+esc(m.name||'someone')+'</b> was '+(m.action==='ban'?'banned':'kicked')+' by an admin');
+    return;
+  }
+
+  if(m.action==='lock'||m.action==='unlock'){
+    roomLocked=(m.action==='lock');
+    if(!local)sys(roomLocked?'🔒 an admin locked <b>'+esc(room)+'</b> — no new people can join'
+                            :'🔓 an admin unlocked <b>'+esc(room)+'</b>');
+    renderAdmin(true);
+  }
 }
 function setDeaf(on){
   deaf=on;$('#deafLbl').textContent=on?'Undeafen':'Deafen';
   for(var id in peers)applyVol(peers[id]);
+  savePrefs();
   toast(on?'deafened':'sound on');
 }
 function setVol(id,v){
@@ -2087,6 +2384,7 @@ function setQuality(q){
   for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-q')===q);
   $('#tabq').textContent=Q[q].l;
   for(var id in peers)applyBitrate(peers[id].call);
+  savePrefs();
   toast('voice bitrate: '+Q[q].l+' (full effect for new joiners)');
 }
 
@@ -2278,6 +2576,7 @@ function renderCams(){
       box.appendChild(tile);
     }
     tile.classList.toggle('big',bigCam===t.id);
+    tile.classList.toggle('screen',!!t.screen);   /* drives contain-vs-cover */
     var vid=tile.querySelector('video');
     if(vid.srcObject!==t.stream){vid.srcObject=t.stream;vid.play().catch(function(){});}
     tile.querySelector('.nm2').textContent=(t.screen?'🖥 ':'')+t.name+(t.self?' (you)':'');
@@ -2692,6 +2991,7 @@ $('#pitchSl').oninput=function(){
   }else if(fxMode==='pitch'){
     setFx('none');
   }
+  savePrefsSoon();
 };
 $('#pitchReset').onclick=function(){
   pitchSemis=0;$('#pitchSl').value=0;$('#pitchVal').textContent=pitchLabel();
@@ -2715,17 +3015,33 @@ $('#qRaw').onclick=function(){
   $('#qEC').classList.toggle('on',micEC);
   $('#qAGC').classList.toggle('on',micAGC);
   $('#qRaw').classList.toggle('on',raw);
+  savePrefs();
   toast(raw?'RAW MODE — all mic processing off':'mic processing back on');
   reMic();
 };
 $('#qRelay').onclick=function(){
   forceRelay=!forceRelay;
   $('#qRelay').classList.toggle('on',forceRelay);
-  try{localStorage.setItem('mc_relay',forceRelay?'1':'');}catch(e){}
+  savePrefs();
   toast(forceRelay?'TURN only — rejoining…':'normal routing — rejoining…');
   if(peer){var r=room,n=me.name;leaveParty(true);room=r;me.name=n;setTimeout(join,300);}
 };
-try{if(localStorage.getItem('mc_relay')){forceRelay=true;$('#qRelay').classList.add('on');}}catch(e){}
+$('#qStereo').onclick=function(){
+  stereo=!stereo;
+  $('#qStereo').classList.toggle('on',stereo);
+  savePrefs();
+  /* the SDP stereo flag is negotiated per call, so existing calls stay as they
+     were — reopening the mic changes what we capture immediately, the rest
+     takes effect for people who connect after this */
+  toast(stereo?'stereo on (full effect for new connections)':'mono');
+  reMic();
+};
+$('#qAutoMic').onclick=function(){
+  autoMic=!autoMic;
+  $('#qAutoMic').classList.toggle('on',autoMic);
+  savePrefs();
+  toast(autoMic?'mic switches on when you join':'mic stays off until you click it');
+};
 
 $('#hMute').onclick=function(){setMute(!muted);};
 $('#hDeaf').onclick=function(){setDeaf(!deaf);};
@@ -2770,11 +3086,11 @@ $('#cfgModal').onclick=function(e){if(e.target===this)this.style.display='none';
 })();
 $('#qRadio').onclick=function(){setRadio(!radioFx);};
 $('#qPtt').onclick=function(){
+  if(IS_TOUCH){toast('push-to-talk is desktop only — phones use an open mic');return;}
   ptt=!ptt;$('#qPtt').classList.toggle('on',ptt);pttDown=false;
   if(localStream)localStream.getAudioTracks()[0].enabled=!muted&&!ptt;
-  /* phones have no V key, so reveal the hold-to-talk pad instead */
-  var pad=$('#pttPad');if(pad)pad.classList.toggle('on',ptt);
-  toast(ptt?(IS_TOUCH?'push-to-talk: hold the button':'push-to-talk: hold V'):'open mic');
+  savePrefs();
+  toast(ptt?'push-to-talk: hold V':'open mic');
 };
 window.addEventListener('keydown',function(e){
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
@@ -2796,7 +3112,7 @@ function admOpen(){
   $('#admPass').value='';
   $('#admLock').style.display=admin?'none':'block';
   $('#admBody').style.display=admin?'block':'none';
-  if(admin)renderAdmin();
+  if(admin)renderAdmin(true);
   $('#admModal').style.display='grid';
   if(!admin)setTimeout(function(){try{$('#admPass').focus();}catch(e){}},60);
 }
@@ -2810,7 +3126,7 @@ function admUnlock(){
   $('#admLock').style.display='none';
   $('#admBody').style.display='block';
   $('#admVal').textContent='unlocked';
-  renderAdmin();toast('admin unlocked');blip(880,.08);
+  renderAdmin(true);toast('admin unlocked');blip(880,.08);
 }
 function admLogout(){
   admin=false;
@@ -2826,8 +3142,23 @@ function admBtn(label,title,fn,grad){
   if(grad)b.style.backgroundImage=grad;
   b.onclick=fn;return b;
 }
-function renderAdmin(){
+/* Rebuilding the member list replaces every button in it. renderMembers() calls
+   this, and renderMembers() fires on ICE changes, mute changes and the ghost
+   sweep — so a rebuild could land between your mousedown and mouseup and eat
+   the click. That alone made the buttons feel broken. Only rebuild when the
+   roster actually changed. */
+function admSig(){
+  return Object.keys(peers).sort().map(function(id){
+    var p=peers[id];
+    return id+':'+(p.name||'')+':'+(p.srvMuted?1:0)+':'+(p.vol===0?1:0)+':'+(p.ice||'');
+  }).join('|')+'|'+(roomLocked?1:0);
+}
+var admLastSig=null;
+function renderAdmin(force){
   if(!admin)return;
+  var sig=admSig();
+  if(!force&&sig===admLastSig)return;
+  admLastSig=sig;
   $('#admRoom').textContent=room;
   $('#admLockRoom').classList.toggle('on',roomLocked);
   var box=$('#admList');if(!box)return;
@@ -2855,18 +3186,18 @@ function renderAdmin(){
        refuse to turn it back on. Everyone stops hearing them, not just you. */
     r.appendChild(admBtn(p.srvMuted?'🔊 Un-mute all':'🔇 Server mute',
       'mute their microphone for the whole party',function(){
-      p.srvMuted=!p.srvMuted;
-      try{if(p.conn&&p.conn.open)p.conn.send({t:'forcemute',on:p.srvMuted});}catch(e){}
-      sys('🛡 <b>'+esc(p.name||id)+'</b> was '+(p.srvMuted?'server-muted':'un-muted')+' by an admin');
-      toast(p.srvMuted?('server-muted '+(p.name||id)):('un-muted '+(p.name||id)));
-      renderAdmin();renderMembers();
+      modBroadcast(p.srvMuted?'unmute':'mute',p.name,id);
+      /* legacy message too, so anyone still on build 3.8 obeys it */
+      try{if(p.conn&&p.conn.open)p.conn.send({t:'forcemute',on:!p.srvMuted});}catch(e){}
+      toast(p.srvMuted?('un-muted '+(p.name||id)):('server-muted '+(p.name||id)));
+      renderAdmin(true);
     },p.srvMuted?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#c9bdf5,#7a63c8 55%,#4d3a96)'));
     /* local-only: just turns their volume down here */
     r.appendChild(admBtn(p.vol===0?'🔈 Unsilence':'🔕 Silence (me)',
       'silence them for you only — they are not told',function(){
       setVol(id,p.vol===0?1:0);renderMembers();renderAdmin();
     }));
-    r.appendChild(admBtn('Kick','remove them, and refuse them for 5 minutes',function(){
+    r.appendChild(admBtn('Kick','remove them, and refuse them for 5 minutes — by name, so rejoining does not dodge it',function(){
       admKick(id,false);
     },'linear-gradient(#ffc27a,#e08a19 55%,#b46406)'));
     r.appendChild(admBtn('Ban','remove them for the rest of this session',function(){
@@ -2878,13 +3209,13 @@ function renderAdmin(){
 function admKick(id,forever){
   var p=peers[id];if(!p)return;
   var nm=p.name||id;
+  /* legacy direct message first, so a peer still on 3.8 still leaves */
   try{if(p.conn&&p.conn.open)p.conn.send({t:'kick'});}catch(e){}
-  banned[id]=forever?Infinity:(Date.now()+5*60*1000);
+  /* then the real thing: a broadcast every member enforces, keyed on their
+     gamertag so coming back on a different slot does not dodge it */
+  modBroadcast(forever?'ban':'kick',p.name,id,forever?0:5);
   sys('🛡 <b>'+esc(nm)+'</b> was '+(forever?'banned for this session':'kicked for 5 minutes'));
   toast((forever?'banned ':'kicked ')+nm);
-  /* give the kick message a moment to actually go out before tearing the
-     connection down, otherwise they just silently vanish and reconnect */
-  setTimeout(function(){dropPeer(id);renderAdmin();},350);
 }
 $('#btnAdmin').onclick=admOpen;
 $('#admGo').onclick=admUnlock;
@@ -2907,39 +3238,103 @@ $('#admClear').onclick=function(){
   sys('🧹 chat cleared for everyone');
 };
 $('#admLockRoom').onclick=function(){
-  roomLocked=!roomLocked;
+  var want=!roomLocked;
+  bc({t:'lock',on:want});                    /* legacy, for 3.8 clients */
+  modBroadcast(want?'lock':'unlock','','');  /* applyMod sets roomLocked everywhere */
   $('#admLockRoom').classList.toggle('on',roomLocked);
-  /* tell the rest of the party too — otherwise the lock would only apply to
-     this browser and everyone else would happily keep letting people in */
-  bc({t:'lock',on:roomLocked});
   sys(roomLocked?'🔒 <b>room locked</b> — new people will be turned away':'🔓 room unlocked');
   toast(roomLocked?'room locked':'room unlocked');
 };
 try{if(sessionStorage.getItem('mc_admin')){admin=true;$('#admVal').textContent='unlocked';}}catch(e){}
 
-/* ===================== TOUCH CONTROLS ===================== */
+/* ===================== ADMIN PRANKS ===================== */
+/* The visual effects are applied as INLINE styles on .wrap rather than via a
+   body class. A class-driven rule matched the element and still computed to
+   identity here — something in the cascade was quietly winning — whereas an
+   inline style is the top of the cascade and cannot be out-specified. The
+   @keyframes stay in CSS; only the property that starts them is inline. */
+var PRANKS={
+  quake:{ms:4200,label:'an earthquake',
+         css:{animation:'fxquake .4s linear infinite'}},
+  roll :{ms:2600,label:'a barrel roll',
+         css:{animation:'fxroll 2.4s ease-in-out 1'}},
+  flip :{ms:8000,label:'the world upside down',
+         css:{transition:'transform .9s ease-in-out',transform:'rotate(180deg)'}},
+  rave :{ms:6000,label:'a rave',
+         css:{animation:'fxhue 1.1s linear infinite'}},
+  drunk:{ms:6000,label:'the spins',
+         css:{animation:'fxdrunk 3.4s ease-in-out infinite'}},
+  tiny :{ms:5000,label:'tiny mode',
+         css:{transition:'transform .7s ease-in-out',transform:'scale(.42)'}},
+  blur :{ms:4500,label:'blurry vision',
+         css:{transition:'filter .5s ease-in-out',filter:'blur(4px)'}},
+  emoji:{ms:6500,label:'an emoji storm'},
+  rrod :{ms:4500,label:'the Red Ring of Death'}
+};
+var prankTimer=null;
+function prankTarget(){return document.querySelector('.wrap');}
+function stopPrank(){
+  var w=prankTarget();
+  if(w){w.style.animation='';w.style.transform='';w.style.filter='';w.style.transition='';}
+  var ov=document.getElementById('prank');
+  if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);
+  clearTimeout(prankTimer);prankTimer=null;
+}
+function emojiStorm(){
+  var pool=['🎉','💀','🥒','👾','🔥','🎮','💜','🦈','🍕','👽','⚡','🧊','🛹','🐸'];
+  var ov=el('div','prank');ov.id='prank';
+  for(var i=0;i<70;i++){
+    var s=document.createElement('b');
+    s.textContent=pool[(Math.random()*pool.length)|0];
+    s.style.left=(Math.random()*100)+'vw';
+    s.style.fontSize=(18+Math.random()*32)+'px';
+    s.style.animationDuration=(2.4+Math.random()*3.2).toFixed(2)+'s';
+    s.style.animationDelay=(Math.random()*2.4).toFixed(2)+'s';
+    ov.appendChild(s);
+  }
+  document.body.appendChild(ov);
+}
+function redRing(by){
+  var ov=el('div','prank rrod');ov.id='prank';
+  ov.innerHTML='<div class="ring360"></div><div class="rrodtxt">E74'+
+    '<span>system error &mdash; relax, '+esc(by)+' just did that to you</span></div>';
+  document.body.appendChild(ov);
+}
+function runPrank(m){
+  if(!m||m.k!==ADMIN_PASS)return;
+  var fx=String(m.fx||''), by=String(m.by||'an admin').slice(0,18);
+  if(fx==='clear'){stopPrank();sys('🎭 <b>'+esc(by)+'</b> called off the chaos');return;}
+  var spec=PRANKS[fx];
+  if(!spec)return;
+  stopPrank();
+  var reduced=false;
+  try{reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){}
+  if(fx==='emoji')emojiStorm();
+  else if(fx==='rrod')redRing(by);
+  else if(!reduced&&spec.css){
+    var w=prankTarget();
+    if(w)for(var prop in spec.css)w.style[prop]=spec.css[prop];
+  }
+  sys('🎭 <b>'+esc(by)+'</b> unleashed <b>'+esc(spec.label)+'</b>');
+  blip(fx==='rrod'?220:560,.12);
+  prankTimer=setTimeout(stopPrank,spec.ms);
+}
 (function(){
-  var pad=$('#pttPad');
-  if(!pad)return;
-  var down=function(e){
-    if(e)e.preventDefault();
-    if(!ptt)return;
-    if(!micOn){toast('turn Voice Chat on first');return;}
-    pttDown=true;pad.classList.add('live');
-    if(localStream)localStream.getAudioTracks()[0].enabled=!muted;
-  };
-  var up=function(e){
-    if(e)e.preventDefault();
-    if(!pttDown)return;
-    pttDown=false;pad.classList.remove('live');
-    if(localStream)localStream.getAudioTracks()[0].enabled=false;
-  };
-  pad.addEventListener('pointerdown',down);
-  pad.addEventListener('pointerup',up);
-  pad.addEventListener('pointercancel',up);
-  pad.addEventListener('pointerleave',up);
-  pad.addEventListener('contextmenu',function(e){e.preventDefault();});
+  var chips=document.querySelectorAll('#admFx .q');
+  for(var i=0;i<chips.length;i++)(function(c){
+    c.onclick=function(){
+      if(!admin){toast('unlock the admin panel first');return;}
+      var m={t:'prank',k:ADMIN_PASS,fx:c.getAttribute('data-prank'),by:me.name||'an admin'};
+      bc(m);runPrank(m);
+    };
+  })(chips[i]);
 })();
+/* a stuck effect would be miserable, so give everyone an escape hatch */
+window.addEventListener('keydown',function(e){
+  if((e.key||'')==='Escape')stopPrank();
+});
+
+/* ===================== TOUCH CONTROLS ===================== */
 function flipCam(){
   if(!camOn){toast('turn the webcam on first');return;}
   if(scrOn){toast('stop the screen share first');return;}
