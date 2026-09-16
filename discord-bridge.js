@@ -84,9 +84,22 @@ async function joinDiscord() {
 
   state.feed = new PassThrough({ highWaterMark: 1 << 20 });
   const resource = createAudioResource(state.feed, { inputType: StreamType.WebmOpus });
-  state.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+  // The browser sends a chunk every ~200 ms, but the player polls every 20 ms
+  // and by default gives up after 5 empty polls (100 ms). That made it go
+  // idle right after the first chunk while audio kept arriving. Gaps are
+  // normal here, so never stop on them; the WebSocket closing is what ends
+  // the bridge.
+  state.player = createAudioPlayer({
+    behaviors: { noSubscriber: NoSubscriberBehavior.Play, maxMissedFrames: Number.MAX_SAFE_INTEGER },
+  });
   state.player.on('error', (e) => { state.lastError = String(e && e.message || e); log('player error', state.lastError); });
-  state.player.on('stateChange', (o, n) => log('player', o.status, '->', n.status));
+  state.player.on('stateChange', (o, n) => {
+    log('player', o.status, '->', n.status);
+    if (n.status === 'idle' && state.active) {
+      state.lastError = 'player stopped (' + (o.status) + ' -> idle) while the bridge was active';
+      log(state.lastError);
+    }
+  });
   state.player.play(resource);
   state.connection.subscribe(state.player);
 
