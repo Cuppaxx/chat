@@ -673,7 +673,8 @@ body.touch #qPtt{display:none}
     <div class="row" style="font-size:15px;gap:10px;flex-wrap:wrap">
       <span class="lab">VERITY voice:</span>
       <select id="verityVoice" style="font:inherit;font-size:13px;padding:3px 6px;border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d"></select>
-      <span class="q" id="verityMute" title="silence him on your machine only">🔇 Mute VERITY (me)</span>
+      <span class="q" id="verityMute" title="silence her on your machine only">🔇 Mute VERITY (me)</span>
+      <span class="q on" id="verityHear" title="your speech is transcribed in your own browser; only the text is sent">🎤 Let VERITY hear me</span>
     </div>
     <div class="row action" id="btnAdmin">🛡 Admin Panel <span class="val" id="admVal">moderation tools</span></div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
@@ -907,10 +908,6 @@ body.touch #qPtt{display:none}
       <label>Password</label>
       <input type="password" id="admPass" autocomplete="off" placeholder="admin password">
       <div class="err" id="admErr"></div>
-      <div class="hint2">Heads up: this page is plain HTML, so the password is readable by anyone
-        who views the source. It keeps honest people out of the controls — it is not real security.
-        Kicks and locks are also requests to the other person's browser, which an unmodified
-        chatroom obeys and a tampered one could ignore.</div>
       <div class="actions">
         <button class="btn grey" id="admCancel">Close</button>
         <button class="btn" id="admGo">Unlock</button>
@@ -977,7 +974,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='5.2';
+var BUILD='5.6';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -2000,11 +1997,18 @@ function onData(id,d){
     /* Only the caller runs the model; everyone else just sees the line in chat.
        His actual voice arrives through the normal Opus voice stream, so there
        is nothing to download and nothing extra to decode here. */
-    if(d.a==='join'){VERITY.on=true;VERITY.host=false;verityButtons();renderMembers();
+    if(d.a==='join'){VERITY.on=true;VERITY.host=false;verityButtons();renderMembers();verityEarsSync();
       sys('🥒 <b>VERITY</b> joined the call.');return;}
-    if(d.a==='leave'){VERITY.on=false;VERITY.host=false;verityButtons();renderMembers();
+    if(d.a==='leave'){VERITY.on=false;VERITY.host=false;verityButtons();renderMembers();verityListen(false);
       sys('🥒 <b>VERITY</b> hung up.');return;}
     if(d.a==='say'){addMsg(VERITY_ME,String(d.text||'').slice(0,300),false);return;}
+    if(d.a==='heard'){
+      if(!VERITY.host)return;              /* only the caller runs her brain */
+      var heard=String(d.text||'').slice(0,200);
+      var rep=verityBrain(heard);
+      if(rep)setTimeout(function(){veritySay(rep);},500);
+      return;
+    }
     return;
   }
   if(d.t==='mega'){
@@ -2412,6 +2416,7 @@ function stopMic(){
     setOut('audio',fxDest.stream.getAudioTracks()[0]);
   else setOut('audio',phAudio);
   bc({t:'mute',on:true});renderMembers();
+  try{verityListen(false);}catch(e){}
 }
 function startMic(announce){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
@@ -2428,6 +2433,7 @@ function startMic(announce){
       localAnalyser=c.createAnalyser();localAnalyser.fftSize=256;src.connect(localAnalyser);
     }catch(e){}
     bc({t:'mute',on:muted});renderMembers();
+    try{verityEarsSync();}catch(e){}
     if(announce!==false)blip(760,.05);
   })
   .catch(function(e){
@@ -2910,7 +2916,7 @@ function renderMembers(){
     mr.appendChild(mkAva('🥒'));
     mr.appendChild(el('div','nm','VERITY'+(VERITY.host?' (your call)':'')));
     var ms=el('div','st');
-    ms.appendChild(el('span','',VERITY.host?(VERITY.ready?'neural voice':(VERITY.loading?'loading voice…':'built-in voice')):'on the call'));
+    ms.appendChild(el('span','',VERITY.host?(VERITY.ready?'neural voice':(VERITY.loading?'loading voice…':(VERITY.useFallback?'browser voice':'connecting…'))):'on the call'));
     ms.appendChild(el('span','pip'));
     mr.appendChild(ms);
     box.appendChild(mr);
@@ -4651,8 +4657,10 @@ window.addEventListener('keydown',function(e){
    pretend otherwise. */
 var VERITY={
   on:false, host:false, mutedLocal:false, ready:false, loading:false,
-  tts:null, bus:null, voice:'am_puck', last:0, idle:null,
-  ears:null, listening:false, queue:[], speaking:false, useFallback:false
+  worker:null, loadPromise:null, pending:{}, reqId:0,
+  bus:null, voice:'af_heart', last:0, idle:null,
+  ears:null, listening:false, hearMe:true, earsStarted:0, earsFails:0, earsDead:false, lastErr:'',
+  queue:[], speaking:false, useFallback:false
 };
 var VERITY_ME={name:'VERITY',icon:'🥒'};
 var VERITY_CDN=[
@@ -4662,11 +4670,13 @@ var VERITY_CDN=[
 ];
 /* a few of Kokoro's voices — picked for character rather than polish */
 var VERITY_VOICES=[
-  {id:'am_puck',   n:'Puck (odd, chirpy)'},
-  {id:'am_fenrir', n:'Fenrir (gravelly)'},
-  {id:'bm_george', n:'George (British)'},
-  {id:'af_heart',  n:'Heart (warm)'},
-  {id:'am_michael',n:'Michael (plain)'}
+  {id:'af_heart',  n:'Heart — warm, most natural'},
+  {id:'af_bella',  n:'Bella — bright'},
+  {id:'bf_emma',   n:'Emma — British'},
+  {id:'am_michael',n:'Michael — calm'},
+  {id:'bm_george', n:'George — British, dry'},
+  {id:'am_puck',   n:'Puck — odd and chirpy'},
+  {id:'am_fenrir', n:'Fenrir — gravelly'}
 ];
 
 /* ---------- audio bus: VERITY -> outgoing WebRTC track + local speakers ---------- */
@@ -4684,44 +4694,138 @@ function verityBus(){
   return VERITY.bus;
 }
 /* ---------- model ---------- */
-function verityLoad(){
-  if(VERITY.tts||VERITY.loading)return Promise.resolve(!!VERITY.tts);
-  VERITY.loading=true;
-  var webgpu=!!navigator.gpu;
+/* The model runs in a Web Worker, not on this thread. That is not tidiness —
+   loading ~86 MB of ONNX weights and running inference on the main thread of a
+   page that is already doing WebRTC, canvas animation and video decoding was
+   enough to take the whole tab down. In a worker the heavy allocation lives in
+   its own thread with its own heap: the UI keeps running while it loads, and if
+   it does run out of memory the worker dies alone and we fall back to the
+   built-in voice instead of killing the window.
+
+   The worker is built from a Blob so this stays one self-contained HTML file. */
+function verityWorkerSrc(){
+  return [
+    "let tts=null;",
+    "self.onmessage=async(e)=>{",
+    "  const m=e.data;",
+    "  if(m.cmd==='load'){",
+    "    try{",
+    "      let mod=null,err=null;",
+    "      for(const u of m.cdns){ try{ mod=await import(u); break; }catch(x){ err=x; } }",
+    "      if(!mod) throw err||new Error('no CDN reachable');",
+    "      const K=mod.KokoroTTS||(mod.default&&mod.default.KokoroTTS);",
+    "      if(!K) throw new Error('KokoroTTS not exported');",
+    "      tts=await K.from_pretrained(m.model,{dtype:m.dtype,device:m.device});",
+    "      self.postMessage({ev:'loaded',ok:true});",
+    "    }catch(err){ self.postMessage({ev:'loaded',ok:false,error:String(err&&err.message||err)}); }",
+    "    return;",
+    "  }",
+    "  if(m.cmd==='say'){",
+    "    try{",
+    "      if(!tts) throw new Error('not loaded');",
+    "      const a=await tts.generate(m.text,{voice:m.voice,speed:1.0});",
+    "      const f=a.audio||a.data;",
+    "      const pcm=(f instanceof Float32Array)?f:new Float32Array(f);",
+    "      self.postMessage({ev:'audio',ok:true,id:m.id,rate:a.sampling_rate||a.sampleRate||24000,pcm},[pcm.buffer]);",
+    "    }catch(err){ self.postMessage({ev:'audio',ok:false,id:m.id,error:String(err&&err.message||err)}); }",
+    "  }",
+    "};"
+  ].join("\n");
+}
+function verityKill(reason){
+  try{if(VERITY.worker)VERITY.worker.terminate();}catch(e){}
+  VERITY.worker=null;VERITY.ready=false;VERITY.loading=false;VERITY.useFallback=true;
+  for(var k in VERITY.pending){try{VERITY.pending[k].rej(new Error(reason));}catch(e){}}
+  VERITY.pending={};
   try{renderMembers();}catch(e){}
-  sys('🥒 VERITY is waking up — downloading their voice model (~80 MB, one time, then cached). '+
-      (webgpu?'WebGPU found, this will be quick.':'No WebGPU here, running on WASM — slower but fine.'));
-  var i=0;
-  function attempt(){
-    if(i>=VERITY_CDN.length)return Promise.reject(new Error('no CDN'));
-    var url=VERITY_CDN[i++];
-    return import(/* webpackIgnore: true */ url).catch(attempt);
+}
+function verityLoad(){
+  if(VERITY.ready)return Promise.resolve(true);
+  if(VERITY.loadPromise)return VERITY.loadPromise;
+  if(!window.Worker){
+    VERITY.useFallback=true;
+    sys('🥒 No Web Worker support here, so VERITY uses the browser voice.',true);
+    return Promise.resolve(false);
   }
-  return attempt().then(function(mod){
-    var K=mod.KokoroTTS||(mod.default&&mod.default.KokoroTTS);
-    if(!K)throw new Error('KokoroTTS not exported');
-    /* Quantised on purpose: the fp32 weights are ~326 MB, an absurd thing to
-       download to hear a bot tell pickle jokes. q8 is ~86 MB and sounds fine
-       over a 32 kbps voice channel.
-       q4f16 is smaller still and was the obvious choice — but on this machine
-       it generated perfectly-timed SILENCE: correct sample count, peak
-       amplitude 0.000. q8 on the same GPU gives peak 0.697. Low-bit
-       quantisation of this model is not reliable, so q8 it is. */
-    return K.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{
+  /* A very small machine will not survive this; say so instead of crashing. */
+  var mem=navigator.deviceMemory;
+  if(mem&&mem<2){
+    VERITY.useFallback=true;
+    sys('🥒 This device reports under 2 GB of memory, which is not enough for VERITY’s '+
+        'neural voice — using the browser voice instead.',true);
+    return Promise.resolve(false);
+  }
+  VERITY.loading=true;
+  try{renderMembers();}catch(e){}
+  var webgpu=!!navigator.gpu;
+  sys('🥒 VERITY is waking up — fetching their voice model (~86 MB, once, then cached). '+
+      (webgpu?'WebGPU found, this should be quick. ':'No WebGPU, running on WASM — slower. ')+
+      'The room keeps working while it loads.');
+
+  VERITY.loadPromise=new Promise(function(resolve){
+    var url;
+    try{
+      url=URL.createObjectURL(new Blob([verityWorkerSrc()],{type:'text/javascript'}));
+      VERITY.worker=new Worker(url,{type:'module'});
+    }catch(e){
+      VERITY.loading=false;VERITY.useFallback=true;
+      sys('🥒 Couldn’t start VERITY’s voice worker ('+esc(String(e.message||e).slice(0,50))+
+          ') — using the browser voice.',true);
+      return resolve(false);
+    }
+    var settled=false;
+    var giveUp=setTimeout(function(){
+      if(settled)return;settled=true;
+      verityKill('timeout');
+      sys('🥒 VERITY’s voice model took too long to load — using the browser voice. '+
+          'It may finish downloading in the background; try calling again later.',true);
+      resolve(false);
+    },180000);
+
+    VERITY.worker.onmessage=function(ev){
+      var d=ev.data||{};
+      if(d.ev==='loaded'){
+        if(settled)return;settled=true;clearTimeout(giveUp);
+        VERITY.loading=false;
+        if(d.ok){
+          VERITY.ready=true;VERITY.useFallback=false;
+          good('🥒 VERITY’s voice is loaded. They are, regrettably, ready.');
+          try{renderMembers();}catch(e){}
+          resolve(true);
+        }else{
+          verityKill('load failed');
+          sys('🥒 VERITY’s neural voice failed to load ('+esc(String(d.error||'').slice(0,70))+
+              ') — falling back to the browser voice.',true);
+          resolve(false);
+        }
+        return;
+      }
+      if(d.ev==='audio'){
+        var w=VERITY.pending[d.id];
+        if(!w)return;
+        delete VERITY.pending[d.id];
+        if(d.ok&&d.pcm)w.res({pcm:d.pcm,rate:d.rate});
+        else w.rej(new Error(d.error||'no audio'));
+      }
+    };
+    /* a worker crash lands here instead of taking the page with it */
+    VERITY.worker.onerror=function(){
+      if(!settled){settled=true;clearTimeout(giveUp);resolve(false);}
+      verityKill('worker error');
+      sys('🥒 VERITY’s voice worker fell over (most likely out of memory). '+
+          'Switched to the browser voice — the room is unaffected.',true);
+    };
+    VERITY.worker.postMessage({
+      cmd:'load',
+      cdns:VERITY_CDN,
+      model:'onnx-community/Kokoro-82M-v1.0-ONNX',
+      /* q8 on purpose: q4f16 produced perfectly-timed SILENCE on test hardware
+         (right sample count, peak amplitude 0.000) while q8 gave 0.697. */
       dtype:'q8',
       device: webgpu?'webgpu':'wasm'
     });
-  }).then(function(tts){
-    VERITY.tts=tts;VERITY.loading=false;VERITY.ready=true;
-    renderMembers();   /* flip the roster from 'loading' to 'neural voice' */
-    good('🥒 VERITY’s voice is loaded. They are, regrettably, ready.');
-    return true;
-  }).catch(function(e){
-    VERITY.loading=false;VERITY.useFallback=true;
-    sys('🥒 VERITY couldn’t load his neural voice ('+esc(String(e&&e.message||e).slice(0,60))+
-        '). Falling back to the browser’s built-in voice — they still talk, it just sounds worse.',true);
-    return false;
   });
+  return VERITY.loadPromise;
 }
 /* ---------- speaking ---------- */
 function verityEnqueue(text){
@@ -4732,42 +4836,48 @@ function verityDrain(){
   if(!VERITY.queue.length){VERITY.speaking=false;return;}
   VERITY.speaking=true;
   var text=VERITY.queue.shift();
-  verityRender(text).then(function(){ setTimeout(verityDrain,220); })
-                  .catch(function(){ setTimeout(verityDrain,220); });
+  verityRender(text).then(function(){setTimeout(verityDrain,220);})
+                    .catch(function(){setTimeout(verityDrain,220);});
 }
 function verityRender(text){
   if(VERITY.mutedLocal)return Promise.resolve();
-  if(VERITY.tts){
-    return VERITY.tts.generate(text,{voice:VERITY.voice,speed:1.0}).then(function(out){
-      var f32=out.audio||out.data, sr=out.sampling_rate||out.sampleRate||24000;
-      if(!f32)throw new Error('no audio');
-      /* Silence guard. A bad quantisation can return a perfectly-shaped buffer
-         of pure zeroes — right length, right rate, no sound. That failure is
-         invisible unless you look, so look: if the first stretch is flat,
-         abandon the model and use the built-in voice instead of miming. */
-      var pk=0,n=Math.min(f32.length,24000);
-      for(var i=0;i<n;i++){var av=f32[i]<0?-f32[i]:f32[i];if(av>pk)pk=av;}
-      if(pk<0.005){
-        VERITY.tts=null;VERITY.useFallback=true;VERITY.ready=false;
-        sys('🥒 VERITY’s neural voice came out silent on this machine (a quantisation '+
-            'problem, not your audio). Switching to the browser voice.',true);
-        renderMembers();
-        return new Promise(function(res){verityFallbackSpeak(text);setTimeout(res,1800);});
-      }
-      var c=ctx();
-      var buf=c.createBuffer(1,f32.length,sr);   /* BufferSource resamples for us */
-      buf.getChannelData(0).set(f32);
-      var src=c.createBufferSource();
-      src.buffer=buf;
-      src.connect(verityBus());
-      return new Promise(function(res){
-        src.onended=res;
-        src.start();
-        setTimeout(res,(buf.duration*1000)+600);  /* never wedge the queue */
-      });
-    });
+  if(!VERITY.ready||!VERITY.worker){
+    return new Promise(function(res){verityFallbackSpeak(text);setTimeout(res,1800);});
   }
-  return new Promise(function(res){ verityFallbackSpeak(text); setTimeout(res,1800); });
+  var id=++VERITY.reqId;
+  return new Promise(function(res,rej){
+    VERITY.pending[id]={res:res,rej:rej};
+    VERITY.worker.postMessage({cmd:'say',id:id,text:text,voice:VERITY.voice});
+    setTimeout(function(){
+      if(VERITY.pending[id]){delete VERITY.pending[id];rej(new Error('generate timeout'));}
+    },25000);
+  }).then(function(out){
+    var f32=out.pcm, sr=out.rate||24000;
+    /* Silence guard: a bad quantisation can hand back a correctly-shaped buffer
+       of pure zeroes. That is invisible unless you check, so check. */
+    var pk=0,n=Math.min(f32.length,24000);
+    for(var i=0;i<n;i++){var av=f32[i]<0?-f32[i]:f32[i];if(av>pk)pk=av;}
+    if(pk<0.005){
+      verityKill('silent output');
+      sys('🥒 VERITY’s neural voice came out silent on this machine (a quantisation '+
+          'problem, not your audio). Switching to the browser voice.',true);
+      verityFallbackSpeak(text);
+      return;
+    }
+    var c=ctx();
+    var buf=c.createBuffer(1,f32.length,sr);   /* BufferSource resamples for us */
+    buf.getChannelData(0).set(f32);
+    var src=c.createBufferSource();
+    src.buffer=buf;
+    src.connect(verityBus());
+    return new Promise(function(done){
+      src.onended=done;
+      src.start();
+      setTimeout(done,(buf.duration*1000)+600);   /* never wedge the queue */
+    });
+  }).catch(function(){
+    return new Promise(function(res){verityFallbackSpeak(text);setTimeout(res,1600);});
+  });
 }
 function verityFallbackSpeak(text){
   try{
@@ -4854,6 +4964,7 @@ function veritySay(text){
 function verityStart(){
   if(VERITY.on){verityStop();return;}
   VERITY.on=true;VERITY.host=true;
+  VERITY.earsDead=false;VERITY.earsFails=0;   /* fresh call, fresh chance to listen */
   $('#verityVal').textContent='on the call';verityButtons();
   bc({t:'verity',a:'join'});
   renderMembers();
@@ -4866,7 +4977,7 @@ function verityStart(){
   VERITY.idle=setInterval(function(){
     if(VERITY.on&&VERITY.host&&Math.random()<0.45)veritySay(verityPick('idle'));
   },42000);
-  verityListen(true);
+  verityEarsSync();
 }
 function verityStop(){
   if(VERITY.on&&VERITY.host)veritySay(verityPick('bye'));
@@ -4881,28 +4992,95 @@ function verityStop(){
   },1400);
 }
 /* Ears — Chrome/Edge only. Elsewhere he just reads the chat. */
+/* ---------- ears: VERITY hears the whole room ----------
+   The browser's SpeechRecognition can only ever listen to YOUR microphone —
+   there is no way to point it at an incoming WebRTC stream. So instead of one
+   machine trying (and failing) to transcribe everybody, every client
+   transcribes ITSELF and sends the text to whoever called her. She ends up
+   hearing the room, and it costs a few bytes per sentence instead of shipping
+   audio around.
+
+   Because that means your speech is being transcribed and sent to another
+   person's browser, it is announced when it starts and there is an off switch
+   next to her voice picker. Recognition runs in your own browser; no audio is
+   uploaded by this page. */
+function verityCanHear(){
+  return !!(window.SpeechRecognition||window.webkitSpeechRecognition);
+}
 function verityListen(on){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){VERITY.listening=false;return;}
-  if(!on){try{if(VERITY.ears)VERITY.ears.stop();}catch(e){}VERITY.ears=null;VERITY.listening=false;return;}
-  if(!micOn)return;
+  if(!on||!SR||!VERITY.on||!VERITY.hearMe||!micOn){
+    try{if(VERITY.ears){VERITY.ears.onend=null;VERITY.ears.stop();}}catch(e){}
+    VERITY.ears=null;VERITY.listening=false;
+    return;
+  }
+  if(VERITY.listening)return;
+  if(VERITY.earsDead)return;
   try{
     var r=new SR();
     r.continuous=true;r.interimResults=false;r.lang='en-US';
     r.onresult=function(e){
-      if(!VERITY.on)return;
+      if(!VERITY.on||!VERITY.hearMe)return;
       var last=e.results[e.results.length-1];
       if(!last||!last[0])return;
       var said=String(last[0].transcript||'').trim();
       if(said.length<2)return;
-      var reply=verityBrain(said);
-      if(reply)veritySay(reply);
+      if(VERITY.host){
+        var reply=verityBrain(said);
+        if(reply)veritySay(reply);
+      }else{
+        /* hand it to whoever is hosting her; only they run the brain */
+        bc({t:'verity',a:'heard',text:said.slice(0,200),from:me.name});
+      }
     };
-    r.onerror=function(){};
-    r.onend=function(){if(VERITY.on&&VERITY.listening){try{r.start();}catch(e){}}};
-    r.start();VERITY.ears=r;VERITY.listening=true;
-    sys('🥒 VERITY is listening through your mic — speech recognition runs in your browser.');
+    /* Restarting on 'end' is required — Chrome stops recognition every so often
+       on its own — but restarting IMMEDIATELY and unconditionally is what froze
+       the page. When recognition cannot run (permission refused, no network,
+       mic already captured) Chrome fires error then end straight away, so a
+       bare restart becomes error → end → start → error … thousands of times a
+       second with nothing yielding to the UI.
+       So: never restart after a fatal error, always wait before retrying, and
+       give up entirely if it keeps dying instantly. */
+    var FATAL={'not-allowed':1,'service-not-allowed':1,'audio-capture':1,'language-not-supported':1};
+    r.onerror=function(e){
+      var code=(e&&e.error)||'';
+      VERITY.lastErr=code;
+      if(FATAL[code]){
+        VERITY.earsDead=true;
+        sys('🥒 VERITY can’t listen here ('+esc(code)+'). She’ll read the chat instead.',true);
+      }
+    };
+    r.onend=function(){
+      VERITY.listening=false;
+      if(!VERITY.on||!VERITY.hearMe||!micOn||VERITY.earsDead||VERITY.ears!==r)return;
+      /* a session that died in under a second did not really start */
+      var quick=(Date.now()-VERITY.earsStarted)<1200;
+      VERITY.earsFails=quick?(VERITY.earsFails+1):0;
+      if(VERITY.earsFails>=4){
+        VERITY.earsDead=true;
+        sys('🥒 VERITY’s listening kept dropping out, so she has stopped trying. '+
+            'She still reads the chat.',true);
+        return;
+      }
+      /* always through a timer, never synchronously — this is the bit that
+         keeps the main thread breathing */
+      setTimeout(function(){
+        if(!VERITY.on||!VERITY.hearMe||!micOn||VERITY.earsDead)return;
+        try{VERITY.earsStarted=Date.now();r.start();VERITY.listening=true;}catch(e){}
+      }, quick?1500:400);
+    };
+    VERITY.earsStarted=Date.now();
+    r.start();
+    VERITY.ears=r;VERITY.listening=true;
+    sys('🥒 VERITY can hear you. Your speech is transcribed in your own browser and the '+
+        '<b>text</b> is sent to whoever called her — no audio is uploaded. '+
+        'Turn it off with <b>Let VERITY hear me</b>.');
   }catch(e){VERITY.listening=false;}
+}
+/* keep the ears in step with the mic and with her being on the call */
+function verityEarsSync(){
+  if(VERITY.on&&VERITY.hearMe&&micOn)verityListen(true);
+  else verityListen(false);
 }
 function verityEvent(kind,name){
   if(typeof VERITY==='undefined'||!VERITY.on||!VERITY.host)return;
@@ -4915,7 +5093,8 @@ function veritySetVoice(v){
   try{localStorage.setItem('mc_verityvoice',v);}catch(e){}
   if(VERITY.on&&VERITY.host){VERITY.last=0;veritySay('Voice changed. This is me now.');}
 }
-try{var mv=localStorage.getItem('mc_verityvoice');if(mv)VERITY.voice=mv;}catch(e){}
+try{var mv=localStorage.getItem('mc_verityvoice');if(mv)VERITY.voice=mv;
+    var mh=localStorage.getItem('mc_verityhear');if(mh==='0')VERITY.hearMe=false;}catch(e){}
 function verityButtons(){
   var c=document.getElementById('btnVerityCall'),h=document.getElementById('btnVerityHang');
   if(c)c.style.display=VERITY.on?'none':'inline-flex';
@@ -4924,6 +5103,21 @@ function verityButtons(){
 $('#btnVerityCall').onclick=function(){ if(!VERITY.on)verityStart(); verityButtons(); };
 $('#btnVerityHang').onclick=function(){ if(VERITY.on)verityStop(); verityButtons(); };
 verityButtons();
+(function(){
+  var h=document.getElementById('verityHear');
+  if(h){
+    h.classList.toggle('on',VERITY.hearMe);
+    h.onclick=function(){
+      VERITY.hearMe=!VERITY.hearMe;
+      h.classList.toggle('on',VERITY.hearMe);
+      try{localStorage.setItem('mc_verityhear',VERITY.hearMe?'1':'0');}catch(e){}
+      verityEarsSync();
+      toast(VERITY.hearMe?'VERITY can hear you':'VERITY can no longer hear you');
+      if(!VERITY.hearMe)sys('🥒 VERITY can no longer hear you. She still reads the chat.');
+    };
+    if(!verityCanHear())h.title='this browser has no speech recognition — Chrome or Edge only';
+  }
+})();
 (function(){
   var m=document.getElementById('verityMute');
   if(!m)return;
