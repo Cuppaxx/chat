@@ -20,6 +20,7 @@
 
 const express = require('express');
 const { ExpressPeerServer } = require('peer');
+const bridge = require('./discord-bridge');
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -103,6 +104,9 @@ app.post('/admin/unban', requireAdmin, (req, res) => {
   res.json({ ok: had, ip, count: bannedIps.size });
 });
 
+// ---- Discord bridge HTTP routes (must sit above the PeerJS catch-all mount) ----
+bridge.attachBridgeRoutes(app, ADMIN_PASS);
+
 const server = app.listen(PORT, '0.0.0.0', () =>
   console.log('signaling server listening on ' + PORT)
 );
@@ -124,18 +128,6 @@ server.prependListener('upgrade', (req, socket) => {
   } catch (e) {}
 });
 
-// ---- Discord bridge (optional) ----
-// Wrapped in try/catch on purpose: if the discord deps are not installed yet,
-// or the env vars are missing, the chatroom must still run exactly as before.
-// A broken bridge is an inconvenience; a server that will not boot is an outage.
-try {
-  require('./discord-bridge').attachBridge(app, server, ADMIN_PASS);
-} catch (e) {
-  console.log('[bridge] not enabled:', e && e.message);
-  app.post('/bridge/join', (req, res) =>
-    res.json({ ok: false, error: 'bridge not installed on the server: ' + (e && e.message) }));
-}
-
 const peerServer = ExpressPeerServer(server, {
   path: '/',
   allow_discovery: true,       // lets the chatroom list who is in a room
@@ -151,3 +143,7 @@ peerServer.on('disconnect', (c) => {
 });
 
 app.use('/', peerServer);
+
+// Discord bridge WebSocket feed. Must come AFTER the PeerJS mount so it can
+// route /bridge/feed around PeerJS's own upgrade handler (see discord-bridge.js).
+bridge.attachBridgeFeed(server, ADMIN_PASS);
