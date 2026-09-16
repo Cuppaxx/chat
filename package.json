@@ -11,6 +11,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "compression": "^1.7.4",
     "express": "^4.19.2",
     "peer": "^1.0.2",
     "discord.js": "^14.27.0",
