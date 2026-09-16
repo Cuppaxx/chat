@@ -674,7 +674,7 @@ body.touch #qPtt{display:none}
       <span class="lab">VERITY voice:</span>
       <select id="verityVoice" style="font:inherit;font-size:13px;padding:3px 6px;border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d"></select>
       <span class="q" id="verityMute" title="silence her on your machine only">🔇 Mute VERITY (me)</span>
-      <span class="q on" id="verityHear" title="your speech is transcribed in your own browser; only the text is sent">🎤 Let VERITY hear me</span>
+      <span class="q on" id="verityHear" title="transcribe the room in your own browser so VERITY can react — no audio is uploaded">🎤 Let VERITY hear me</span>
     </div>
     <div class="row action" id="btnAdmin">🛡 Admin Panel <span class="val" id="admVal">moderation tools</span></div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
@@ -948,6 +948,17 @@ body.touch #qPtt{display:none}
         panel itself is never affected so you can always reach Stop all. People with
         reduced-motion turned on get the announcement without the spinning.</div>
 
+      <label>Discord bridge</label>
+      <div class="qstrip">
+        <span class="q" id="brLink">🔗 Link to Discord</span>
+        <span class="q" id="brUnlink">⛔ Unlink</span>
+        <span class="q" id="brStat" style="pointer-events:none;opacity:.85">not linked</span>
+      </div>
+      <div class="hint2">Sends this room's voice into your Discord voice channel while you hold it open.
+        Your browser encodes the mix once and the server passes it straight through — it never decodes
+        anything, which is what keeps it inside Render's free tier. Closing the tab or hitting Unlink
+        drops the bot out. Discord audio does not come back into the room yet.</div>
+
       <label>Ban list <span style="text-transform:none;letter-spacing:0;font-weight:400" id="admBanCount"></span></label>
       <div id="admBans" style="max-height:170px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
       <div class="qstrip" style="margin-top:6px">
@@ -974,7 +985,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='5.6';
+var BUILD='6.0';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -2433,7 +2444,7 @@ function startMic(announce){
       localAnalyser=c.createAnalyser();localAnalyser.fftSize=256;src.connect(localAnalyser);
     }catch(e){}
     bc({t:'mute',on:muted});renderMembers();
-    try{verityEarsSync();}catch(e){}
+    try{verityEarsSync();setTimeout(verityEarsReport,1200);}catch(e){}
     if(announce!==false)blip(760,.05);
   })
   .catch(function(e){
@@ -2643,6 +2654,8 @@ function playRemote(id,stream){
     }
   });
   renderMembers();renderCams();
+  /* new voice in the room — add it to what VERITY hears */
+  try{ if(VERITY.on&&VERITY.host&&VERITY.listening)verityMixStream(); }catch(e){}
 }
 function resumeAll(){
   audioGesture=true;
@@ -3828,6 +3841,101 @@ function admKick(id,forever){
 }
 $('#btnAdmin').onclick=admOpen;
 $('#admBansRefresh').onclick=function(){loadServerBans();toast('refreshing ban list…');};
+
+/* ===================== DISCORD BRIDGE (client half) =====================
+   The server deliberately never decodes audio — Render's free instance has
+   0.1 CPU, which is nowhere near enough to decode, mix and re-encode a call in
+   real time. It does not have to: this browser already has every peer's audio
+   decoded, so it mixes the room once, encodes it once with MediaRecorder as
+   Opus in a WebM container, and streams the chunks over a WebSocket.
+   @discordjs/voice consumes WebM/Opus natively, so the server is a pipe.
+
+   One consequence worth knowing: the WebM header only appears in the very
+   first chunk, so the stream cannot be resumed after a drop. If the socket
+   dies the link is torn down and you press the button again, rather than
+   silently feeding Discord a stream it can no longer parse. */
+var BR={ws:null,rec:null,on:false,sent:0};
+function brStat(t){var e=document.getElementById('brStat');if(e)e.textContent=t;}
+function brApi(path){
+  return fetch(adminBase()+path,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({pass:ADMIN_PASS})}).then(function(r){return r.json();});
+}
+function brStop(quiet){
+  try{if(BR.rec&&BR.rec.state!=='inactive')BR.rec.stop();}catch(e){}
+  try{if(BR.ws)BR.ws.close();}catch(e){}
+  BR.rec=null;BR.ws=null;BR.on=false;BR.sent=0;
+  brStat('not linked');
+  if(!quiet)brApi('/bridge/leave').catch(function(){});
+}
+async function brLink(){
+  if(!admin){toast('unlock the admin panel first');return;}
+  if(BR.on){toast('already linked');return;}
+  if(!window.MediaRecorder){sys('🔗 This browser has no MediaRecorder, so it cannot feed Discord.',true);return;}
+  var mime='audio/webm;codecs=opus';
+  if(!MediaRecorder.isTypeSupported(mime)){
+    sys('🔗 This browser cannot encode WebM/Opus, which is the format Discord takes directly. '+
+        'Chrome, Edge or Firefox will work.',true);
+    return;
+  }
+  brStat('asking the bot to join…');
+  sys('🔗 Asking the bot to join your Discord voice channel…');
+  var j=null;
+  try{ j=await brApi('/bridge/join'); }
+  catch(e){ sys('🔗 Could not reach the server: '+esc(String(e.message||e)),true); brStat('failed'); return; }
+  if(!j||!j.ok){
+    sys('🔗 The bot could not join: <b>'+esc((j&&j.error)||'unknown')+'</b>',true);
+    brStat('failed');
+    return;
+  }
+  /* now open the audio feed */
+  try{
+    var base=adminBase().replace(/^http/,'ws');
+    BR.ws=new WebSocket(base+'/bridge/feed?pass='+encodeURIComponent(ADMIN_PASS));
+    BR.ws.binaryType='arraybuffer';
+  }catch(e){ sys('🔗 Could not open the audio feed: '+esc(String(e.message||e)),true); brStop(true); return; }
+
+  BR.ws.onopen=function(){
+    try{
+      var mix=verityMixStream();          /* mic + every connected peer */
+      BR.rec=new MediaRecorder(mix.stream,{mimeType:mime,audioBitsPerSecond:64000});
+      BR.rec.ondataavailable=function(ev){
+        if(!ev.data||!ev.data.size)return;
+        if(!BR.ws||BR.ws.readyState!==1)return;
+        BR.sent+=ev.data.size;
+        BR.ws.send(ev.data);
+        brStat('linked · '+Math.round(BR.sent/1024)+' KB sent');
+      };
+      BR.rec.onerror=function(){sys('🔗 The audio encoder stopped.',true);brStop();};
+      BR.rec.start(200);                  /* 200 ms chunks: low latency, few messages */
+      BR.on=true;
+      brStat('linked');
+      good('🔗 Bridged to Discord — people in the voice channel can hear this room.');
+    }catch(e){
+      sys('🔗 Could not start the encoder: '+esc(String(e.message||e)),true);
+      brStop();
+    }
+  };
+  BR.ws.onclose=function(){
+    if(BR.on){sys('🔗 The Discord feed closed.',true);}
+    brStop(true);
+  };
+  BR.ws.onerror=function(){ sys('🔗 The Discord feed errored.',true); };
+}
+$('#brLink').onclick=brLink;
+$('#brUnlink').onclick=function(){
+  if(!BR.on){toast('not linked');return;}
+  brStop();
+  sys('🔗 Unlinked — the bot has left the channel.');
+};
+/* new arrivals should be audible in Discord too */
+(function(){
+  var oldRender=renderMembers;
+  renderMembers=function(){
+    oldRender.apply(this,arguments);
+    try{ if(BR.on)verityMixStream(); }catch(e){}
+  };
+})();
+window.addEventListener('beforeunload',function(){ if(BR.on)brStop(true); });
 $('#prankSnipeRandom').onclick=function(){
   if(!admin){toast('unlock the admin panel first');return;}
   var names=Object.keys(peers).map(function(k){return peers[k].name;}).filter(Boolean);
@@ -4658,8 +4766,9 @@ window.addEventListener('keydown',function(e){
 var VERITY={
   on:false, host:false, mutedLocal:false, ready:false, loading:false,
   worker:null, loadPromise:null, pending:{}, reqId:0,
+  asrReady:false, asrPromise:null, asrResolve:null, asrPending:{},
   bus:null, voice:'af_heart', last:0, idle:null,
-  ears:null, listening:false, hearMe:true, earsStarted:0, earsFails:0, earsDead:false, lastErr:'',
+  ears:null, listening:false, hearMe:true, earsStarted:0, earsFails:0, earsDead:false, lastErr:'', warnedErr:0,
   queue:[], speaking:false, useFallback:false
 };
 var VERITY_ME={name:'VERITY',icon:'🥒'};
@@ -4705,7 +4814,7 @@ function verityBus(){
    The worker is built from a Blob so this stays one self-contained HTML file. */
 function verityWorkerSrc(){
   return [
-    "let tts=null;",
+    "let tts=null, asr=null;",
     "self.onmessage=async(e)=>{",
     "  const m=e.data;",
     "  if(m.cmd==='load'){",
@@ -4728,10 +4837,38 @@ function verityWorkerSrc(){
     "      const pcm=(f instanceof Float32Array)?f:new Float32Array(f);",
     "      self.postMessage({ev:'audio',ok:true,id:m.id,rate:a.sampling_rate||a.sampleRate||24000,pcm},[pcm.buffer]);",
     "    }catch(err){ self.postMessage({ev:'audio',ok:false,id:m.id,error:String(err&&err.message||err)}); }",
+    "    return;",
+    "  }",
+    // ---- speech recognition, done locally ----
+    // Chrome's SpeechRecognition refuses to run in a cross-origin iframe, which
+    // is exactly how this chatroom is reached. Whisper has no such restriction:
+    // it is just a model being handed an array of samples, so it works framed,
+    // works in Firefox and Safari, and never sends audio anywhere.
+    "  if(m.cmd==='asr-load'){",
+    "    try{",
+    "      const t=await import(m.tfjs);",
+    "      if(t.env&&t.env.backends&&t.env.backends.onnx&&t.env.backends.onnx.wasm){",
+    "        t.env.backends.onnx.wasm.numThreads=1;",   // keep it gentle; SAB may be absent
+    "      }",
+    "      asr=await t.pipeline('automatic-speech-recognition',m.model,{dtype:'q8',device:'wasm'});",
+    "      self.postMessage({ev:'asr-loaded',ok:true});",
+    "    }catch(err){ self.postMessage({ev:'asr-loaded',ok:false,error:String(err&&err.message||err)}); }",
+    "    return;",
+    "  }",
+    "  if(m.cmd==='asr'){",
+    "    try{",
+    "      if(!asr) throw new Error('asr not loaded');",
+    "      /* whisper-tiny.en is English-only: passing language/task makes it throw */",
+    "      const out=await asr(m.pcm,{chunk_length_s:30});",
+    "      const text=(out&&(out.text||(out[0]&&out[0].text)))||'';",
+    "      self.postMessage({ev:'asr',ok:true,id:m.id,text:String(text).trim()});",
+    "    }catch(err){ self.postMessage({ev:'asr',ok:false,id:m.id,error:String(err&&err.message||err)}); }",
+    "    return;",
     "  }",
     "};"
   ].join("\n");
 }
+
 function verityKill(reason){
   try{if(VERITY.worker)VERITY.worker.terminate();}catch(e){}
   VERITY.worker=null;VERITY.ready=false;VERITY.loading=false;VERITY.useFallback=true;
@@ -4758,8 +4895,8 @@ function verityLoad(){
   VERITY.loading=true;
   try{renderMembers();}catch(e){}
   var webgpu=!!navigator.gpu;
-  sys('🥒 VERITY is waking up — fetching their voice model (~86 MB, once, then cached). '+
-      (webgpu?'WebGPU found, this should be quick. ':'No WebGPU, running on WASM — slower. ')+
+  sys('🥒 VERITY is waking up — fetching her voice model (~86 MB, once, then cached). '+
+      'Runs on WASM: a few seconds per line, but it says the right words. '+
       'The room keeps working while it loads.');
 
   VERITY.loadPromise=new Promise(function(resolve){
@@ -4800,6 +4937,15 @@ function verityLoad(){
         }
         return;
       }
+      if(d.ev==='asr-loaded'){
+        if(VERITY.asrResolve)VERITY.asrResolve(d.ok,d.error);
+        return;
+      }
+      if(d.ev==='asr'){
+        var cb=VERITY.asrPending&&VERITY.asrPending[d.id];
+        if(cb){ delete VERITY.asrPending[d.id]; cb(d.ok?d.text:'', d.ok?null:(d.error||'failed')); }
+        return;
+      }
       if(d.ev==='audio'){
         var w=VERITY.pending[d.id];
         if(!w)return;
@@ -4822,7 +4968,17 @@ function verityLoad(){
       /* q8 on purpose: q4f16 produced perfectly-timed SILENCE on test hardware
          (right sample count, peak amplitude 0.000) while q8 gave 0.697. */
       dtype:'q8',
-      device: webgpu?'webgpu':'wasm'
+      /* WASM only, deliberately.
+         WebGPU looked like the obvious win — it is several times faster — but
+         it generates the WRONG AUDIO. Same text, same voice, rendered on both
+         backends: waveform correlation between them was -0.012 and the lengths
+         differed (81,600 vs 84,000 samples). The WebGPU output is still
+         speech-SHAPED, which is why it is not obviously broken from the
+         numbers, but the phonemes are wrong — it comes out sounding like
+         gibberish or another language entirely.
+         q4f16 on WebGPU was worse still: perfectly-timed silence.
+         WASM is slower and correct, and correct wins. */
+      device:'wasm'
     });
   });
   return VERITY.loadPromise;
@@ -4978,6 +5134,7 @@ function verityStart(){
     if(VERITY.on&&VERITY.host&&Math.random()<0.45)veritySay(verityPick('idle'));
   },42000);
   verityEarsSync();
+  setTimeout(verityEarsReport,1500);
 }
 function verityStop(){
   if(VERITY.on&&VERITY.host)veritySay(verityPick('bye'));
@@ -4991,97 +5148,158 @@ function verityStop(){
     verityButtons();renderMembers();
   },1400);
 }
-/* Ears — Chrome/Edge only. Elsewhere he just reads the chat. */
-/* ---------- ears: VERITY hears the whole room ----------
-   The browser's SpeechRecognition can only ever listen to YOUR microphone —
-   there is no way to point it at an incoming WebRTC stream. So instead of one
-   machine trying (and failing) to transcribe everybody, every client
-   transcribes ITSELF and sends the text to whoever called her. She ends up
-   hearing the room, and it costs a few bytes per sentence instead of shipping
-   audio around.
+/* ---------- ears: local speech recognition, frame-safe ----------
+   Chrome's SpeechRecognition cannot run in a cross-origin iframe, and the
+   chatroom is normally reached through exactly such a frame from Neocities.
+   Rather than force people to change how they open the site, transcription is
+   done with Whisper in the same worker as the voice: it is just a model being
+   handed samples, so no permission policy or frame rule applies, it works in
+   Firefox and Safari too, and no audio leaves the machine.
 
-   Because that means your speech is being transcribed and sent to another
-   person's browser, it is announced when it starts and there is an off switch
-   next to her voice picker. Recognition runs in your own browser; no audio is
-   uploaded by this page. */
-function verityCanHear(){
-  return !!(window.SpeechRecognition||window.webkitSpeechRecognition);
+   Only the person who called VERITY runs it, on a mix of everyone's audio that
+   their browser already has decoded. One download, and she hears the whole
+   room — instead of every participant needing a model to be heard.
+
+   Chunking is a plain energy gate: start on sound, stop after a beat of quiet,
+   ignore anything too short to be a sentence. Crude, but a real VAD would be a
+   lot of machinery for a bot that only reacts to keywords. */
+var ASR_MODEL='onnx-community/whisper-tiny.en';
+var ASR_TFJS='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
+var EARS={ node:null, mix:null, buf:[], samples:0, speaking:false, quiet:0, busy:false, reqId:0 };
+var ASR_RATE=16000;
+
+function verityCanHear(){ return true; }   /* Whisper works everywhere */
+
+/* Everything we can hear: our own mic plus every connected peer. */
+function verityMixStream(){
+  var c=ctx();
+  if(!EARS.mix)EARS.mix=c.createMediaStreamDestination();
+  if(!EARS.sources)EARS.sources={};
+  function add(key,stream){
+    if(!stream||EARS.sources[key])return;
+    try{
+      var s=c.createMediaStreamSource(stream);
+      var g=c.createGain(); g.gain.value=1;
+      s.connect(g); g.connect(EARS.mix);
+      EARS.sources[key]={s:s,g:g};
+    }catch(e){}
+  }
+  if(localStream)add('me',localStream);
+  for(var id in peers)if(peers[id].stream)add(id,peers[id].stream);
+  return EARS.mix;
 }
+function verityAsrLoad(){
+  if(VERITY.asrReady)return Promise.resolve(true);
+  if(VERITY.asrPromise)return VERITY.asrPromise;
+  if(!VERITY.worker)return Promise.resolve(false);
+  sys('🥒 VERITY is fetching her ears (~40 MB, once, then cached). '+
+      'Runs on your machine — no audio is uploaded, and it works inside the frame.');
+  VERITY.asrPromise=new Promise(function(resolve){
+    var done=false;
+    VERITY.asrResolve=function(ok,err){
+      if(done)return; done=true;
+      VERITY.asrReady=!!ok;
+      if(ok)good('🥒 VERITY can hear you now.');
+      else sys('🥒 VERITY’s ears failed to load ('+esc(String(err||'').slice(0,60))+'). '+
+               'She still reads the chat.',true);
+      renderMembers();
+      resolve(!!ok);
+    };
+    VERITY.worker.postMessage({cmd:'asr-load',model:ASR_MODEL,tfjs:ASR_TFJS});
+    setTimeout(function(){ if(!done)VERITY.asrResolve(false,'timeout'); },240000);
+  });
+  return VERITY.asrPromise;
+}
+/* pull PCM off the mix, gate it on energy, hand whole utterances to the model */
 function verityListen(on){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!on||!SR||!VERITY.on||!VERITY.hearMe||!micOn){
-    try{if(VERITY.ears){VERITY.ears.onend=null;VERITY.ears.stop();}}catch(e){}
-    VERITY.ears=null;VERITY.listening=false;
+  if(!on){
+    try{ if(EARS.node){EARS.node.disconnect();EARS.node.onaudioprocess=null;} }catch(e){}
+    EARS.node=null; EARS.buf=[]; EARS.samples=0; EARS.speaking=false;
+    VERITY.listening=false;
     return;
   }
-  if(VERITY.listening)return;
-  if(VERITY.earsDead)return;
-  try{
-    var r=new SR();
-    r.continuous=true;r.interimResults=false;r.lang='en-US';
-    r.onresult=function(e){
-      if(!VERITY.on||!VERITY.hearMe)return;
-      var last=e.results[e.results.length-1];
-      if(!last||!last[0])return;
-      var said=String(last[0].transcript||'').trim();
-      if(said.length<2)return;
-      if(VERITY.host){
-        var reply=verityBrain(said);
-        if(reply)veritySay(reply);
-      }else{
-        /* hand it to whoever is hosting her; only they run the brain */
-        bc({t:'verity',a:'heard',text:said.slice(0,200),from:me.name});
-      }
-    };
-    /* Restarting on 'end' is required — Chrome stops recognition every so often
-       on its own — but restarting IMMEDIATELY and unconditionally is what froze
-       the page. When recognition cannot run (permission refused, no network,
-       mic already captured) Chrome fires error then end straight away, so a
-       bare restart becomes error → end → start → error … thousands of times a
-       second with nothing yielding to the UI.
-       So: never restart after a fatal error, always wait before retrying, and
-       give up entirely if it keeps dying instantly. */
-    var FATAL={'not-allowed':1,'service-not-allowed':1,'audio-capture':1,'language-not-supported':1};
-    r.onerror=function(e){
-      var code=(e&&e.error)||'';
-      VERITY.lastErr=code;
-      if(FATAL[code]){
-        VERITY.earsDead=true;
-        sys('🥒 VERITY can’t listen here ('+esc(code)+'). She’ll read the chat instead.',true);
-      }
-    };
-    r.onend=function(){
-      VERITY.listening=false;
-      if(!VERITY.on||!VERITY.hearMe||!micOn||VERITY.earsDead||VERITY.ears!==r)return;
-      /* a session that died in under a second did not really start */
-      var quick=(Date.now()-VERITY.earsStarted)<1200;
-      VERITY.earsFails=quick?(VERITY.earsFails+1):0;
-      if(VERITY.earsFails>=4){
-        VERITY.earsDead=true;
-        sys('🥒 VERITY’s listening kept dropping out, so she has stopped trying. '+
-            'She still reads the chat.',true);
-        return;
-      }
-      /* always through a timer, never synchronously — this is the bit that
-         keeps the main thread breathing */
-      setTimeout(function(){
-        if(!VERITY.on||!VERITY.hearMe||!micOn||VERITY.earsDead)return;
-        try{VERITY.earsStarted=Date.now();r.start();VERITY.listening=true;}catch(e){}
-      }, quick?1500:400);
-    };
-    VERITY.earsStarted=Date.now();
-    r.start();
-    VERITY.ears=r;VERITY.listening=true;
-    sys('🥒 VERITY can hear you. Your speech is transcribed in your own browser and the '+
-        '<b>text</b> is sent to whoever called her — no audio is uploaded. '+
-        'Turn it off with <b>Let VERITY hear me</b>.');
-  }catch(e){VERITY.listening=false;}
+  if(!VERITY.on||!VERITY.hearMe||!micOn||VERITY.earsDead)return;
+  if(EARS.node)   { verityMixStream(); return; }      /* already running: just refresh sources */
+  verityAsrLoad().then(function(ok){
+    if(!ok||!VERITY.on||!VERITY.hearMe||!micOn)return;
+    try{
+      var c=ctx();
+      var mix=verityMixStream();
+      var src=c.createMediaStreamSource(mix.stream);
+      var N=4096;
+      var node=c.createScriptProcessor?c.createScriptProcessor(N,1,1):null;
+      if(!node){ VERITY.earsDead=true; sys('🥒 This browser can’t tap the audio for VERITY.',true); return; }
+      var ratio=c.sampleRate/ASR_RATE;
+      node.onaudioprocess=function(ev){
+        if(!VERITY.on||!VERITY.hearMe)return;
+        var inp=ev.inputBuffer.getChannelData(0);
+        /* cheap decimation to 16 kHz — Whisper wants exactly that */
+        var outLen=Math.floor(inp.length/ratio), down=new Float32Array(outLen), rms=0;
+        for(var i=0;i<outLen;i++){ var v=inp[Math.floor(i*ratio)]; down[i]=v; rms+=v*v; }
+        rms=Math.sqrt(rms/(outLen||1));
+        var LOUD=0.012, chunkMs=(outLen/ASR_RATE)*1000;
+        if(rms>LOUD){
+          EARS.speaking=true; EARS.quiet=0;
+          EARS.buf.push(down); EARS.samples+=outLen;
+        }else if(EARS.speaking){
+          EARS.quiet+=chunkMs;
+          EARS.buf.push(down); EARS.samples+=outLen;      /* keep the tail */
+          if(EARS.quiet>650)verityFlushUtterance();
+        }
+        if(EARS.samples>ASR_RATE*12)verityFlushUtterance();  /* never hoard */
+      };
+      src.connect(node);
+      /* ScriptProcessor only ticks when connected to a sink; a muted gain keeps
+         it running without anyone hearing a duplicate of the room */
+      var sink=c.createGain(); sink.gain.value=0;
+      node.connect(sink); sink.connect(c.destination);
+      EARS.node=node; VERITY.listening=true;
+      sys('🥒 VERITY is listening to the room.');
+    }catch(e){
+      VERITY.earsDead=true;
+      sys('🥒 VERITY couldn’t start listening: '+esc(String(e.message||e).slice(0,60)),true);
+    }
+  });
 }
-/* keep the ears in step with the mic and with her being on the call */
+function verityFlushUtterance(){
+  var n=EARS.samples;
+  EARS.speaking=false; EARS.quiet=0;
+  var parts=EARS.buf; EARS.buf=[]; EARS.samples=0;
+  if(n<ASR_RATE*0.6)return;            /* too short to be a sentence */
+  if(EARS.busy)return;                 /* one at a time; drop rather than queue */
+  var pcm=new Float32Array(n), o=0;
+  for(var i=0;i<parts.length;i++){ pcm.set(parts[i],o); o+=parts[i].length; }
+  EARS.busy=true;
+  var id=++EARS.reqId;
+  VERITY.asrPending=VERITY.asrPending||{};
+  VERITY.asrPending[id]=function(text,err){
+    EARS.busy=false;
+    if(err||!text)return;
+    var clean=String(text).replace(/\[.*?\]|\(.*?\)/g,'').trim();
+    if(clean.length<2)return;
+    if(/^(you|thanks for watching|thank you|bye)\.?$/i.test(clean))return;  /* whisper's silence tics */
+    sys('🎧 heard: <i>'+esc(clean)+'</i>');
+    var reply=verityBrain(clean);
+    if(reply)veritySay(reply);
+  };
+  try{ VERITY.worker.postMessage({cmd:'asr',id:id,pcm:pcm},[pcm.buffer]); }
+  catch(e){ EARS.busy=false; }
+}
 function verityEarsSync(){
   if(VERITY.on&&VERITY.hearMe&&micOn)verityListen(true);
   else verityListen(false);
 }
+function verityEarsReport(){
+  if(!VERITY.on)return;
+  if(!micOn){
+    sys('🥒 VERITY has no ears yet: your <b>mic is off</b>. Turn Voice Chat on and she’ll start listening.',true);
+    return;
+  }
+  if(!VERITY.hearMe){ sys('🥒 VERITY isn’t listening because <b>Let VERITY hear me</b> is off.',true); return; }
+  if(VERITY.earsDead){ sys('🥒 VERITY’s listening stopped earlier. Hang up and call her again to retry.',true); return; }
+  if(VERITY.listening)sys('🥒 VERITY is listening to the room.');
+}
+
 function verityEvent(kind,name){
   if(typeof VERITY==='undefined'||!VERITY.on||!VERITY.host)return;
   if(Math.random()>0.7)return;        /* he is not a town crier */
