@@ -47,21 +47,21 @@ body{font-family:var(--font);color:var(--txt);min-height:100vh;overflow-x:hidden
 @media (prefers-reduced-motion:reduce){#bg::after{animation:none}}
 @keyframes sweep{from{transform:translateX(-30%)}to{transform:translateX(30%)}}
 
-.wrap{max-width:1120px;margin:0 auto;padding:16px 14px 28px;position:relative;z-index:1}
+.wrap{max-width:1120px;margin:0 auto;padding:8px 12px 16px;position:relative;z-index:1}
 
 /* ===== top bar ===== */
-.top{display:flex;align-items:center;gap:14px;padding:4px 8px 10px}
-.top h1{margin:0;font-weight:400;font-size:26px;letter-spacing:.5px;text-shadow:0 0 18px rgba(150,90,255,.8);white-space:nowrap}
+.top{display:flex;align-items:center;gap:12px;padding:2px 6px 6px}
+.top h1{margin:0;font-weight:400;font-size:21px;letter-spacing:.5px;text-shadow:0 0 18px rgba(150,90,255,.8);white-space:nowrap}
 .top h1 b{font-weight:700;color:#e5dbff}
 @supports (-webkit-background-clip:text){
   .top h1 b{background:linear-gradient(#fff,#c9b6ff 55%,#8f6bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 }
-.orb{width:50px;height:50px;border-radius:50%;margin:0 auto;flex:none;background-color:#4a1bb0;
+.orb{width:38px;height:38px;border-radius:50%;margin:0 auto;flex:none;background-color:#4a1bb0;
   background-image:radial-gradient(circle at 35% 30%,#fff 0%,#b48cff 18%,#6a2dff 45%,#1c0b4a 100%);
   box-shadow:0 0 22px #7b3fe4,0 0 60px rgba(123,63,228,.5),inset 0 -6px 12px rgba(0,0,0,.4);position:relative}
 .orb::after{content:"";position:absolute;left:9px;top:6px;width:28px;height:13px;border-radius:50%;
   background:linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,0))}
-.clock{font-size:22px;font-weight:300;text-shadow:0 0 10px rgba(120,150,255,.7);white-space:nowrap}
+.clock{font-size:17px;font-weight:300;text-shadow:0 0 10px rgba(120,150,255,.7);white-space:nowrap}
 
 /* ---- floating orbs down both margins (Frutiger Aero filler) ----
    Purely decorative: fixed, behind everything, click-through. They hide on
@@ -96,14 +96,14 @@ body{font-family:var(--font);color:var(--txt);min-height:100vh;overflow-x:hidden
 
 /* ===== blade tabs ===== */
 .tabs{display:flex;gap:2px;align-items:flex-end;margin-top:2px}
-.tab{padding:9px 18px;font-size:18px;display:flex;align-items:center;gap:9px;
+.tab{padding:6px 14px;font-size:14.5px;display:flex;align-items:center;gap:9px;
   background-color:#2a1868;background-image:linear-gradient(#3b2384,#1e1050);
   border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;
   color:var(--dim);position:relative;overflow:hidden;white-space:nowrap}
 .tab::before{content:"";position:absolute;left:0;right:0;top:0;height:50%;
   background:linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.03));pointer-events:none}
 .tab.main{background-color:#e4dbff;background-image:linear-gradient(#fffdff,#e4dbff 52%,#c2b0fa);
-  color:var(--ink);font-weight:600;text-shadow:none;flex:1;font-size:20px;
+  color:var(--ink);font-weight:600;text-shadow:none;flex:1;font-size:16px;
   box-shadow:inset 0 1px 0 #fff,0 -2px 14px rgba(150,100,255,.4)}
 .tab.main::before{background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,0))}
 .tab:not(.main){box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
@@ -125,8 +125,8 @@ body{font-family:var(--font);color:var(--txt);min-height:100vh;overflow-x:hidden
     transparent 0%,rgba(255,255,255,.06) 28%,rgba(255,255,255,.20) 48%,
     rgba(255,255,255,.06) 68%,transparent 100%)}
 
-.row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid rgba(80,50,160,.18);
-  font-size:18px;position:relative;min-height:44px}
+.row{display:flex;align-items:center;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(80,50,160,.18);
+  font-size:15px;position:relative;min-height:32px}
 .row.action{cursor:pointer}
 .row.action:hover,.row.action.hl{
   background-color:#5a2de0;background-image:linear-gradient(var(--sel1),var(--sel2) 55%,var(--sel3));
@@ -134,22 +134,22 @@ body{font-family:var(--font);color:var(--txt);min-height:100vh;overflow-x:hidden
 .row.action:hover::after,.row.action.hl::after{content:"";position:absolute;left:0;right:0;top:0;height:45%;
   background:linear-gradient(rgba(255,255,255,.32),rgba(255,255,255,0));pointer-events:none}
 .row .lab{opacity:.85}
-.row .val{margin-left:auto;font-size:13px;opacity:.9}
+.row .val{margin-left:auto;font-size:11.5px;opacity:.85}
 
 .layout{display:grid;grid-template-columns:210px 1fr;position:relative;z-index:1}
 .side{border-right:1px solid rgba(80,50,160,.2);background:linear-gradient(90deg,rgba(90,50,200,.1),transparent)}
-h3{margin:0;padding:8px 16px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink2);font-weight:700;
+h3{margin:0;padding:5px 12px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink2);font-weight:700;
   border-bottom:1px solid rgba(80,50,160,.15)}
-.side .row{font-size:16px;padding:9px 14px}
+.side .row{font-size:13.5px;padding:5px 11px;min-height:28px}
 .side .row.cur{background-color:#5a2de0;background-image:linear-gradient(var(--sel1),var(--sel2) 55%,var(--sel3));
   color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
 .side .dot{width:9px;height:9px;border-radius:50%;flex:none;background:#8a78c8;box-shadow:inset 0 1px 1px rgba(255,255,255,.7)}
 .side .row.cur .dot{background:var(--ok);box-shadow:0 0 9px var(--ok)}
-.newroom{display:flex;gap:6px;padding:8px 10px}
+.newroom{display:flex;gap:5px;padding:6px 8px}
 .newroom input{flex:1;min-width:0}
 
 /* members */
-.mem{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:18px;position:relative;
+.mem{display:flex;align-items:center;gap:9px;padding:5px 12px;font-size:14.5px;position:relative;
   border-bottom:1px solid rgba(80,50,160,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
 .mem:hover{background:linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,.12))}
 .mem .spk{width:24px;text-align:center;font-size:17px;color:var(--ink2);transition:transform .08s}
@@ -157,12 +157,12 @@ h3{margin:0;padding:8px 16px;font-size:11px;letter-spacing:2px;text-transform:up
   box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 3px 0 0 var(--ok),0 0 18px rgba(140,255,90,.28)}
 .mem.talk .spk{color:#1a9c25;text-shadow:0 0 9px var(--ok);transform:scale(1.22)}
 .mem.muted .spk{color:#c33}
-.ava{width:32px;height:32px;border-radius:5px;flex:none;display:grid;place-items:center;font-size:19px;overflow:hidden;
+.ava{width:26px;height:26px;border-radius:5px;flex:none;display:grid;place-items:center;font-size:19px;overflow:hidden;
   background-color:#7b55e0;background-image:linear-gradient(#b090ff,#5f3bd0);border:1px solid #fff;
   box-shadow:0 1px 3px rgba(0,0,0,.5),inset 0 8px 10px rgba(255,255,255,.35)}
 .ava img{width:100%;height:100%;object-fit:cover;display:block}
 .mem .nm{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mem .st{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:14px;color:#4b3894;white-space:nowrap}
+.mem .st{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#4b3894;white-space:nowrap}
 .vu{display:flex;gap:2px;height:11px}
 .vu b{width:4px;border-radius:1px;background:rgba(40,10,90,.18);box-shadow:inset 0 1px 1px rgba(255,255,255,.35)}
 .vu b.on{background:var(--ok);box-shadow:0 0 5px rgba(140,255,90,.9)}
@@ -245,6 +245,50 @@ body.touch .cam .ctl{opacity:1}
   .cam.big video{height:min(52vh,420px)}
 }
 
+/* ===================== THEATER ===================== */
+#theater{display:none;border-top:1px solid rgba(255,255,255,.5);
+  box-shadow:0 -1px 0 rgba(80,50,160,.3);background-color:rgba(16,6,50,.5)}
+#theater.on{display:block}
+#theater h3{display:flex;gap:10px;align-items:center;color:#d9ccff;
+  background-color:rgba(20,8,60,.55);border-bottom:1px solid rgba(255,255,255,.14)}
+#theater h3 em{font-style:normal;font-weight:400;letter-spacing:0;text-transform:none;
+  font-size:11px;opacity:.75}
+.tstage{position:relative;background:#000;margin:8px 12px;border-radius:8px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.7);box-shadow:0 4px 18px rgba(0,0,0,.65)}
+.tstage video{display:block;width:100%;max-height:min(56vh,520px);background:#000}
+/* website mode — a small embedded browser pane */
+#tframe{display:none;width:100%;height:min(56vh,520px);border:0;background:#fff}
+.tstage.site #tframe{display:block}
+.tstage.site video{display:none}
+/* Non-leaders get a transparent sheet over the frame so only whoever is
+   driving can click or scroll it. Cross-origin pages cannot be read or
+   remote-controlled from here, so this is "everyone opens the same page and
+   only the host drives their own copy" — see the note under the queue. */
+.tblock{position:absolute;inset:0;display:none;z-index:3;cursor:not-allowed;background:transparent}
+.tstage.site.locked .tblock{display:block}
+.tover{position:absolute;inset:0;display:grid;place-content:center;color:#b9a9e6;
+  font-size:13.5px;text-align:center;padding:18px;pointer-events:none;line-height:1.5}
+.tover.hide{display:none}
+.trow{display:flex;gap:6px;align-items:center;padding:6px 12px;flex-wrap:wrap}
+.trow input[type=text]{flex:1;min-width:130px}
+.trow #tTitle{max-width:170px;flex:none}
+.tstat{font-size:12px;color:#cfc0ff;margin-left:auto;white-space:nowrap}
+#tQueue{padding:4px 12px 12px;display:flex;flex-direction:column;gap:4px;
+  max-height:220px;overflow:auto}
+.tq{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px;font-size:13px;
+  background-color:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#efe9ff;
+  text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.tq.cur{background-color:rgba(140,255,90,.2);border-color:#8cff5a}
+.tq .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tq .tby{font-size:11px;opacity:.65;white-space:nowrap}
+.tq button{font:inherit;font-size:11px;padding:3px 9px;border-radius:12px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.5);background-color:rgba(106,45,255,.65);color:#fff}
+.tq button:hover{background-color:rgba(140,90,255,.85)}
+@media (max-width:820px){
+  .trow #tTitle{max-width:none}
+  .tstage video{max-height:38vh}
+}
+
 /* chat */
 .chat{display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.55);
   box-shadow:0 -1px 0 rgba(80,50,160,.35);background-color:rgba(20,8,60,.38)}
@@ -309,7 +353,7 @@ input[type=text],input[type=password]{font:inherit;font-size:15px;padding:8px 10
   background-color:#fff;color:var(--ink);box-shadow:inset 0 2px 4px rgba(60,20,140,.2);outline:none}
 input[type=text]:focus,input[type=password]:focus{border-color:#6a2dff;box-shadow:0 0 0 3px rgba(106,45,255,.25),inset 0 2px 4px rgba(60,20,140,.2)}
 
-.btn{font:inherit;font-size:14px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.7);
+.btn{font:inherit;font-size:13px;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.7);
   cursor:pointer;color:#fff;background-color:#6a2dff;background-image:linear-gradient(#9d78ff,#6a2dff 50%,#4a1bd0);
   box-shadow:0 2px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.6);text-shadow:0 1px 1px rgba(0,0,0,.5);
   display:inline-flex;align-items:center;gap:7px;white-space:nowrap;position:relative;overflow:hidden}
@@ -330,14 +374,14 @@ a.btn,a.hub{text-decoration:none}
 .Y{background-color:#e8b800;background-image:radial-gradient(circle at 40% 30%,#fff2a0,#e8b800)}
 
 .qstrip{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.q{padding:4px 11px;border-radius:14px;border:1px solid #9c86e0;background-color:#efeaff;
+.q{padding:3px 9px;border-radius:12px;border:1px solid #9c86e0;background-color:#efeaff;
   background-image:linear-gradient(#fff,#e9e2ff);
   font-size:13px;cursor:pointer;color:#3b2384;font-weight:600;white-space:nowrap}
 .q:hover{filter:brightness(1.04)}
 .q.on{background-color:#5a2de0;background-image:linear-gradient(var(--sel1),var(--sel2));color:#fff;border-color:#fff;
   box-shadow:0 0 10px rgba(123,63,228,.7),inset 0 1px 0 rgba(255,255,255,.5)}
 
-.bottombar{display:flex;gap:16px;align-items:center;padding:12px 14px;font-size:15px;color:#fff;flex-wrap:wrap;
+.bottombar{display:flex;gap:12px;align-items:center;padding:7px 12px;font-size:13px;color:#fff;flex-wrap:wrap;
   text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .bottombar .hint{display:flex;align-items:center;gap:8px;cursor:pointer;opacity:.95}
 .bottombar .hint:hover{opacity:1;text-decoration:underline}
@@ -584,6 +628,39 @@ body.touch #qPtt{display:none}
         <h3>Party Members</h3>
         <div id="members"></div>
         <div id="cams"></div>
+
+        <div id="theater">
+          <h3>🎬 Theater <em id="tLeadLbl">— no queue leader yet</em></h3>
+          <div class="tstage" id="tstage">
+            <video id="tvid" playsinline preload="metadata"></video>
+            <iframe id="tframe" referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+            <div class="tblock" id="tblock" title="only the queue leader can interact with this"></div>
+            <div class="tover" id="tover">Nothing playing.<br>Paste a link below — a media file, a website, or a YouTube video.</div>
+          </div>
+          <div class="trow">
+            <button class="btn" id="tPlay">▶ Play</button>
+            <button class="btn grey" id="tPause">⏸ Pause</button>
+            <button class="btn grey" id="tPrev">⏮</button>
+            <button class="btn grey" id="tNext">⏭</button>
+            <button class="btn blue" id="tTake">🎚 Take the lead</button>
+            <span class="tstat" id="tStat"></span>
+          </div>
+          <div class="trow">
+            <input type="text" id="tUrl" placeholder="link a media file, a website, or a YouTube video…" maxlength="600">
+            <input type="text" id="tTitle" placeholder="title (optional)" maxlength="80">
+            <button class="btn" id="tAdd">＋ Add</button>
+          </div>
+          <div id="tQueue"></div>
+          <div class="hint2" style="padding:0 12px 10px;color:#b9a9e6;text-shadow:0 1px 2px rgba(0,0,0,.6)">
+            Media files play in perfect sync — the leader is the clock. Websites open the same page
+            for everyone and only the leader can click or scroll it, but each person's page is their
+            own copy, so scrolling isn't mirrored. To show people exactly what is on your screen,
+            use <b>🖥 Screen Share</b> instead.
+          </div>
+        </div>
+
         <div class="chat">
           <div class="logwrap">
             <div class="log" id="log"></div>
@@ -711,6 +788,15 @@ body.touch #qPtt{display:none}
         panel itself is never affected so you can always reach Stop all. People with
         reduced-motion turned on get the announcement without the spinning.</div>
 
+      <label>Ban list <span style="text-transform:none;letter-spacing:0;font-weight:400" id="admBanCount"></span></label>
+      <div id="admBans" style="max-height:170px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
+      <div class="qstrip" style="margin-top:6px">
+        <span class="q" id="admBansRefresh">↻ Refresh from server</span>
+      </div>
+      <div class="hint2">Name bans live in your browser. <b>IP bans live on the signalling server</b>, so
+        they cannot be dodged by rejoining, renaming or clearing storage — but they are held in memory,
+        so they clear if the server restarts (Render's free tier sleeps when idle).</div>
+
       <label>Members</label>
       <div id="admList" style="max-height:230px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
 
@@ -728,7 +814,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='4.2';
+var BUILD='4.5';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -785,7 +871,7 @@ var TURN_PASS='r8RRQ3o+jxm0ezpE';
 var TURN_API='https://mingus-chatroom.metered.live/api/v1/turn/credentials?apiKey=6464de4a90a4e9c1234c6ebb95bb29c8addc';
 var TURN_LIVE=null, turnFetched=false, turnWaiters=[];
 var PREFIX='mingus', MAX_SLOTS=12;
-var ROOMS=['lobby','party1','party2','chill','afk'];
+var ROOMS=['lobby','party1','party2','chill','afk','theater'];
 var PRESET=['🎮','🎧','🐦','🥒','👾','🔥','💜','🦈','🎸','🧊','🛹','🍕','👽','🏀','🐸','💀','⚡','🎲'];
 /* Voice presets. 'clear' is the default from 3.8 on — 32 kbps mono Opus at
    fullband is genuinely good for speech, and the old 6 kbps default was the
@@ -1229,6 +1315,7 @@ function renderRooms(){
     b.appendChild(d);
   });
   $('#tabr').textContent=room;
+  try{renderTheater();}catch(e){}
 }
 $('#goRoom').onclick=function(){var r=slug($('#newRoom').value);if(r){switchRoom(r);$('#newRoom').value='';}};
 $('#newRoom').onkeydown=function(e){if(e.key==='Enter')$('#goRoom').click();};
@@ -1479,6 +1566,19 @@ function connectRoom(){
       scan();
       clearInterval(rescanTimer);
       rescanTimer=setInterval(scan,RESCAN_MS);
+      if(inTheater()){
+        renderTheater();
+        setTimeout(function(){if(inTheater()&&peer)bc({t:'treq'});},1500);
+        /* if nobody answered with a leader, take it — otherwise the first
+           person into an empty theater could never start anything */
+        setTimeout(function(){
+          if(inTheater()&&peer&&!tLeader){
+            tLeader=me.name;bc({t:'tlead',name:me.name});
+            sys('🎬 nobody was leading, so you have the queue lead');
+            renderTheater();
+          }
+        },4000);
+      }
     });
     p.on('error',function(e){
       if(e.type==='unavailable-id'){try{p.destroy();}catch(x){} slot++;next();}
@@ -1702,6 +1802,25 @@ function onData(id,d){
   }
   if(d.t==='mod'){applyMod(d,false);return;}
   if(d.t==='prank'){runPrank(d);return;}
+  if(d.t==='tstate'){tApply(d);return;}
+  if(d.t==='tadd'){
+    if(d.item&&typeof d.item.url==='string'&&tQ.length<200){
+      tQ.push({url:String(d.item.url).slice(0,600),
+               kind:(d.item.kind==='site'?'site':'media'),
+               title:String(d.item.title||'clip').slice(0,80),
+               by:String(d.item.by||'?').slice(0,18)});
+      sys('🎬 <b>'+esc(d.item.by||'someone')+'</b> queued <b>'+esc(d.item.title||d.item.url)+'</b>');
+      renderTheater();
+    }
+    return;
+  }
+  if(d.t==='tlead'){
+    tLeader=String(d.name||'').slice(0,18);
+    sys('🎬 <b>'+esc(tLeader)+'</b> is now the queue leader');
+    renderTheater();
+    return;
+  }
+  if(d.t==='treq'){if(canDrive())try{p.conn.send(tState());}catch(e){} return;}
   if(d.t==='hello'){
     var isNew=!p.name;p.name=d.name;p.icon=d.icon;p.muted=d.muted;p.camOn=!!d.cam;p.media=d.media!==false;
     /* THIS is where a rejoin gets caught. Bans and server mutes are keyed on
@@ -1719,6 +1838,7 @@ function onData(id,d){
     /* Everyone has to be on the same build for moderation to mean anything —
        an older client silently ignores message types it does not know, which
        looks exactly like "the kick button does nothing". */
+    p.build=String(d.build||'?').slice(0,8);
     if(d.build&&d.build!==BUILD&&!p.warnedBuild){
       p.warnedBuild=1;
       sys('⚠ <b>'+esc(d.name)+'</b> is on build '+esc(String(d.build).slice(0,8))+
@@ -1734,6 +1854,9 @@ function onData(id,d){
       sys('<b>'+esc(d.name)+'</b> joined the party');blip(880,.06);
       if(p.conn&&p.conn.open&&camOn){try{p.conn.send({t:'cam',on:true});}catch(e){}}
       if(p.conn&&p.conn.open&&scrOn){try{p.conn.send({t:'scr',on:true});}catch(e){}}
+      /* hand a newcomer the current theater state straight away instead of
+         making them wait for the next 2.5s heartbeat */
+      if(inTheater()&&canDrive()&&p.conn&&p.conn.open){try{p.conn.send(tState());}catch(e){}}
     }
   }else if(d.t==='cam'){
     p.camOn=d.on;renderCams();
@@ -1792,7 +1915,12 @@ function onData(id,d){
       toast('an admin muted you');
       blip(260,.14);
     }else{
-      sys('🛡 An admin lifted your mute — you can unmute yourself again.');
+      /* Actually put them back on air. Clearing forceMuted only removed the
+         block on un-muting — it left muted=true and the track disabled, so the
+         person stayed silent until they noticed and clicked Unmute themselves.
+         An admin lifting a mute should just work. */
+      unmuteSelf();
+      sys('🛡 An admin lifted your mute — your mic is live again.');
       toast('mute lifted');
       blip(820,.08);
     }
@@ -1836,6 +1964,7 @@ function leaveParty(silent){
      claim you were still joined as an old peer after leaving, and it feeds the
      duplicate-connection tiebreak on the next join */
   me.slot=-1;me.id=null;leaving=false;
+  tReset();
   setStatus('not connected');renderMembers();renderCams();renderRooms();
   if(!silent){$('#modal').style.display='grid';sys('you left the party');blip(330,.1);}
 }
@@ -2284,6 +2413,16 @@ function setRadio(on){
   if(ELEMENT_AUDIO)toast('radio FX isn\'t available on Safari');
   else toast(on?'radio filter ON':'radio filter off');
 }
+/* Put this client's own mic back on air after a server mute is lifted. */
+function unmuteSelf(){
+  forceMuted=false;
+  muted=false;
+  try{$('#muteLbl').textContent='Mute';}catch(e){}
+  if(localStream&&localStream.getAudioTracks()[0])
+    localStream.getAudioTracks()[0].enabled=(!ptt||pttDown);
+  bc({t:'mute',on:!micOn});
+  renderMembers();
+}
 function applyVol(p){
   /* srvMuted is enforced right here, in the listener's own audio graph. That is
      what makes a server mute actually take effect: even if the muted person's
@@ -2313,7 +2452,8 @@ function applyMod(m,local){
         sys('🛡 <b>An admin muted your microphone.</b> You cannot unmute until they lift it.',true);
         toast('an admin muted you');blip(260,.14);
       }else{
-        sys('🛡 An admin lifted your mute — you can unmute yourself again.');
+        unmuteSelf();
+        sys('🛡 An admin lifted your mute — your mic is live again.');
         toast('mute lifted');blip(820,.08);
       }
     }else{
@@ -3126,7 +3266,8 @@ function admUnlock(){
   $('#admLock').style.display='none';
   $('#admBody').style.display='block';
   $('#admVal').textContent='unlocked';
-  renderAdmin(true);toast('admin unlocked');blip(880,.08);
+  renderAdmin(true);renderBans();loadServerBans();
+  toast('admin unlocked');blip(880,.08);
 }
 function admLogout(){
   admin=false;
@@ -3134,6 +3275,94 @@ function admLogout(){
   $('#admVal').textContent='moderation tools';
   $('#admModal').style.display='none';
   toast('admin panel locked');
+}
+/* ---- server-side IP bans ----
+   The page cannot see anybody's IP; the signalling server can, because it
+   terminates their WebSocket. So the admin panel just asks the server to ban
+   the address behind a given peer id, and the server refuses that address at
+   the handshake from then on. */
+var srvBans=[], srvBansErr='';
+function adminBase(){
+  var h=(CFG.host||SIGNAL_HOST).replace(/^https?:\/\//,'').replace(/\/+$/,'').split(':')[0];
+  /* When the page is served BY the signalling host — which is the normal setup,
+     /chat — our own origin is the right base: correct scheme, correct port, and
+     same-origin so CORS never enters into it. */
+  if(location.hostname===h||location.hostname==='127.0.0.1'||location.hostname==='localhost')
+    return location.origin;
+  return 'https://'+h;
+}
+function admApi(path,body){
+  return fetch(adminBase()+path,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({pass:ADMIN_PASS},body||{}))
+  }).then(function(r){return r.json();});
+}
+function loadServerBans(){
+  srvBansErr='';
+  return fetch(adminBase()+'/admin/bans?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(j&&j.ok){srvBans=j.ips||[];}
+      else{srvBans=[];srvBansErr=(j&&j.error)||'server refused';}
+      renderBans();
+    })
+    .catch(function(){
+      srvBans=[];
+      srvBansErr='could not reach the server (it may be asleep, or running an older server.js without the ban API)';
+      renderBans();
+    });
+}
+function renderBans(){
+  var box=document.getElementById('admBans');
+  if(!box)return;
+  box.innerHTML='';
+  var rows=0;
+  function line(label,sub,onClear){
+    rows++;
+    var r=el('div','');
+    r.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;'+
+      'border-bottom:1px solid rgba(80,50,160,.18)';
+    var info=el('div','');info.style.cssText='flex:1;min-width:0';
+    info.appendChild(el('div','',esc(label)));
+    var s=el('div','',esc(sub));
+    s.style.cssText='font-size:10.5px;color:#7a6aa8';
+    info.appendChild(s);
+    r.appendChild(info);
+    r.appendChild(admBtn('Unban','lift this ban',onClear,
+      'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)'));
+    box.appendChild(r);
+  }
+  Object.keys(banNames).forEach(function(k){
+    if(!(banNames[k]>Date.now()))return;
+    var until=banNames[k]===Infinity?'this session'
+      :('for '+Math.max(1,Math.round((banNames[k]-Date.now())/60000))+' more min');
+    line(k,'name ban · '+until,function(){
+      delete banNames[k];
+      for(var pid in peers)if(nameKey(peers[pid].name)===k)delete banned[pid];
+      sys('🛡 name ban lifted for <b>'+esc(k)+'</b>');
+      toast('unbanned '+k);renderBans();
+    });
+  });
+  srvBans.forEach(function(ip){
+    line(ip,'IP ban · enforced by the server',function(){
+      admApi('/admin/unban',{ip:ip}).then(function(j){
+        if(j&&j.ok!==false){sys('🛡 IP ban lifted for <b>'+esc(ip)+'</b>');toast('unbanned '+ip);}
+        else toast('server would not lift it');
+        loadServerBans();
+      }).catch(function(){toast('could not reach the server');});
+    });
+  });
+  var cnt=document.getElementById('admBanCount');
+  if(cnt)cnt.textContent='('+rows+')';
+  if(!rows){
+    var none=el('div','','Nobody is banned.'+(srvBansErr?(' — '+srvBansErr):''));
+    none.style.cssText='padding:12px;font-size:12.5px;color:'+(srvBansErr?'#b01a3a':'#5b3fb3');
+    box.appendChild(none);
+  }else if(srvBansErr){
+    var warn=el('div','','IP bans unavailable: '+esc(srvBansErr));
+    warn.style.cssText='padding:8px 10px;font-size:11.5px;color:#b01a3a';
+    box.appendChild(warn);
+  }
 }
 function admBtn(label,title,fn,grad){
   var b=document.createElement('button');
@@ -3177,19 +3406,33 @@ function renderAdmin(force){
     r.appendChild(mkAva(p.icon));
     var info=el('div','');info.style.cssText='flex:1;min-width:110px';
     info.appendChild(el('div','',esc(p.name)));
+    /* Their build is shown here on purpose. Moderation runs in THEIR browser —
+       an older client silently ignores message types it does not know, so a
+       kick or an unmute can look like it did nothing when the real problem is
+       that they never refreshed. */
+    var stale=(p.build&&p.build!=='?'&&p.build!==BUILD);
     var sub=el('div','',esc(id)+' · '+esc(p.ice||'—')+(p.relay?' · relay':'')+
-      (p.muted?' · muted':'')+(p.srvMuted?' · SERVER MUTED':''));
-    sub.style.cssText='font-size:10.5px;color:#7a6aa8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      (p.muted?' · muted':'')+(p.srvMuted?' · SERVER MUTED':'')+
+      ' · build '+esc(p.build||'?')+(stale?' ⚠ OUT OF DATE':''));
+    sub.style.cssText='font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+
+      (stale?'color:#b01a3a;font-weight:700':'color:#7a6aa8');
     info.appendChild(sub);
     r.appendChild(info);
     /* Server mute: tells their browser to shut its own microphone off and
        refuse to turn it back on. Everyone stops hearing them, not just you. */
     r.appendChild(admBtn(p.srvMuted?'🔊 Un-mute all':'🔇 Server mute',
       'mute their microphone for the whole party',function(){
-      modBroadcast(p.srvMuted?'unmute':'mute',p.name,id);
-      /* legacy message too, so anyone still on build 3.8 obeys it */
-      try{if(p.conn&&p.conn.open)p.conn.send({t:'forcemute',on:!p.srvMuted});}catch(e){}
-      toast(p.srvMuted?('un-muted '+(p.name||id)):('server-muted '+(p.name||id)));
+      /* Capture the state BEFORE broadcasting. modBroadcast() applies the
+         action locally on the way out, which flips p.srvMuted — so reading it
+         again below gave the inverted value and the legacy message re-muted
+         the person a millisecond after the unmute. That is why unmuting
+         appeared to do nothing at all. */
+      var wasMuted=!!p.srvMuted;
+      warnIfStale(p);
+      modBroadcast(wasMuted?'unmute':'mute',p.name,id);
+      /* legacy message too, so anyone still on an older build obeys it */
+      try{if(p.conn&&p.conn.open)p.conn.send({t:'forcemute',on:!wasMuted});}catch(e){}
+      toast(wasMuted?('un-muted '+(p.name||id)):('server-muted '+(p.name||id)));
       renderAdmin(true);
     },p.srvMuted?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#c9bdf5,#7a63c8 55%,#4d3a96)'));
     /* local-only: just turns their volume down here */
@@ -3200,15 +3443,44 @@ function renderAdmin(force){
     r.appendChild(admBtn('Kick','remove them, and refuse them for 5 minutes — by name, so rejoining does not dodge it',function(){
       admKick(id,false);
     },'linear-gradient(#ffc27a,#e08a19 55%,#b46406)'));
-    r.appendChild(admBtn('Ban','remove them for the rest of this session',function(){
+    r.appendChild(admBtn('Ban','remove them and block their IP at the server until you unban',function(){
       admKick(id,true);
     },'linear-gradient(#ff9ca6,#e0192f 55%,#a10f20)'));
     box.appendChild(r);
   });
 }
+/* Moderation executes in the TARGET's browser. If they are running an older
+   copy they ignore message types they do not know, and the action looks broken
+   from this side. Say so at the moment it matters rather than leaving the admin
+   to wonder why nothing happened. */
+function warnIfStale(p){
+  if(!p||!p.build||p.build==='?'||p.build===BUILD)return false;
+  sys('⚠ <b>'+esc(p.name||'that person')+'</b> is running build '+esc(p.build)+' while you are on '+
+      BUILD+'. Moderation runs in their browser, so this may not take effect until they '+
+      'hard-refresh (Ctrl+F5 / Cmd+Shift+R).',true);
+  return true;
+}
 function admKick(id,forever){
   var p=peers[id];if(!p)return;
+  warnIfStale(p);
   var nm=p.name||id;
+  /* A full Ban also asks the server to block their address. That is the part
+     they cannot wriggle out of — a name ban only works while their browser is
+     willing to tell the truth about who it is. */
+  if(forever){
+    admApi('/admin/ban',{peerId:id}).then(function(j){
+      if(j&&j.ok){
+        sys('🛡 <b>'+esc(nm)+'</b> is IP-banned at the server ('+esc(j.ip)+') — rejoining will not work');
+        loadServerBans();
+      }else{
+        sys('🛡 name ban applied, but the <b>IP ban failed</b>: '+esc((j&&j.error)||'server refused')+
+            '. Check server.js is the version with the ban API.',true);
+      }
+    }).catch(function(){
+      sys('🛡 name ban applied, but the server could not be reached for the IP ban — '+
+          'they can rejoin under a different name until it is.',true);
+    });
+  }
   /* legacy direct message first, so a peer still on 3.8 still leaves */
   try{if(p.conn&&p.conn.open)p.conn.send({t:'kick'});}catch(e){}
   /* then the real thing: a broadcast every member enforces, keyed on their
@@ -3218,6 +3490,7 @@ function admKick(id,forever){
   toast((forever?'banned ':'kicked ')+nm);
 }
 $('#btnAdmin').onclick=admOpen;
+$('#admBansRefresh').onclick=function(){loadServerBans();toast('refreshing ban list…');};
 $('#admGo').onclick=admUnlock;
 $('#admPass').onkeydown=function(e){if(e.key==='Enter')admUnlock();};
 $('#admCancel').onclick=$('#admDone').onclick=function(){$('#admModal').style.display='none';};
@@ -3246,6 +3519,227 @@ $('#admLockRoom').onclick=function(){
   toast(roomLocked?'room locked':'room unlocked');
 };
 try{if(sessionStorage.getItem('mc_admin')){admin=true;$('#admVal').textContent='unlocked';}}catch(e){}
+
+/* ===================== THEATER =====================
+   A shared player in the 'theater' room. One person holds the queue lead and
+   drives playback; an admin can always drive regardless. Everyone else follows
+   along, and anyone can add to the queue.
+
+   Sync model: the leader is the clock. It broadcasts {idx,time,playing} every
+   2.5s and immediately on any play/pause/seek. Followers only correct when they
+   have drifted more than 1.5s — nudging currentTime on every tick makes audio
+   stutter constantly. Followers get no scrubber, so they cannot fight the
+   leader for position and then get yanked back.
+
+   Media: direct file URLs only. YouTube and friends are detected and refused
+   with an explanation — they block direct playback and their embed player
+   cannot be kept in step this way, so half-working silently would be worse. */
+var THEATER='theater';
+var tQ=[], tIdx=-1, tLeader='';
+function inTheater(){return room===THEATER;}
+function canDrive(){return !!(admin||(tLeader&&tLeader===me.name));}
+function tVid(){return document.getElementById('tvid');}
+function tFrame(){return document.getElementById('tframe');}
+/* Anything that looks like a playable file is treated as media and gets real
+   synced playback. Everything else is loaded as a website in the frame. */
+function classifyUrl(u){
+  return /\.(mp4|webm|ogg|ogv|mp3|m4a|aac|wav|flac|mov|m4v)(\?|#|$)/i.test(u)?'media':'site';
+}
+/* A YouTube watch link refuses to be framed, but its /embed/ form is built for
+   exactly this — so convert rather than reject. Same for a couple of others. */
+function toEmbed(u){
+  var m=u.match(/(?:youtube\.com\/watch\?[^#]*\bv=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([\w-]{6,})/i);
+  if(m)return 'https://www.youtube.com/embed/'+m[1];
+  m=u.match(/vimeo\.com\/(\d{6,})/i);
+  if(m)return 'https://player.vimeo.com/video/'+m[1];
+  m=u.match(/twitch\.tv\/([A-Za-z0-9_]{3,})\/?$/i);
+  if(m)return 'https://player.twitch.tv/?channel='+m[1]+'&parent='+location.hostname;
+  return u;
+}
+/* Sites that are known to refuse framing outright, so we can say so up front
+   instead of leaving people staring at a white rectangle. */
+function framingLikelyBlocked(u){
+  return /(^|\/\/|\.)(google\.[a-z.]+|x\.com|twitter\.com|reddit\.com|facebook\.com|instagram\.com|netflix\.com|amazon\.[a-z.]+|discord\.com|github\.com|chatgpt\.com|openai\.com)\//i.test(u+'/');
+}
+function tState(){
+  var v=tVid();
+  return {t:'tstate',q:tQ,idx:tIdx,leader:tLeader,
+          time:v?(v.currentTime||0):0,playing:v?!v.paused:false};
+}
+function tBroadcast(){if(inTheater())bc(tState());}
+function renderTheater(){
+  var box=document.getElementById('theater');
+  if(!box)return;
+  var on=inTheater();
+  box.classList.toggle('on',on);
+  if(!on)return;
+  var drive=canDrive();
+  $('#tLeadLbl').textContent=tLeader
+    ? ('— queue leader: '+tLeader+(tLeader===me.name?' (you)':(admin?' · you can override as admin':'')))
+    : '— no queue leader yet';
+  ['tPlay','tPause','tPrev','tNext'].forEach(function(b){
+    var e=document.getElementById(b); if(e)e.disabled=!drive;
+  });
+  $('#tTake').style.display=(tLeader===me.name)?'none':'inline-flex';
+  var v=tVid();
+  v.controls=drive;
+  var cur=(tIdx>=0&&tQ[tIdx])?tQ[tIdx]:null;
+  var isSite=!!(cur&&(cur.kind||classifyUrl(cur.url))==='site');
+  var stage=document.getElementById('tstage');
+  stage.classList.toggle('site',isSite);
+  /* lock the frame for everyone except whoever is driving */
+  stage.classList.toggle('locked',isSite&&!drive);
+  $('#tover').classList.toggle('hide',!!cur);
+  $('#tStat').textContent=cur
+    ? (isSite?(drive?'you are driving this page':'view only — '+(tLeader||'the leader')+' drives')
+            : (drive?'you are driving':'following '+(tLeader||'…')))
+    : '';
+  var q=$('#tQueue');q.innerHTML='';
+  if(!tQ.length){
+    q.appendChild(el('div','tq','Queue is empty — paste a direct media link below.'));
+    return;
+  }
+  tQ.forEach(function(item,i){
+    var r=el('div','tq'+(i===tIdx?' cur':''));
+    r.appendChild(el('span','',i===tIdx?'▶':String(i+1)+'.'));
+    r.appendChild(el('span','tt',esc(item.title||item.url)));
+    r.appendChild(el('span','tby','by '+esc(item.by||'?')));
+    if(drive){
+      var bp=document.createElement('button');bp.textContent='play';
+      bp.onclick=function(){tLoad(i,true);};
+      var bx=document.createElement('button');bx.textContent='✕';
+      bx.onclick=function(){tRemove(i);};
+      r.appendChild(bp);r.appendChild(bx);
+    }
+    q.appendChild(r);
+  });
+}
+function tLoad(i,play){
+  if(i<0)return;
+  if(i>=tQ.length){if(tQ.length)toast('end of the queue');return;}
+  tIdx=i;
+  var item=tQ[i], u=item.url, v=tVid(), f=tFrame();
+  if((item.kind||classifyUrl(u))==='site'){
+    /* park the player so a previous clip isn't still playing under the page */
+    try{v.pause();}catch(e){}
+    if(f.getAttribute('src')!==u)f.setAttribute('src',u);
+  }else{
+    try{f.removeAttribute('src');}catch(e){}
+    if(v.getAttribute('src')!==u){v.setAttribute('src',u);v.load();}
+    if(play)v.play().catch(function(){toast('tap the player to start — autoplay was blocked');});
+  }
+  renderTheater();
+  if(canDrive())tBroadcast();
+}
+function tRemove(i){
+  if(!canDrive()||i<0||i>=tQ.length)return;
+  var was=tQ[i];
+  tQ.splice(i,1);
+  if(i<tIdx)tIdx--;
+  else if(i===tIdx){
+    tIdx=Math.min(tIdx,tQ.length-1);
+    if(tIdx>=0)tLoad(tIdx,false);
+    else{try{var v=tVid();v.pause();v.removeAttribute('src');v.load();}catch(e){}}
+  }
+  sys('🎬 <b>'+esc(me.name)+'</b> removed <b>'+esc(was.title||was.url)+'</b> from the queue');
+  renderTheater();tBroadcast();
+}
+function tApply(d){
+  if(!inTheater())return;
+  if(Array.isArray(d.q))tQ=d.q.slice(0,200);
+  if(typeof d.leader==='string')tLeader=d.leader;
+  var v=tVid();
+  if(typeof d.idx==='number'&&d.idx!==tIdx){
+    tIdx=d.idx;
+    var it=tQ[tIdx];
+    if(tIdx>=0&&it){
+      if((it.kind||classifyUrl(it.url))==='site'){
+        try{v.pause();}catch(e){}
+        var f=tFrame();
+        if(f.getAttribute('src')!==it.url)f.setAttribute('src',it.url);
+      }else{
+        try{tFrame().removeAttribute('src');}catch(e){}
+        if(v.getAttribute('src')!==it.url){v.setAttribute('src',it.url);v.load();}
+      }
+    }
+  }
+  /* whoever is driving ignores incoming position — they ARE the clock.
+     Sites have no shared position to sync, only which one is open. */
+  var curItem=(tIdx>=0)?tQ[tIdx]:null;
+  var curIsSite=!!(curItem&&(curItem.kind||classifyUrl(curItem.url))==='site');
+  if(!canDrive()&&tIdx>=0&&!curIsSite){
+    if(typeof d.time==='number'&&Math.abs((v.currentTime||0)-d.time)>1.5){
+      try{v.currentTime=d.time;}catch(e){}
+    }
+    if(d.playing&&v.paused)v.play().catch(function(){});
+    if(!d.playing&&!v.paused)v.pause();
+  }
+  renderTheater();
+}
+function tReset(){
+  tQ=[];tIdx=-1;tLeader='';
+  try{var v=tVid();if(v){v.pause();v.removeAttribute('src');v.load();}}catch(e){}
+  renderTheater();
+}
+$('#tAdd').onclick=function(){
+  var u=$('#tUrl').value.trim();
+  if(!u)return;
+  if(!/^https?:\/\//i.test(u)){toast('that needs to be an http(s) link');return;}
+  var raw=u;
+  u=toEmbed(u);                      /* YouTube/Vimeo/Twitch -> their embeddable form */
+  var kind=classifyUrl(u);
+  if(kind==='site'&&framingLikelyBlocked(u)){
+    sys('🎬 <b>'+esc(raw.replace(/^https?:\/\//,'').split('/')[0])+'</b> refuses to be embedded '+
+        '(it sends X-Frame-Options), so the pane will stay blank. Most big sites do this. '+
+        'A YouTube or Vimeo link works — I convert it to the embeddable form automatically. '+
+        'To show a site that blocks embedding, use <b>🖥 Screen Share</b> instead: it shares '+
+        'your actual screen and everyone sees exactly what you see.',true);
+    return;
+  }
+  var item={url:u.slice(0,600),kind:kind,
+            title:($('#tTitle').value.trim()||
+                   (kind==='site'?u.replace(/^https?:\/\//,'').split('/')[0]
+                                 :u.split('/').pop().split('?')[0])||'item').slice(0,80),
+            by:me.name||'someone'};
+  tQ.push(item);
+  $('#tUrl').value='';$('#tTitle').value='';
+  bc({t:'tadd',item:item});
+  sys('🎬 <b>'+esc(item.by)+'</b> queued <b>'+esc(item.title)+'</b>');
+  if(tIdx<0&&canDrive())tLoad(0,false); else renderTheater();
+  if(canDrive())tBroadcast();
+};
+$('#tUrl').onkeydown=function(e){if(e.key==='Enter')$('#tAdd').click();};
+$('#tPlay').onclick=function(){
+  if(!canDrive())return;
+  if(tIdx<0&&tQ.length)return tLoad(0,true);
+  tVid().play().catch(function(){toast('tap the player to start');});
+  setTimeout(tBroadcast,80);
+};
+$('#tPause').onclick=function(){if(!canDrive())return;tVid().pause();setTimeout(tBroadcast,80);};
+$('#tNext').onclick=function(){if(canDrive())tLoad(tIdx+1,true);};
+$('#tPrev').onclick=function(){if(canDrive())tLoad(tIdx-1,true);};
+$('#tTake').onclick=function(){
+  tLeader=me.name;
+  bc({t:'tlead',name:me.name});
+  sys('🎬 <b>'+esc(me.name)+'</b> took the queue lead');
+  renderTheater();tBroadcast();
+};
+(function(){
+  var v=tVid();if(!v)return;
+  ['play','pause','seeked'].forEach(function(ev){
+    v.addEventListener(ev,function(){if(canDrive())tBroadcast();});
+  });
+  v.addEventListener('ended',function(){if(canDrive())tLoad(tIdx+1,true);});
+  v.addEventListener('error',function(){
+    if(tIdx>=0&&tQ[tIdx])
+      sys('🎬 could not play <b>'+esc(tQ[tIdx].title||tQ[tIdx].url)+'</b> — the link may be dead, '+
+          'not a media file, or blocked by that server\'s CORS policy.',true);
+  });
+})();
+/* the leader is the clock — keep everyone pinned to it */
+setInterval(function(){
+  if(inTheater()&&tLeader===me.name&&tIdx>=0)tBroadcast();
+},2500);
 
 /* ===================== ADMIN PRANKS ===================== */
 /* The visual effects are applied as INLINE styles on .wrap rather than via a
