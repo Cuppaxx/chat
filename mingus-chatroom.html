@@ -986,7 +986,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='6.1';
+var BUILD='6.2';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -4008,7 +4008,20 @@ function brPlay(r,ad){
   for(var i=0;i<planes.length;i++)buf.copyToChannel(planes[i],i);
   var src=c.createBufferSource(); src.buffer=buf; src.connect(r.gain);
   var now=c.currentTime;
-  if(r.next<now+0.01)r.next=now+0.06;   /* (re)prime a 60 ms jitter buffer after silence */
+  /* Jitter buffer. Packets arrive in bursts from a busy free-tier server, so we
+     play them a little behind real time and only re-prime on a real gap. Each
+     underrun (a packet that arrived after its slot) widens the cushion, up to
+     600 ms, so a choppy link settles into a steady delay instead of stuttering. */
+  if(r.lead===undefined)r.lead=0.25;
+  if(!r.primed){ r.primed=true; r.next=now+r.lead; }   /* first packet: just prime */
+  else if(r.next<now){                    /* late: we ran dry */
+    var gap=now-r.next;
+    if(gap<1.5){ r.under=(r.under||0)+1; r.lead=Math.min(0.6,r.lead+0.1); }
+    else r.under=0;                       /* long silence between sentences — not an underrun */
+    r.next=now+r.lead;
+  }else if(r.next>now+r.lead+0.6){        /* drifted far ahead (clock skew) — resync */
+    r.next=now+r.lead;
+  }
   src.start(r.next); r.next+=buf.duration;
 }
 function brOnMessage(ev){
