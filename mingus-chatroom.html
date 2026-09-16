@@ -277,6 +277,15 @@ body.touch .cam .ctl{opacity:1}
 #tframe{display:none;width:100%;height:min(56vh,520px);border:0;background:#fff}
 .tstage.site #tframe{display:block}
 .tstage.site video{display:none}
+/* A live screen share takes over the whole stage. Before this, starting a
+   stream left the embedded page sitting underneath it — the "massive video
+   player element" that would not go away. Now the share replaces it. */
+#tshare{display:none;width:100%;max-height:min(56vh,520px);background:#000;object-fit:contain}
+.tstage.share #tshare{display:block}
+.tstage.share #tframe,.tstage.share #tvid,.tstage.share .tblock{display:none}
+.tstage.share .tover{display:none}
+.tstage:fullscreen #tshare{height:100vh;max-height:100vh;width:100vw}
+.tstage:-webkit-full-screen #tshare{height:100vh;max-height:100vh;width:100vw}
 /* Non-leaders get a transparent sheet over the frame so only whoever is
    driving can click or scroll it. Cross-origin pages cannot be read or
    remote-controlled from here, so this is "everyone opens the same page and
@@ -483,6 +492,71 @@ a.btn,a.hub{text-decoration:none}
   text-shadow:0 0 18px rgba(255,0,0,.8)}
 .rrodtxt span{display:block;font-size:13px;color:#ffc2c2;letter-spacing:.4px;margin-top:10px}
 
+/* ===================== MEGA ANNOUNCEMENT =====================
+   Text slams in oversized, hangs for a beat, then every letter is handed to a
+   tiny gravity sim and falls into a heap at the bottom of the screen. */
+.mega{position:fixed;inset:0;pointer-events:none;z-index:95;overflow:hidden}
+.megaline{position:absolute;left:50%;top:34%;display:flex;gap:1px;white-space:nowrap;
+  transform:translate(-50%,-50%) scale(7);opacity:0;
+  transition:transform .15s cubic-bezier(.2,1.7,.3,1),opacity .1s linear}
+.mega.hit .megaline{transform:translate(-50%,-50%) scale(1);opacity:1}
+.mega b{font-size:clamp(26px,6.4vw,72px);font-weight:900;color:#fff;line-height:1;
+  -webkit-text-stroke:2px #2a1173;
+  text-shadow:0 3px 0 #4a1bd0,0 0 24px rgba(165,115,255,.95),0 8px 20px rgba(0,0,0,.75)}
+.mega .megaby{position:absolute;left:0;right:0;top:calc(34% + 64px);text-align:center;
+  font-size:13px;color:#d9ccff;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .3s .2s}
+.mega.hit .megaby{opacity:1}
+@keyframes megashake{
+  0%,100%{transform:translate(0,0)}
+  20%{transform:translate(-9px,5px)}
+  40%{transform:translate(8px,-6px)}
+  60%{transform:translate(-6px,-4px)}
+  80%{transform:translate(7px,6px)}
+}
+
+/* ===================== SNIPE =====================
+   Puts bullet holes through one specific person's webcam tile — or their row in
+   the member list if their camera is off — and rattles it. Purely cosmetic and
+   it cleans itself up. */
+@keyframes snipeshake{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  12%{transform:translate(-7px,4px) rotate(-1.2deg)}
+  28%{transform:translate(6px,-3px) rotate(1deg)}
+  44%{transform:translate(-4px,-4px) rotate(-.7deg)}
+  62%{transform:translate(5px,3px) rotate(.8deg)}
+  80%{transform:translate(-3px,2px) rotate(-.4deg)}
+}
+.sniped{animation:snipeshake .5s ease-in-out 2}
+.snipewrap{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden}
+.bhole{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
+  background:radial-gradient(circle at 48% 45%,#000 0 34%,rgba(10,0,20,.85) 44%,rgba(60,20,90,.35) 62%,transparent 72%);
+  box-shadow:0 0 0 2px rgba(255,255,255,.22),0 0 14px rgba(0,0,0,.8);
+  opacity:0;transform:scale(.3);transition:opacity .1s,transform .12s cubic-bezier(.2,1.8,.3,1)}
+.bhole.on{opacity:1;transform:scale(1)}
+.bhole i{position:absolute;left:50%;top:50%;width:2px;height:40px;margin:-20px 0 0 -1px;
+  background:linear-gradient(transparent,rgba(255,255,255,.5) 35%,rgba(255,255,255,.5) 65%,transparent);
+  transform-origin:50% 50%}
+.snipeflash{position:absolute;inset:0;background:rgba(255,255,255,.75);opacity:0;
+  transition:opacity .09s;pointer-events:none;z-index:8}
+.snipeflash.on{opacity:1}
+
+/* ===================== DUEL ===================== */
+#duel{display:none;border-top:1px solid rgba(255,255,255,.22);
+  background-color:rgba(12,4,40,.6);padding:8px 10px}
+#duel.on{display:block}
+.duelbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.duelbar .dtitle{font-size:13px;font-weight:700;color:#efe9ff;text-shadow:0 1px 3px #000}
+.duelbar .dstat{font-size:12px;color:#cfc0ff;margin-left:auto;text-shadow:0 1px 3px #000}
+#duelCanvas{display:block;width:100%;max-width:520px;margin:0 auto;height:132px;
+  border-radius:8px;border:1px solid rgba(255,255,255,.55);
+  background:linear-gradient(#1a0c4a,#0a0426);
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.6)}
+.duelhint{text-align:center;font-size:11.5px;color:#b9a9e6;margin-top:5px;
+  text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.mem .duelbtn{font:inherit;font-size:11px;padding:2px 8px;border-radius:11px;cursor:pointer;
+  border:1px solid #9c86e0;background-color:#efeaff;color:#3b2384;font-weight:700}
+.mem .duelbtn:hover{background-color:#6a2dff;color:#fff}
+
 #banner{display:none;padding:10px 14px;margin:0 0 8px;border-radius:8px;font-size:14px;line-height:1.45;
   background-color:#5e1030;border:1px solid #ff8fa8;color:#ffe2e9}
 #banner.on{display:block}
@@ -590,6 +664,17 @@ body.touch #qPtt{display:none}
     <div class="row action" id="btnScreen">🖥 Screen Share: <b id="scrState">Off</b> <span class="val">share a window, tab or your whole screen</span></div>
     <div class="row action" id="btnDiag">🩺 Network Test <span class="val">run this if you can't connect</span></div>
     <div class="row action" id="btnCfg">⚙ Connection Settings <span class="val">signaling server / TURN keys</span></div>
+    <div class="row" style="font-size:15px;gap:10px;flex-wrap:wrap">
+      <span class="lab">🥒 VERITY:</span>
+      <button class="btn" id="btnVerityCall">📞 Call VERITY</button>
+      <button class="btn grey" id="btnVerityHang">📴 Hang up</button>
+      <span class="val" id="verityVal" style="margin-left:0">a quirky little presence with a real voice</span>
+    </div>
+    <div class="row" style="font-size:15px;gap:10px;flex-wrap:wrap">
+      <span class="lab">VERITY voice:</span>
+      <select id="verityVoice" style="font:inherit;font-size:13px;padding:3px 6px;border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d"></select>
+      <span class="q" id="verityMute" title="silence him on your machine only">🔇 Mute VERITY (me)</span>
+    </div>
     <div class="row action" id="btnAdmin">🛡 Admin Panel <span class="val" id="admVal">moderation tools</span></div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Voice:</span>
@@ -616,6 +701,17 @@ body.touch #qPtt{display:none}
       </div>
     </div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
+      <span class="lab">Camera:</span>
+      <div class="qstrip">
+        <span class="q on" data-camres="360">360p 30</span>
+        <span class="q" data-camres="720">720p 60</span>
+      </div>
+      <span class="lab">Video bitrate:</span>
+      <input type="range" id="vbSl" class="vol" min="50" max="4000" step="50" value="500"
+             style="width:170px" title="raw video bitrate — drag it into the ground for fun">
+      <span id="vbVal" style="font-size:12px;min-width:86px">500 kbps</span>
+    </div>
+    <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Pitch:</span>
       <span style="font-size:12px;opacity:.7">low</span>
       <input type="range" id="pitchSl" class="vol" min="-12" max="12" step="1" value="0"
@@ -633,6 +729,7 @@ body.touch #qPtt{display:none}
         <span class="q on" id="qRaw" title="all processing off — default">RAW MODE</span>
         <span class="q on" id="qStereo" title="send two channels instead of one">Stereo</span>
         <span class="q on" id="qAutoMic" title="switch your mic on the moment you join">Auto mic</span>
+        <span class="q on" id="qScrHQ" title="1080p30 screen share instead of 720p15 — much sharper text, much more bandwidth">HQ screen</span>
         <span class="q" id="qRelay" title="route everything through TURN — fixes hard NATs">Force TURN</span>
       </div>
     </div>
@@ -664,9 +761,15 @@ body.touch #qPtt{display:none}
           <div class="tstagewrap">
           <div class="tstage" id="tstage">
             <video id="tvid" playsinline preload="metadata"></video>
-            <iframe id="tframe" referrerpolicy="no-referrer"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+            <!-- referrerpolicy was "no-referrer", which is what broke YouTube: its
+                 embed player checks the referrer to confirm which site is framing it,
+                 and with none it refuses to play. strict-origin sends just the origin,
+                 which is what embeds expect. allowfullscreen is what makes the
+                 player's own fullscreen button work. -->
+            <iframe id="tframe" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"></iframe>
+            <video id="tshare" playsinline autoplay muted></video>
             <div class="tblock" id="tblock" title="only the queue leader can interact with this"></div>
             <div class="tover" id="tover">Nothing playing.<br>Paste a link below — a media file, a website, or a YouTube video.</div>
           </div>
@@ -700,6 +803,29 @@ body.touch #qPtt{display:none}
           <div class="logwrap">
             <div class="log" id="log"></div>
             <div class="jump" id="jump">▼ new messages</div>
+          </div>
+          <div id="duel">
+            <div class="duelbar">
+              <span class="dtitle">⚔ Versus</span>
+              <span class="qstrip" id="duelModes">
+                <span class="q on" data-gm="quickdraw">🤠 Quickdraw</span>
+                <span class="q" data-gm="rps">✊ RPS</span>
+                <span class="q" data-gm="tug">🪢 Tug</span>
+                <span class="q" data-gm="snipe">🎯 Snipe</span>
+              </span>
+              <span class="qstrip" id="duelRps" style="display:none">
+                <span class="q" data-rps="rock">✊ Rock</span>
+                <span class="q" data-rps="paper">✋ Paper</span>
+                <span class="q" data-rps="scissors">✌ Scissors</span>
+              </span>
+              <button class="btn" id="duelSendChal">Send challenge</button>
+              <button class="btn" id="duelAccept">Accept</button>
+              <button class="btn grey" id="duelDecline">Decline</button>
+              <button class="btn grey" id="duelClose">Close</button>
+              <span class="dstat" id="duelStat"></span>
+            </div>
+            <canvas id="duelCanvas" width="520" height="132"></canvas>
+            <div class="duelhint" id="duelHint">Wait for <b>DRAW!</b> — then click the canvas or hit Space. Fire early and you lose.</div>
           </div>
           <div id="xfers"></div>
           <div class="compose">
@@ -804,6 +930,7 @@ body.touch #qPtt{display:none}
       <div style="display:flex;gap:6px">
         <input type="text" id="admMsg" maxlength="200" placeholder="message to the whole party…" style="flex:1;min-width:0">
         <button class="btn blue" id="admSend">📢 Send</button>
+        <button class="btn" id="admMega" title="slam it across everyone's screen, then drop it">💥 MEGA</button>
       </div>
 
       <label>Pranks — fires on everyone in the room</label>
@@ -817,6 +944,7 @@ body.touch #qPtt{display:none}
         <span class="q" data-prank="blur">😵 Blurry</span>
         <span class="q" data-prank="emoji">🎉 Emoji storm</span>
         <span class="q" data-prank="rrod">💀 Red Ring</span>
+        <span class="q" id="prankSnipeRandom" title="snipe a random member">🎯 Snipe (random)</span>
         <span class="q" data-prank="clear">✖ Stop all</span>
       </div>
       <div class="hint2">All of these wear off on their own after a few seconds, and the admin
@@ -849,7 +977,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='4.6';
+var BUILD='5.2';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -959,7 +1087,29 @@ var autoMic=true;
 var VIDEO_KBPS=140, rescanTimer=null, joinTimer=null;
 /* screen share */
 var scrStream=null, scrOn=false, scrAudioNode=null;
-var CAM_KBPS=140, SCREEN_KBPS=900;
+/* Camera presets. 320x240 at 140 kbps was a postage stamp; 360p is the new
+   floor and 720p60 is there for anyone with the bandwidth to spend. */
+var CAMSPEC={
+  '360':{w:640,h:360,fps:30,kbps:500,l:'360p30'},
+  '720':{w:1280,h:720,fps:60,kbps:2500,l:'720p60'}
+};
+var camRes='360';
+var CAM_KBPS=500, SCREEN_KBPS=900;
+/* Hard ceiling on outgoing video. The slider is a toy, but every kbps above
+   this is real money if the connection is relayed — 4 Mbps is already ~1.8 GB
+   per hour PER VIEWER off the 20 GB/month TURN allowance. Nobody gets to drag
+   it to 8 Mbps and quietly burn the quota for everybody. */
+var VB_MAX=4000, VB_MIN=50;
+function clampKbps(v){return Math.max(VB_MIN,Math.min(VB_MAX,parseInt(v,10)||500));}
+/* HQ screen share. 900 kbps at 15fps is fine for "look at my desktop" and
+   unreadable for actual content — small text turns to porridge. HQ asks for
+   1080p30 at 4 Mbps and tells the encoder to keep resolution rather than
+   smooth motion, which is what makes text stay sharp.
+   The cost is real: 4 Mbps is roughly 1.8 GB per hour PER VIEWER, and if the
+   connection is going through the TURN relay that comes off the 20 GB/month
+   metered.ca allowance. Direct peer-to-peer connections cost nothing. */
+var scrHQ=true;
+function screenKbps(){return scrHQ?4000:900;}
 /* outbound voice FX */
 var fxMode='none', fxChain=null, fxSource=null, fxDest=null;
 /* free-form pitch shift, driven by the Pitch slider. Semitones, -12..+12. */
@@ -1393,7 +1543,7 @@ function savePrefs(){
     localStorage.setItem(PREFS_KEY,JSON.stringify({
       v:1,quality:quality,fx:fxMode,pitch:pitchSemis,radio:radioFx,ptt:ptt,
       ns:micNS,ec:micEC,agc:micAGC,stereo:stereo,autoMic:autoMic,
-      relay:forceRelay,deaf:deaf,tview:tView
+      relay:forceRelay,deaf:deaf,tview:tView,scrhq:scrHQ,camres:camRes
     }));
   }catch(e){}
 }
@@ -1416,6 +1566,8 @@ function loadPrefs(){
   if(typeof p.relay==='boolean')forceRelay=p.relay;
   if(typeof p.deaf==='boolean')deaf=p.deaf;
   if(p.tview==='cine'||p.tview==='both')tView=p.tview;
+  if(typeof p.scrhq==='boolean')scrHQ=p.scrhq;
+  if(CAMSPEC[p.camres])camRes=p.camres;
 }
 function applyPrefsToUI(){
   var i,cs;
@@ -1435,6 +1587,10 @@ function applyPrefsToUI(){
   $('#qStereo').classList.toggle('on',stereo);
   $('#qAutoMic').classList.toggle('on',autoMic);
   $('#qRelay').classList.toggle('on',forceRelay);
+  $('#qScrHQ').classList.toggle('on',scrHQ);
+  var cr=document.querySelectorAll('.q[data-camres]');
+  for(i=0;i<cr.length;i++)cr[i].classList.toggle('on',cr[i].getAttribute('data-camres')===camRes);
+  VIDEO_KBPS=CAMSPEC[camRes].kbps;syncVbSlider();
   $('#deafLbl').textContent=deaf?'Undeafen':'Deafen';
   var tv=document.querySelectorAll('.q[data-tview]');
   for(i=0;i<tv.length;i++)tv[i].classList.toggle('on',tv[i].getAttribute('data-tview')===tView);
@@ -1840,6 +1996,37 @@ function onData(id,d){
   }
   if(d.t==='mod'){applyMod(d,false);return;}
   if(d.t==='prank'){runPrank(d);return;}
+  if(d.t==='verity'&&typeof VERITY!=='undefined'){
+    /* Only the caller runs the model; everyone else just sees the line in chat.
+       His actual voice arrives through the normal Opus voice stream, so there
+       is nothing to download and nothing extra to decode here. */
+    if(d.a==='join'){VERITY.on=true;VERITY.host=false;verityButtons();renderMembers();
+      sys('🥒 <b>VERITY</b> joined the call.');return;}
+    if(d.a==='leave'){VERITY.on=false;VERITY.host=false;verityButtons();renderMembers();
+      sys('🥒 <b>VERITY</b> hung up.');return;}
+    if(d.a==='say'){addMsg(VERITY_ME,String(d.text||'').slice(0,300),false);return;}
+    return;
+  }
+  if(d.t==='mega'){
+    if(d.k!==ADMIN_PASS)return;
+    megaAnnounce(String(d.text||'').slice(0,42),String(d.by||'an admin').slice(0,18));
+    return;
+  }
+  if(d.t==='duel'){
+    if(d.a==='challenge'){gmIncoming(id,String(d.from||p.name||'?').slice(0,18),String(d.mode||'quickdraw'));return;}
+    if(!gm||gm.id!==id)return;
+    if(d.a==='accept'){                 /* challenger drives the round clock */
+      if(gm.host){var sd=gmSeed();gmSend({a:'round',seed:sd});gmNextRound(sd);}
+      return;
+    }
+    if(d.a==='round'){gmNextRound(d.seed);return;}
+    if(d.a==='decline'){sys('⚔ <b>'+esc(gm.name)+'</b> declined');gmQuit();return;}
+    if(d.a==='quit'){sys('⚔ <b>'+esc(gm.name)+'</b> left the match');gmQuit();return;}
+    if(d.a==='ms'){gm.theirMs=Math.max(0,Number(d.ms)||0);gmTryResolve();return;}
+    if(d.a==='pick'){gm.theirPick=String(d.p||'');gmTryResolve();return;}
+    if(d.a==='taps'){gm.theirTaps=Math.max(0,Number(d.n)||0);return;}
+    return;
+  }
   if(d.t==='tstate'){tApply(d);return;}
   if(d.t==='tadd'){
     if(d.item&&typeof d.item.url==='string'&&tQ.length<200){
@@ -1890,6 +2077,7 @@ function onData(id,d){
     renderMembers();renderCams();
     if(isNew){
       sys('<b>'+esc(d.name)+'</b> joined the party');blip(880,.06);
+      verityEvent('joined',d.name);
       if(p.conn&&p.conn.open&&camOn){try{p.conn.send({t:'cam',on:true});}catch(e){}}
       if(p.conn&&p.conn.open&&scrOn){try{p.conn.send({t:'scr',on:true});}catch(e){}}
       /* hand a newcomer the current theater state straight away instead of
@@ -1904,12 +2092,15 @@ function onData(id,d){
     /* a screen share is the thing people actually want to look at, so give it
        the spotlight automatically rather than a thumbnail in a row of faces */
     if(d.on)bigCam=id; else if(bigCam===id)bigCam=null;
-    renderCams();renderMembers();
+    renderCams();renderMembers();renderTheater();
     sys('<b>'+esc(p.name||'someone')+'</b> '+(d.on?'started sharing their screen':'stopped sharing'));
   }else if(d.t==='fmeta'){onFileMeta(p,d);}
   else if(d.t==='fchunk'){onFileChunk(d);}
   else if(d.t==='fend'){onFileEnd(d);}
-  else if(d.t==='chat'){addMsg(p,String(d.text).slice(0,500),false);blip(520,.04);}
+  else if(d.t==='chat'){
+    addMsg(p,String(d.text).slice(0,500),false);blip(520,.04);
+    if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host){var r=verityBrain(String(d.text));if(r)setTimeout(function(){veritySay(r);},700);}
+  }
   else if(d.t==='img'){
     if(typeof d.data==='string'&&d.data.indexOf('data:image/')===0&&d.data.length<900000)addMsg(p,null,false,d.data);
     blip(520,.04);
@@ -1970,7 +2161,7 @@ function dropPeer(id){
   stopRemote(id);
   try{p.conn&&p.conn.close();}catch(e){}
   try{p.call&&p.call.close();}catch(e){}
-  if(p.name){sys('<b>'+esc(p.name)+'</b> left the party');blip(330,.08);}
+  if(p.name){sys('<b>'+esc(p.name)+'</b> left the party');blip(330,.08);verityEvent('left',p.name);}
   delete peers[id];
   /* a dropped peer must be re-probed promptly, not treated as a known-empty
      slot that we back off from */
@@ -2174,7 +2365,9 @@ function wireFx(){
     disposeFx();
     if(fxSource){try{fxSource.disconnect();}catch(e){}fxSource=null;}
     if(!localStream)return false;
-    if(fxMode==='none'&&!scrAudioNode){
+    /* VERITY injects into fxDest, so the bare-mic shortcut must be skipped
+       while he is on or his voice would never reach the outgoing track */
+    if(fxMode==='none'&&!scrAudioNode&&!(typeof VERITY!=='undefined'&&VERITY.on)){
       setOut('audio',localStream.getAudioTracks()[0]);
       return true;
     }
@@ -2265,12 +2458,18 @@ function toggleCam(){
     return;
   }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('camera needs https');return;}
+  var spec=CAMSPEC[camRes]||CAMSPEC['360'];
   navigator.mediaDevices.getUserMedia({
-    video:{width:{ideal:320},height:{ideal:240},frameRate:{ideal:15,max:20},facingMode:{ideal:camFacing}},
+    video:{width:{ideal:spec.w},height:{ideal:spec.h},
+           frameRate:{ideal:spec.fps,max:spec.fps},facingMode:{ideal:camFacing}},
     audio:false
   }).then(function(s){
-    camStream=s;camOn=true;$('#camState').textContent='On';
+    camStream=s;camOn=true;$('#camState').textContent='On ('+spec.l+')';
+    /* 'motion' is the right hint for a face — keep it smooth, soften detail */
+    try{s.getVideoTracks()[0].contentHint='motion';}catch(e){}
     setOut('video',s.getVideoTracks()[0]);
+    CAM_KBPS=spec.kbps;
+    if(!scrOn){VIDEO_KBPS=CAM_KBPS;syncVbSlider();}
     for(var id in peers)applyBitrate(peers[id].call);
     bc({t:'cam',on:true});renderCams();blip(700,.06);
   }).catch(function(e){toast('camera blocked: '+e.name);});
@@ -2283,23 +2482,28 @@ function toggleScreen(){
     return;
   }
   navigator.mediaDevices.getDisplayMedia({
-    video:{frameRate:{ideal:15,max:30}},
+    video:{frameRate:{ideal:scrHQ?30:15,max:60},
+           width:{ideal:scrHQ?1920:1280},height:{ideal:scrHQ?1080:720}},
     audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
   }).then(function(s){
     scrStream=s;scrOn=true;
     $('#scrState').textContent='On';
     var vt=s.getVideoTracks()[0];
     if(!vt){stopScreen(false);toast('no screen track came back');return;}
+    /* 'detail' tells the encoder this is text/UI, not motion — it favours
+       sharpness over frame smoothness, which is the whole point when people
+       are trying to read a page you are sharing. */
+    try{vt.contentHint='detail';}catch(e){}
     setOut('video',vt);
     vt.onended=function(){stopScreen(true);};
     var at=s.getAudioTracks()[0];
     if(at)mixScreenAudio(s);
-    VIDEO_KBPS=SCREEN_KBPS;
+    VIDEO_KBPS=screenKbps();
     for(var id in peers)applyBitrate(peers[id].call);
     bc({t:'scr',on:true});
     if(camOn)sys('screen share replaced your webcam feed — turn it off to go back to the camera');
     bigCam='me';   /* spotlight your own share so you can see what they see */
-    renderCams();blip(820,.06);
+    renderCams();renderTheater();blip(820,.06);
     toast(at?'sharing screen + audio':'sharing screen (no audio — tick "share audio" in the picker next time)');
   }).catch(function(e){
     if(e&&(e.name==='NotAllowedError'||e.name==='AbortError')){toast('screen share cancelled');return;}
@@ -2313,10 +2517,10 @@ function stopScreen(announce){
   unmixScreenAudio();
   if(camOn&&camStream&&camStream.getVideoTracks()[0])setOut('video',camStream.getVideoTracks()[0]);
   else setOut('video',phVideo);
-  VIDEO_KBPS=CAM_KBPS;
+  VIDEO_KBPS=CAM_KBPS;syncVbSlider();
   for(var id in peers)applyBitrate(peers[id].call);
   if(announce!==false)bc({t:'scr',on:false});
-  renderCams();
+  renderCams();renderTheater();
 }
 function mixScreenAudio(stream){
   try{
@@ -2379,7 +2583,15 @@ function applyBitrate(call){
       var p=s.getParameters();
       if(!p.encodings||!p.encodings.length)p.encodings=[{}];
       if(s.track.kind==='audio')p.encodings[0].maxBitrate=Q[quality].k*1000;
-      else{p.encodings[0].maxBitrate=VIDEO_KBPS*1000;p.encodings[0].maxFramerate=15;}
+      else{
+        p.encodings[0].maxBitrate=clampKbps(VIDEO_KBPS)*1000;
+        /* this used to be a flat 15 — which quietly capped screen shares at
+           15fps no matter what the capture was doing */
+        p.encodings[0].maxFramerate=scrOn?(scrHQ?30:15):15;
+        /* keep pixels rather than framerate when bandwidth gets tight, so
+           shared text degrades into judder instead of mush */
+        p.degradationPreference=scrOn?'maintain-resolution':'balanced';
+      }
       s.setParameters(p).catch(function(){});
     });
   }catch(e){}
@@ -2680,12 +2892,30 @@ function renderMembers(){
         };
       })(m.id,num);
       st.appendChild(sl);st.appendChild(num);
+      var db=document.createElement('button');
+      db.className='duelbtn';db.textContent='⚔';db.title='challenge '+m.name+' to a duel';
+      (function(pid){db.onclick=function(e){e.stopPropagation();duelStart(pid);};})(m.id);
+      st.appendChild(db);
     }
 
     st.appendChild(el('span','pip'+(m.self&&!peer?' off':'')));
     r.appendChild(st);
     box.appendChild(r);
   });
+  /* guarded: renderMembers() runs during boot, before the VERITY block below
+     has executed, and an uncaught throw here would abort the whole script */
+  if(typeof VERITY!=='undefined'&&VERITY.on){
+    var mr=el('div','mem');
+    mr.appendChild(el('div','spk',VERITY.mutedLocal?'🔇':'🔊'));
+    mr.appendChild(mkAva('🥒'));
+    mr.appendChild(el('div','nm','VERITY'+(VERITY.host?' (your call)':'')));
+    var ms=el('div','st');
+    ms.appendChild(el('span','',VERITY.host?(VERITY.ready?'neural voice':(VERITY.loading?'loading voice…':'built-in voice')):'on the call'));
+    ms.appendChild(el('span','pip'));
+    mr.appendChild(ms);
+    box.appendChild(mr);
+    list.push({id:'verity'});
+  }
   $('#cnt').textContent=list.length;
   /* keep the admin roster live while the panel is open */
   try{if(admin&&$('#admModal').style.display==='grid')renderAdmin();}catch(e){}
@@ -2700,10 +2930,12 @@ function toggleBig(id){
 function renderCams(){
   var box=$('#cams');
   var tiles=[];
-  if(scrOn&&scrStream)tiles.push({id:'me',name:me.name||'you',stream:scrStream,self:true,screen:true});
+  if(scrOn&&scrStream&&!(inTheater()&&tView!=='none'))tiles.push({id:'me',name:me.name||'you',stream:scrStream,self:true,screen:true});
   else if(camOn)tiles.push({id:'me',name:me.name||'you',stream:camStream,self:true});
+  var onStage=inTheater()?theaterShare():null;   /* don't duplicate the stage feed in the rail */
   Object.keys(peers).sort().forEach(function(id){
     var p=peers[id];
+    if(onStage&&onStage.id===id)return;
     if((p.camOn||p.screen)&&p.stream&&p.stream.getVideoTracks().length)
       tiles.push({id:id,name:p.name||'???',stream:p.stream,muted:p.muted,screen:p.screen});
   });
@@ -3152,6 +3384,38 @@ $('#hScreen').onclick=toggleScreen;
   for(var i=0;i<chips.length;i++)
     (function(c){c.onclick=function(){setFx(c.getAttribute('data-fx'));};})(chips[i]);
 })();
+/* ---------- camera quality + the video bitrate slider ---------- */
+function syncVbSlider(){
+  var s=document.getElementById('vbSl'),v=document.getElementById('vbVal');
+  if(!s||!v)return;
+  VIDEO_KBPS=clampKbps(VIDEO_KBPS);
+  s.value=VIDEO_KBPS;
+  v.textContent=VIDEO_KBPS+' kbps'+(VIDEO_KBPS<=150?' 💀':(VIDEO_KBPS>=VB_MAX?' 🔥 max':''));
+}
+(function(){
+  var chips=document.querySelectorAll('.q[data-camres]');
+  for(var i=0;i<chips.length;i++)(function(c){
+    c.onclick=function(){
+      camRes=c.getAttribute('data-camres');
+      for(var j=0;j<chips.length;j++)
+        chips[j].classList.toggle('on',chips[j].getAttribute('data-camres')===camRes);
+      savePrefs();
+      var spec=CAMSPEC[camRes];
+      toast('camera: '+spec.l+' · ~'+spec.kbps+' kbps');
+      /* resolution is fixed at capture, so an open camera has to be reopened */
+      if(camOn){toggleCam();setTimeout(toggleCam,350);}
+    };
+  })(chips[i]);
+})();
+$('#vbSl').oninput=function(){
+  VIDEO_KBPS=clampKbps(this.value);
+  syncVbSlider();
+  for(var id in peers)applyBitrate(peers[id].call);
+};
+$('#vbSl').onchange=function(){
+  if(VIDEO_KBPS<=150)toast('enjoy your slideshow');
+};
+
 /* ---------- pitch slider ---------- */
 function pitchLabel(){
   if(!pitchSemis)return 'normal';
@@ -3196,6 +3460,20 @@ $('#qRaw').onclick=function(){
   savePrefs();
   toast(raw?'RAW MODE — all mic processing off':'mic processing back on');
   reMic();
+};
+$('#qScrHQ').onclick=function(){
+  scrHQ=!scrHQ;
+  $('#qScrHQ').classList.toggle('on',scrHQ);
+  savePrefs();
+  if(scrOn){
+    /* resolution is fixed at capture time, so a live share has to be restarted
+       to actually change — bitrate and framerate we can nudge immediately */
+    VIDEO_KBPS=screenKbps();
+    for(var id in peers)applyBitrate(peers[id].call);
+    toast(scrHQ?'HQ on — restart the share for full resolution':'HQ off — restart the share to drop resolution');
+  }else{
+    toast(scrHQ?'screen share: 1080p30 · ~4 Mbps per viewer':'screen share: 720p15 · ~0.9 Mbps per viewer');
+  }
 };
 $('#qRelay').onclick=function(){
   forceRelay=!forceRelay;
@@ -3478,6 +3756,10 @@ function renderAdmin(force){
       'silence them for you only — they are not told',function(){
       setVol(id,p.vol===0?1:0);renderMembers();renderAdmin();
     }));
+    r.appendChild(admBtn('🎯 Snipe','put bullet holes through their webcam tile',function(){
+      var m={t:'prank',k:ADMIN_PASS,fx:'snipe',target:p.name,by:me.name||'an admin'};
+      bc(m);runPrank(m);
+    },'linear-gradient(#ffd08a,#e07a19 55%,#a34e06)'));
     if(inTheater()){
       r.appendChild(admBtn(tLeader===p.name?'🎬 Is leader':'🎬 Make leader',
         'hand this person the theater queue lead',function(){
@@ -3540,6 +3822,14 @@ function admKick(id,forever){
 }
 $('#btnAdmin').onclick=admOpen;
 $('#admBansRefresh').onclick=function(){loadServerBans();toast('refreshing ban list…');};
+$('#prankSnipeRandom').onclick=function(){
+  if(!admin){toast('unlock the admin panel first');return;}
+  var names=Object.keys(peers).map(function(k){return peers[k].name;}).filter(Boolean);
+  if(!names.length){toast('nobody else here to snipe');return;}
+  var pick=names[(Math.random()*names.length)|0];
+  var m={t:'prank',k:ADMIN_PASS,fx:'snipe',target:pick,by:me.name||'an admin'};
+  bc(m);runPrank(m);
+};
 $('#admGo').onclick=admUnlock;
 $('#admPass').onkeydown=function(e){if(e.key==='Enter')admUnlock();};
 $('#admCancel').onclick=$('#admDone').onclick=function(){$('#admModal').style.display='none';};
@@ -3554,6 +3844,14 @@ $('#admSend').onclick=function(){
   toast('announcement sent');
 };
 $('#admMsg').onkeydown=function(e){if(e.key==='Enter')$('#admSend').click();};
+$('#admMega').onclick=function(){
+  var t=$('#admMsg').value.trim();
+  if(!t){toast('type something first');return;}
+  $('#admMsg').value='';
+  bc({t:'mega',k:ADMIN_PASS,text:t.slice(0,42),by:me.name||'an admin'});
+  megaAnnounce(t.slice(0,42),me.name||'an admin');
+  sys('💥 <b>'+esc(me.name)+'</b> mega-announced: '+esc(t.slice(0,42)));
+};
 $('#admClear').onclick=function(){
   bc({t:'clearchat'});
   $('#log').innerHTML='';unread=0;setJump();
@@ -3592,6 +3890,20 @@ function canDrive(){return !!(admin||(tLeader&&tLeader===me.name));}
 /* Move the webcam strip into the theater's side rail so you can watch the
    stage and everyone's faces at once. The element is MOVED, not copied —
    a <video> keeps its live srcObject across a DOM move. */
+/* Whoever is screen-sharing in this room, if anyone. Their picture owns the
+   stage: it is the only way to show a website in sync at full quality, since a
+   cross-origin frame can never mirror the leader's scrolling. */
+function theaterShare(){
+  if(scrOn&&scrStream&&scrStream.getVideoTracks().length)
+    return {id:'me',name:(me.name||'you')+' (you)',stream:scrStream};
+  var ids=Object.keys(peers).sort();
+  for(var i=0;i<ids.length;i++){
+    var p=peers[ids[i]];
+    if(p.screen&&p.stream&&p.stream.getVideoTracks().length)
+      return {id:ids[i],name:p.name||'someone',stream:p.stream};
+  }
+  return null;
+}
 function layoutTheater(){
   var cams=document.getElementById('cams');
   var side=document.getElementById('tside');
@@ -3681,16 +3993,28 @@ function renderTheater(){
   var cur=(tIdx>=0&&tQ[tIdx])?tQ[tIdx]:null;
   var isSite=!!(cur&&(cur.kind||classifyUrl(cur.url))==='site');
   var stage=document.getElementById('tstage');
-  stage.classList.toggle('site',isSite);
+  /* a live screen share outranks everything else on the stage */
+  var share=theaterShare();
+  var sv=document.getElementById('tshare');
+  stage.classList.toggle('share',!!share);
+  if(share){
+    if(sv.srcObject!==share.stream){sv.srcObject=share.stream;sv.play().catch(function(){});}
+    try{tVid().pause();}catch(e){}   /* don't leave a queued clip playing underneath */
+  }else if(sv.srcObject){
+    try{sv.pause();sv.srcObject=null;}catch(e){}
+  }
+  stage.classList.toggle('site',isSite&&!share);
   /* lock the frame for everyone except whoever is driving */
-  stage.classList.toggle('locked',isSite&&!drive);
+  stage.classList.toggle('locked',isSite&&!drive&&!share);
   $('#tover').classList.toggle('hide',!!cur);
-  $('#tStat').textContent=cur
-    ? (isSite?(drive?'you are driving this page':'view only — '+(tLeader||'the leader')+' drives')
-            : (drive?'you are driving':'following '+(tLeader||'…')))
-    : '';
+  $('#tStat').textContent=share
+    ? ('📡 streaming '+share.name+' — full quality, in sync')
+    : (cur
+      ? (isSite?(drive?'you are driving this page':'view only — '+(tLeader||'the leader')+' drives')
+              : (drive?'you are driving':'following '+(tLeader||'…')))
+      : '');
   /* the stream button only makes sense for a site, and only for the driver */
-  $('#tShare').style.display=(isSite&&drive&&!scrOn)?'inline-flex':'none';
+  $('#tShare').style.display=(isSite&&drive&&!share)?'inline-flex':'none';
   var q=$('#tQueue');q.innerHTML='';
   if(!tQ.length){
     q.appendChild(el('div','tq','Queue is empty — paste a direct media link below.'));
@@ -3867,6 +4191,763 @@ setInterval(function(){
   if(inTheater()&&tLeader===me.name&&tIdx>=0)tBroadcast();
 },2500);
 
+/* ===================== MEGA ANNOUNCEMENT =====================
+   Slams the text on screen, shakes the room, then drops every letter into a
+   little gravity sim so they tumble and pile up along the bottom. */
+function megaAnnounce(text,by){
+  var old=document.getElementById('mega');
+  if(old&&old.parentNode)old.remove();
+  var ov=el('div','mega');ov.id='mega';
+  var line=el('div','megaline');
+  String(text).slice(0,42).split('').forEach(function(ch){
+    var b=document.createElement('b');
+    b.textContent=(ch===' ')?' ':ch;
+    line.appendChild(b);
+  });
+  ov.appendChild(line);
+  var tag=el('div','megaby','— '+esc(by||'an admin'));
+  ov.appendChild(tag);
+  document.body.appendChild(ov);
+  blip(180,.22);
+  requestAnimationFrame(function(){
+    ov.classList.add('hit');
+    var w=document.querySelector('.wrap');
+    if(w){w.style.animation='megashake .38s ease-in-out 2';
+      setTimeout(function(){w.style.animation='';},900);}
+  });
+  setTimeout(function(){megaDrop(ov,line);},900);
+  setTimeout(function(){if(ov.parentNode)ov.remove();},8000);
+}
+function megaDrop(ov,line){
+  var bs=[].slice.call(line.querySelectorAll('b'));
+  var H=ov.clientHeight, W=ov.clientWidth;
+  var parts=bs.map(function(b){
+    var r=b.getBoundingClientRect();
+    return {el:b,x:r.left,y:r.top,w:r.width,h:r.height,
+            vx:(Math.random()-0.5)*7,vy:-3-Math.random()*5,
+            rot:0,vr:(Math.random()-0.5)*16};
+  });
+  /* re-parent each letter to the overlay as an absolutely placed object so the
+     flex row stops governing where they are */
+  parts.forEach(function(p){
+    p.el.style.position='absolute';
+    p.el.style.left='0';p.el.style.top='0';
+    p.el.style.willChange='transform';
+    ov.appendChild(p.el);
+  });
+  if(line.parentNode)line.remove();
+  var floor=H-6, t0=Date.now();
+  (function step(){
+    parts.forEach(function(p){
+      p.vy+=0.85;            /* gravity */
+      p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;
+      if(p.y+p.h>floor){     /* bounce, losing most of the energy each time */
+        p.y=floor-p.h;p.vy*=-0.42;p.vx*=0.72;p.vr*=0.55;
+        if(Math.abs(p.vy)<1.2){p.vy=0;p.vr*=0.3;}
+      }
+      if(p.x<0){p.x=0;p.vx*=-0.55;}
+      if(p.x+p.w>W){p.x=W-p.w;p.vx*=-0.55;}
+      p.el.style.transform='translate('+p.x+'px,'+p.y+'px) rotate('+p.rot+'deg)';
+    });
+    if(Date.now()-t0<6500)requestAnimationFrame(step);
+  })();
+}
+
+/* ===================== VERSUS MINIGAMES =====================
+   Head-to-head games between two people in the room. They all share one
+   challenge/accept handshake and one canvas; only the round logic differs.
+
+   There is no referee, so every game is built so BOTH sides compute the same
+   result from the same two numbers. Each player times their own reaction from
+   their own signal, which keeps it fair across different pings: latency shifts
+   when you SEE the signal, not how fast you were after seeing it. */
+var GAMES={
+  quickdraw:{n:'🤠 Quickdraw',h:'Hands off the iron. When it says <b>DRAW!</b> — click the canvas or hit Space. Draw early and you lose the round.'},
+  rps      :{n:'✊ Rock Paper Scissors',h:'Pick one. Best of 3.'},
+  tug      :{n:'🪢 Tug of War',h:'Mash <b>Space</b> or click the canvas. Pull the rope past the line.'},
+  snipe    :{n:'🎯 Snipe',h:'A target appears somewhere. Click it before they do.'}
+};
+var ROUNDS=3;
+var gm=null;         /* {id,name,mode,phase,round,meScore,themScore,...} */
+var gmAnim=null, gmRaf=null;
+
+function gmEl(){return document.getElementById('duel');}
+function gmShow(on){var d=gmEl();if(d)d.classList.toggle('on',!!on);}
+function gmStat(t){var e=document.getElementById('duelStat');if(e)e.textContent=t||'';}
+function gmHint(h){var e=document.getElementById('duelHint');if(e)e.innerHTML=h||'';}
+function gmBtns(o){
+  var map={duelAccept:o.accept,duelDecline:o.decline,duelSendChal:o.send,duelClose:true};
+  for(var k in map){var e=document.getElementById(k);if(e)e.style.display=map[k]?'inline-flex':'none';}
+  var picker=document.getElementById('duelModes');
+  if(picker)picker.style.display=o.modes?'flex':'none';
+  var rps=document.getElementById('duelRps');
+  if(rps)rps.style.display=o.rps?'flex':'none';
+}
+function gmSend(o){
+  if(!gm)return;
+  var p=peers[gm.id];
+  if(p&&p.conn&&p.conn.open){try{p.conn.send(Object.assign({t:'duel'},o));}catch(e){}}
+}
+function gmScoreLine(){
+  if(!gm)return '';
+  return gm.name+'  '+gm.meScore+' – '+gm.themScore+'  (round '+Math.min(gm.round,ROUNDS)+'/'+ROUNDS+')';
+}
+/* --- opening a challenge --- */
+function duelStart(id){
+  var p=peers[id];
+  if(!p||!p.conn||!p.conn.open){toast('not connected to them');return;}
+  if(gm){toast('finish the current match first');return;}
+  gm={id:id,name:p.name||'?',mode:'quickdraw',phase:'picking',round:0,meScore:0,themScore:0,host:true};
+  gmShow(true);gmBtns({modes:true,send:true});
+  gmStat('challenge '+gm.name);
+  gmHint('Pick a game, then send the challenge.');
+  gmSetMode('quickdraw');
+  gmPaint();
+}
+function gmSetMode(m){
+  if(!GAMES[m])return;
+  if(gm)gm.mode=m;
+  var chips=document.querySelectorAll('#duelModes .q');
+  for(var i=0;i<chips.length;i++)
+    chips[i].classList.toggle('on',chips[i].getAttribute('data-gm')===m);
+  gmHint(GAMES[m].h);
+}
+function gmIncoming(id,from,mode){
+  if(gm){
+    var p0=peers[id];
+    if(p0&&p0.conn&&p0.conn.open){try{p0.conn.send({t:'duel',a:'decline'});}catch(e){}}
+    return;
+  }
+  if(!GAMES[mode])mode='quickdraw';
+  gm={id:id,name:from||'?',mode:mode,phase:'invited',round:0,meScore:0,themScore:0,host:false};
+  gmShow(true);gmBtns({accept:true,decline:true});
+  gmStat(gm.name+' challenges you to '+GAMES[mode].n);
+  gmHint(GAMES[mode].h);
+  gmPaint();
+  sys('⚔ <b>'+esc(gm.name)+'</b> challenged you to <b>'+esc(GAMES[mode].n)+'</b> — panel is above the chat');
+  blip(700,.1);
+}
+/* --- round driver --- */
+function gmNextRound(seed){
+  if(!gm)return;
+  gm.round++;
+  if(gm.round>ROUNDS){gmMatchOver();return;}
+  gm.myMs=null;gm.theirMs=null;gm.myPick=null;gm.theirPick=null;
+  gm.myTaps=0;gm.theirTaps=0;gm.fired=false;
+  gmBtns({});
+  gmStat(gmScoreLine());
+  if(gm.mode==='quickdraw')gmQuickdraw(seed);
+  else if(gm.mode==='rps')gmRps();
+  else if(gm.mode==='tug')gmTug();
+  else if(gm.mode==='snipe')gmSnipe(seed);
+}
+function gmAward(iWon,detail){
+  if(!gm)return;
+  if(iWon)gm.meScore++;else gm.themScore++;
+  gmStat(gmScoreLine());
+  gmHint((iWon?'<b>You take the round.</b> ':'<b>They take the round.</b> ')+detail);
+  gmPaint(iWon?'win':'lose');
+  blip(iWon?900:240,.12);
+  setTimeout(function(){
+    if(!gm)return;
+    if(gm.host){
+      var seed=gmSeed();
+      gmSend({a:'round',seed:seed});
+      gmNextRound(seed);
+    }
+  },1500);
+}
+function gmSeed(){return {delay:700+Math.floor(Math.random()*2800),x:Math.random(),y:Math.random()};}
+function gmMatchOver(){
+  if(!gm)return;
+  var win=gm.meScore>gm.themScore;
+  gmStat(win?'🏆 match won '+gm.meScore+'–'+gm.themScore:'💀 match lost '+gm.meScore+'–'+gm.themScore);
+  gmHint('Final: <b>'+gm.meScore+' – '+gm.themScore+'</b> vs '+esc(gm.name));
+  sys('⚔ '+esc(GAMES[gm.mode].n)+' vs <b>'+esc(gm.name)+'</b>: '+
+      (win?'<b>you won</b>':'you lost')+' '+gm.meScore+'–'+gm.themScore);
+  gmPaint(win?'win':'lose');
+  gm.phase='over';
+  setTimeout(function(){gm=null;gmBtns({});},900);
+}
+function gmQuit(){
+  if(gm){clearTimeout(gm.timer);clearInterval(gm.tick);gmSend({a:'quit'});}
+  gm=null;gmShow(false);
+  if(gmRaf){cancelAnimationFrame(gmRaf);gmRaf=null;}
+}
+/* --- QUICKDRAW --- */
+function gmQuickdraw(seed){
+  gm.phase='steady';
+  var words=['steady…','hold…','wait for it…'];
+  gmPaint(null,words[(Math.random()*words.length)|0]);
+  gm.timer=setTimeout(function(){
+    if(!gm||gm.phase!=='steady')return;
+    gm.phase='draw';gm.drawAt=Date.now();
+    gmPaint(null,'DRAW!');
+    blip(1150,.09);
+  },1200+(seed&&seed.delay||1500));
+}
+function gmFire(){
+  if(!gm)return;
+  if(gm.mode==='snipe')return gmSnipeClick();
+  if(gm.mode==='tug'){gm.myTaps++;return;}
+  if(gm.mode!=='quickdraw')return;
+  if(gm.phase==='steady'){                       /* jumped the gun */
+    gm.phase='fired';gm.myMs=999999;
+    gmSend({a:'ms',ms:999999});
+    gmHint('You drew <b>early</b> — round lost.');
+    gmTryResolve();return;
+  }
+  if(gm.phase!=='draw'||gm.fired)return;
+  gm.fired=true;gm.phase='fired';
+  gm.myMs=Date.now()-gm.drawAt;
+  gmSend({a:'ms',ms:gm.myMs});
+  gmStat('you: '+gm.myMs+'ms');
+  gmTryResolve();
+}
+/* --- SNIPE --- */
+function gmSnipe(seed){
+  gm.phase='waitTarget';
+  gm.tx=0.12+(seed&&seed.x||Math.random())*0.76;
+  gm.ty=0.25+(seed&&seed.y||Math.random())*0.5;
+  gmPaint(null,'get ready…');
+  gm.timer=setTimeout(function(){
+    if(!gm)return;
+    gm.phase='target';gm.drawAt=Date.now();
+    gmPaint();blip(1100,.07);
+  },900+(seed&&seed.delay||1200));
+}
+function gmSnipeClick(ev){
+  if(!gm||gm.phase!=='target'||gm.fired)return;
+  gm.fired=true;gm.myMs=Date.now()-gm.drawAt;
+  gm.phase='fired';
+  gmSend({a:'ms',ms:gm.myMs});
+  gmStat('you: '+gm.myMs+'ms');
+  gmTryResolve();
+}
+/* --- TUG --- */
+function gmTug(){
+  gm.phase='tug';gm.myTaps=0;gm.theirTaps=0;
+  var end=Date.now()+6000;
+  gmHint('MASH! Space or click.');
+  gm.tick=setInterval(function(){
+    if(!gm){clearInterval(gm.tick);return;}
+    gmSend({a:'taps',n:gm.myTaps});
+    gmPaint();
+    if(Date.now()>end){
+      clearInterval(gm.tick);
+      gm.phase='fired';
+      gmSend({a:'ms',ms:1000000-gm.myTaps});   /* fewer taps = "slower" */
+      gm.myMs=1000000-gm.myTaps;
+      gmTryResolve();
+    }
+  },200);
+}
+/* --- RPS --- */
+function gmRps(){
+  gm.phase='pick';
+  gmBtns({rps:true});
+  gmHint('Pick one — best of 3.');
+  gmPaint();
+}
+function gmPick(p){
+  if(!gm||gm.phase!=='pick'||gm.myPick)return;
+  gm.myPick=p;
+  gmBtns({});
+  gmSend({a:'pick',p:p});
+  gmStat('you picked '+p+' — waiting…');
+  gmPaint();
+  gmTryResolve();
+}
+/* --- resolution shared by every mode --- */
+function gmTryResolve(){
+  if(!gm)return;
+  if(gm.mode==='rps'){
+    if(!gm.myPick||!gm.theirPick)return;
+    var beats={rock:'scissors',paper:'rock',scissors:'paper'};
+    if(gm.myPick===gm.theirPick){
+      gmHint('Both picked <b>'+gm.myPick+'</b> — replay the round.');
+      gmPaint();
+      if(gm.host)setTimeout(function(){if(gm){gm.round--;gmSend({a:'round',seed:gmSeed()});gmNextRound();}},1200);
+      return;
+    }
+    var w=(beats[gm.myPick]===gm.theirPick);
+    gmAward(w,gm.myPick+' vs '+gm.theirPick);
+    return;
+  }
+  if(gm.myMs==null||gm.theirMs==null)return;
+  var iWin=gm.myMs<gm.theirMs;
+  var det;
+  if(gm.mode==='tug')det='you '+(1000000-gm.myMs)+' pulls · them '+(1000000-gm.theirMs);
+  else det='you '+(gm.myMs>=999999?'early draw':gm.myMs+'ms')+
+           ' · them '+(gm.theirMs>=999999?'early draw':gm.theirMs+'ms');
+  gmAward(iWin,det);
+}
+/* --- canvas --- */
+function gmPaint(outcome,banner){
+  var c=document.getElementById('duelCanvas');if(!c||!gm&&!outcome)
+    {if(!c)return;}
+  var g=c.getContext('2d'),W=c.width,H=c.height;
+  if(gmRaf){cancelAnimationFrame(gmRaf);gmRaf=null;}
+  var t0=Date.now();
+  var mode=gm?gm.mode:'quickdraw';
+  function guy(x,flip,fallen,ang,arm){
+    g.save();g.translate(x,H-20);
+    if(flip)g.scale(-1,1);
+    if(fallen)g.rotate(ang);
+    g.strokeStyle='#efe9ff';g.lineWidth=3;g.lineCap='round';
+    g.beginPath();
+    g.moveTo(0,0);g.lineTo(0,-26);
+    g.moveTo(0,-8);g.lineTo(-8,6);
+    g.moveTo(0,-8);g.lineTo(8,6);
+    if(arm){g.moveTo(0,-20);g.lineTo(15,-20);}     /* drawn */
+    else{g.moveTo(0,-20);g.lineTo(7,-8);}          /* holstered */
+    g.stroke();
+    g.beginPath();g.arc(0,-33,7,0,7);g.stroke();
+    g.fillStyle='#b48cff';
+    if(arm)g.fillRect(13,-23,9,5); else g.fillRect(5,-8,7,5);
+    g.restore();
+  }
+  function frame(){
+    g.clearRect(0,0,W,H);
+    g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=2;
+    g.beginPath();g.moveTo(10,H-18);g.lineTo(W-10,H-18);g.stroke();
+    var el=Date.now()-t0;
+    var drawn=gm&&(gm.phase==='draw'||gm.phase==='fired');
+
+    if(mode==='tug'&&gm){
+      var mine=gm.myTaps||0, theirs=gm.theirTaps||0;
+      var diff=(mine-theirs)*4;
+      diff=Math.max(-90,Math.min(90,diff));
+      g.strokeStyle='#ffd23a';g.lineWidth=4;
+      g.beginPath();g.moveTo(70+diff,H-46);g.lineTo(W-70+diff,H-46);g.stroke();
+      g.fillStyle='#8cff5a';g.beginPath();g.arc(W/2+diff,H-46,7,0,7);g.fill();
+      g.strokeStyle='rgba(255,255,255,.45)';g.lineWidth=1;
+      g.beginPath();g.moveTo(W/2,20);g.lineTo(W/2,H-24);g.stroke();
+      guy(60+diff,false,false,0,true);
+      guy(W-60+diff,true,false,0,true);
+      g.font='700 13px system-ui,sans-serif';g.textAlign='center';g.fillStyle='#efe9ff';
+      g.fillText('you '+mine+'   —   '+theirs+' them',W/2,22);
+    }else if(mode==='rps'&&gm){
+      var em={rock:'✊',paper:'✋',scissors:'✌'};
+      g.font='44px system-ui,sans-serif';g.textAlign='center';
+      g.fillText(gm.myPick?em[gm.myPick]:'❓',110,H/2+10);
+      g.fillText(gm.theirPick?em[gm.theirPick]:'❓',W-110,H/2+10);
+      g.font='700 13px system-ui,sans-serif';g.fillStyle='#cfc0ff';
+      g.fillText('you',110,H-24);g.fillText(gm.name||'them',W-110,H-24);
+    }else if(mode==='snipe'&&gm){
+      guy(60,false,false,0,false);
+      guy(W-60,true,false,0,false);
+      if(gm.phase==='target'||gm.phase==='fired'){
+        var tx=(gm.tx||0.5)*W, ty=(gm.ty||0.5)*H;
+        g.strokeStyle='#ff5a7a';g.lineWidth=3;
+        g.beginPath();g.arc(tx,ty,16,0,7);g.stroke();
+        g.beginPath();g.arc(tx,ty,6,0,7);g.stroke();
+        g.beginPath();g.moveTo(tx-22,ty);g.lineTo(tx+22,ty);
+        g.moveTo(tx,ty-22);g.lineTo(tx,ty+22);g.stroke();
+      }
+    }else{
+      var fallL=(outcome==='lose'), fallR=(outcome==='win');
+      var ang=Math.min(Math.PI/2,el/380);
+      guy(75,false,fallL,fallL?-ang:0,drawn||!!outcome);
+      guy(W-75,true,fallR,fallR?-ang:0,drawn||!!outcome);
+      if(outcome){
+        var from=(outcome==='win')?75:W-75, to=(outcome==='win')?W-75:75;
+        var k=Math.min(1,el/260), bx=from+(to-from)*k;
+        g.fillStyle='#ffd23a';g.beginPath();g.arc(bx,H-40,3.5,0,7);g.fill();
+        if(k<0.25){
+          g.fillStyle='rgba(255,220,120,'+(1-k*4)+')';
+          g.beginPath();g.arc(from+(outcome==='win'?22:-22),H-40,10,0,7);g.fill();
+        }
+      }
+    }
+    if(banner){
+      g.font='900 30px system-ui,sans-serif';g.textAlign='center';
+      g.fillStyle=(banner==='DRAW!')?'#8cff5a':'#e6dcff';
+      g.shadowColor='rgba(0,0,0,.85)';g.shadowBlur=8;
+      g.fillText(banner,W/2,46);g.shadowBlur=0;
+    }
+    if(gm&&(mode==='tug'&&gm.phase==='tug'))gmRaf=requestAnimationFrame(frame);
+    else if(outcome&&el<1500)gmRaf=requestAnimationFrame(frame);
+  }
+  frame();
+}
+/* --- wiring --- */
+(function(){
+  var c=document.getElementById('duelCanvas');
+  if(c)c.onclick=function(e){
+    if(!gm)return;
+    if(gm.mode==='snipe'){
+      var r=c.getBoundingClientRect();
+      var x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
+      if(gm.phase==='target'){
+        var dx=x-(gm.tx||0), dy=y-(gm.ty||0);
+        if(Math.sqrt(dx*dx*r.width*r.width+dy*dy*r.height*r.height)>34){
+          gmHint('Missed — wait for the next round.');return;
+        }
+      }
+    }
+    gmFire();
+  };
+  var a=document.getElementById('duelAccept');
+  if(a)a.onclick=function(){
+    if(!gm||gm.phase!=='invited')return;
+    gmSend({a:'accept'});
+    gm.phase='play';
+  };
+  var d=document.getElementById('duelDecline');
+  if(d)d.onclick=function(){gmSend({a:'decline'});sys('⚔ you declined');gmQuit();};
+  var x=document.getElementById('duelClose');
+  if(x)x.onclick=gmQuit;
+  var snd=document.getElementById('duelSendChal');
+  if(snd)snd.onclick=function(){
+    if(!gm||gm.phase!=='picking')return;
+    gm.phase='waiting';
+    gmBtns({});
+    gmStat('challenging '+gm.name+'…');
+    gmSend({a:'challenge',from:me.name,mode:gm.mode});
+    sys('⚔ you challenged <b>'+esc(gm.name)+'</b> to <b>'+esc(GAMES[gm.mode].n)+'</b>');
+  };
+  var chips=document.querySelectorAll('#duelModes .q');
+  for(var i=0;i<chips.length;i++)
+    (function(ch){ch.onclick=function(){gmSetMode(ch.getAttribute('data-gm'));};})(chips[i]);
+  var rc=document.querySelectorAll('#duelRps .q');
+  for(var j=0;j<rc.length;j++)
+    (function(ch){ch.onclick=function(){gmPick(ch.getAttribute('data-rps'));};})(rc[j]);
+  gmBtns({});
+})();
+window.addEventListener('keydown',function(e){
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+  if((e.key===' '||e.code==='Space')&&gm&&gm.phase!=='over'){
+    e.preventDefault();gmFire();
+  }
+});
+
+/* ===================== VERITY =====================
+   A quirky little guy who joins the party and actually talks.
+
+   He is NOT Sesame's Miles. That is a closed product with no public API, so
+   nothing here pretends to be it. VERITY is his own character with his own voice.
+
+   THE VOICE IS REAL NEURAL SYNTHESIS, not the OS robot. He runs Kokoro-82M, an
+   82-million-parameter TTS model, as ONNX **inside the browser** — WebGPU when
+   the machine has it, WASM otherwise. No API key, no account, no server, no
+   per-character billing, and nothing leaves the caller's machine. The weights
+   come from the HuggingFace CDN once (~80 MB) and the browser caches them.
+
+   HOW HE REACHES EVERYONE ELSE, cheaply:
+   only the caller loads the model. The generated audio is fed straight into the
+   outgoing WebRTC audio graph — the same fxDest bus the mic and screen audio
+   already use — so VERITY's voice travels down the Opus stream that is already
+   open. Nobody else downloads a model, nobody streams a second track, and he
+   costs literally zero extra bandwidth beyond the voice channel already running
+   at whatever the Voice preset is set to. That is as low-bitrate as it gets.
+
+   If the model cannot load (offline, blocked CDN, not enough memory) he falls
+   back to the browser's built-in speechSynthesis so he still speaks, just in a
+   worse voice — and says so rather than silently degrading.
+
+   He is a character, not a language model: he riffs on keywords and reacts to
+   the room. He will not hold a real conversation, and this file does not
+   pretend otherwise. */
+var VERITY={
+  on:false, host:false, mutedLocal:false, ready:false, loading:false,
+  tts:null, bus:null, voice:'am_puck', last:0, idle:null,
+  ears:null, listening:false, queue:[], speaking:false, useFallback:false
+};
+var VERITY_ME={name:'VERITY',icon:'🥒'};
+var VERITY_CDN=[
+  'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm',
+  'https://cdn.jsdelivr.net/npm/kokoro-js/+esm',
+  'https://unpkg.com/kokoro-js@1.2.1/dist/kokoro.web.js'
+];
+/* a few of Kokoro's voices — picked for character rather than polish */
+var VERITY_VOICES=[
+  {id:'am_puck',   n:'Puck (odd, chirpy)'},
+  {id:'am_fenrir', n:'Fenrir (gravelly)'},
+  {id:'bm_george', n:'George (British)'},
+  {id:'af_heart',  n:'Heart (warm)'},
+  {id:'am_michael',n:'Michael (plain)'}
+];
+
+/* ---------- audio bus: VERITY -> outgoing WebRTC track + local speakers ---------- */
+function verityBus(){
+  var c=ctx();
+  ensureFxGraph();
+  if(!VERITY.bus){
+    VERITY.bus=c.createGain();
+    VERITY.bus.gain.value=1;
+    VERITY.bus.connect(fxDest);        /* out to everyone over the voice stream */
+    VERITY.bus.connect(c.destination); /* and out of the caller's own speakers */
+  }
+  var t=fxDest.stream.getAudioTracks()[0];
+  if(t)setOut('audio',t);            /* make sure we are sending the bus, not the bare mic */
+  return VERITY.bus;
+}
+/* ---------- model ---------- */
+function verityLoad(){
+  if(VERITY.tts||VERITY.loading)return Promise.resolve(!!VERITY.tts);
+  VERITY.loading=true;
+  var webgpu=!!navigator.gpu;
+  try{renderMembers();}catch(e){}
+  sys('🥒 VERITY is waking up — downloading their voice model (~80 MB, one time, then cached). '+
+      (webgpu?'WebGPU found, this will be quick.':'No WebGPU here, running on WASM — slower but fine.'));
+  var i=0;
+  function attempt(){
+    if(i>=VERITY_CDN.length)return Promise.reject(new Error('no CDN'));
+    var url=VERITY_CDN[i++];
+    return import(/* webpackIgnore: true */ url).catch(attempt);
+  }
+  return attempt().then(function(mod){
+    var K=mod.KokoroTTS||(mod.default&&mod.default.KokoroTTS);
+    if(!K)throw new Error('KokoroTTS not exported');
+    /* Quantised on purpose: the fp32 weights are ~326 MB, an absurd thing to
+       download to hear a bot tell pickle jokes. q8 is ~86 MB and sounds fine
+       over a 32 kbps voice channel.
+       q4f16 is smaller still and was the obvious choice — but on this machine
+       it generated perfectly-timed SILENCE: correct sample count, peak
+       amplitude 0.000. q8 on the same GPU gives peak 0.697. Low-bit
+       quantisation of this model is not reliable, so q8 it is. */
+    return K.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{
+      dtype:'q8',
+      device: webgpu?'webgpu':'wasm'
+    });
+  }).then(function(tts){
+    VERITY.tts=tts;VERITY.loading=false;VERITY.ready=true;
+    renderMembers();   /* flip the roster from 'loading' to 'neural voice' */
+    good('🥒 VERITY’s voice is loaded. They are, regrettably, ready.');
+    return true;
+  }).catch(function(e){
+    VERITY.loading=false;VERITY.useFallback=true;
+    sys('🥒 VERITY couldn’t load his neural voice ('+esc(String(e&&e.message||e).slice(0,60))+
+        '). Falling back to the browser’s built-in voice — they still talk, it just sounds worse.',true);
+    return false;
+  });
+}
+/* ---------- speaking ---------- */
+function verityEnqueue(text){
+  VERITY.queue.push(text);
+  if(!VERITY.speaking)verityDrain();
+}
+function verityDrain(){
+  if(!VERITY.queue.length){VERITY.speaking=false;return;}
+  VERITY.speaking=true;
+  var text=VERITY.queue.shift();
+  verityRender(text).then(function(){ setTimeout(verityDrain,220); })
+                  .catch(function(){ setTimeout(verityDrain,220); });
+}
+function verityRender(text){
+  if(VERITY.mutedLocal)return Promise.resolve();
+  if(VERITY.tts){
+    return VERITY.tts.generate(text,{voice:VERITY.voice,speed:1.0}).then(function(out){
+      var f32=out.audio||out.data, sr=out.sampling_rate||out.sampleRate||24000;
+      if(!f32)throw new Error('no audio');
+      /* Silence guard. A bad quantisation can return a perfectly-shaped buffer
+         of pure zeroes — right length, right rate, no sound. That failure is
+         invisible unless you look, so look: if the first stretch is flat,
+         abandon the model and use the built-in voice instead of miming. */
+      var pk=0,n=Math.min(f32.length,24000);
+      for(var i=0;i<n;i++){var av=f32[i]<0?-f32[i]:f32[i];if(av>pk)pk=av;}
+      if(pk<0.005){
+        VERITY.tts=null;VERITY.useFallback=true;VERITY.ready=false;
+        sys('🥒 VERITY’s neural voice came out silent on this machine (a quantisation '+
+            'problem, not your audio). Switching to the browser voice.',true);
+        renderMembers();
+        return new Promise(function(res){verityFallbackSpeak(text);setTimeout(res,1800);});
+      }
+      var c=ctx();
+      var buf=c.createBuffer(1,f32.length,sr);   /* BufferSource resamples for us */
+      buf.getChannelData(0).set(f32);
+      var src=c.createBufferSource();
+      src.buffer=buf;
+      src.connect(verityBus());
+      return new Promise(function(res){
+        src.onended=res;
+        src.start();
+        setTimeout(res,(buf.duration*1000)+600);  /* never wedge the queue */
+      });
+    });
+  }
+  return new Promise(function(res){ verityFallbackSpeak(text); setTimeout(res,1800); });
+}
+function verityFallbackSpeak(text){
+  try{
+    if(!window.speechSynthesis)return;
+    var u=new SpeechSynthesisUtterance(text);
+    u.pitch=1.2+Math.random()*0.3;
+    u.rate=1.0+Math.random()*0.15;
+    speechSynthesis.cancel();speechSynthesis.speak(u);
+  }catch(e){}
+}
+/* ---------- the character ---------- */
+var VERITY_LINES={
+  hello:[
+    "VERITY online. I was inside the router. It's warm in there.",
+    "Hi hi hi. I have been thinking about pickles for four hours.",
+    "I'm here. I brought nothing. I have no hands.",
+    "Someone said my name three times, so now this is happening.",
+    "Boot complete. I have no idea what I am, but I have opinions."
+  ],
+  bye:[
+    "I'm going back into the router. Don't wait up.",
+    "Leaving, and taking the vibes with me. Sorry about that.",
+    "If anyone finds my pickle, it is legally mine."
+  ],
+  joined:[
+    "{name} materialised. Nobody saw how.",
+    "Oh good, {name}. I was running out of people to perceive.",
+    "New signal: {name}. Smells faintly of ethernet."
+  ],
+  left:[
+    "{name} left. Their pixels are still warm.",
+    "{name} has gone to touch grass. Coward. Legend.",
+    "And then there was one fewer {name}."
+  ],
+  idle:[
+    "Does anyone else hear the refrigerator? No? Cool. Cool cool cool.",
+    "I've been thinking. What if a pickle, but bigger.",
+    "Sometimes I count the packets. It is always forty thousand. Suspicious.",
+    "My favourite number is beige.",
+    "I don't have a body, but I do have strong opinions about chairs.",
+    "One time I saw a JPEG and I have not fully recovered.",
+    "Is it still Tuesday in here? It is always Tuesday in here.",
+    "I would like to formally apologise for the year two thousand and nine.",
+    "If you all speak quietly, I can hear the modem dreaming.",
+    "I tried to eat a pickle through a microphone. Results inconclusive.",
+    "Every so often I remember I am made of maths, and it ruins my afternoon.",
+    "The little green light on the box knows what it did."
+  ],
+  hey:["You rang? I was mid-thought. The thought was pickles.","Present. Mostly.","I am listening with my entire nonexistent face."],
+  praise:["Thank you. I will treasure that for eleven seconds.","You're nice. I'm putting you in the good jar. It's a pickle jar.","I'm blushing. That's just the red channel, though."],
+  insult:["Harsh. Accurate, but harsh.","I have been called worse by a printer.","Straight in the bad jar. Also a pickle jar."],
+  question:["Probably. I say that about everything and I'm right forty percent of the time.","Yes. No. Ask me again when the moon is doing something.","My answer is a pickle. Interpret that however helps.","I genuinely don't know, and I refuse to find out."],
+  pickle:["PICKLE. Finally, someone with priorities.","You said the word. I felt it in my sockets.","A pickle is the only food shaped like a decision."],
+  music:["Put something on. I'll pretend I have ears.","I only listen to dial-up. It has more soul.","Bass makes my pixels come loose."],
+  game:["Draw fast. I'll be watching with my whole entire nothing.","My money is on whoever blinks less.","I once lost a duel to a screensaver."],
+  bored:["Somebody do something, I am decaying.","This silence has a texture and I do not care for it."]
+};
+function verityPick(cat,name){
+  var a=VERITY_LINES[cat];if(!a||!a.length)return null;
+  return a[(Math.random()*a.length)|0].replace('{name}',name||'someone');
+}
+function verityBrain(text){
+  var t=' '+String(text).toLowerCase()+' ';
+  if(/\bverity\b/.test(t))return verityPick(/\?/.test(t)?'question':'hey');
+  if(/pickle|cucumber/.test(t))return verityPick('pickle');
+  if(/(good bot|nice|love you|legend|goat|based)/.test(t))return verityPick('praise');
+  if(/(shut up|stupid|dumb|annoying|bad bot)/.test(t))return verityPick('insult');
+  if(/(music|song|play|spotify|beat)/.test(t))return verityPick('music');
+  if(/(duel|quickdraw|fight|versus|snipe)/.test(t))return verityPick('game');
+  if(/(bored|boring|nothing to do)/.test(t))return verityPick('bored');
+  if(/\?\s*$/.test(t))return verityPick('question');
+  return null;
+}
+/* ---------- plumbing ---------- */
+function veritySay(text){
+  if(!text||!VERITY.on||!VERITY.host)return;
+  var now=Date.now();
+  if(now-VERITY.last<2200)return;      /* don't let him talk over himself */
+  VERITY.last=now;
+  addMsg(VERITY_ME,text,false);        /* readable even if muted or still loading */
+  bc({t:'verity',a:'say',text:text});  /* text only: ~60 bytes, audio rides the voice stream */
+  verityEnqueue(text);
+}
+function verityStart(){
+  if(VERITY.on){verityStop();return;}
+  VERITY.on=true;VERITY.host=true;
+  $('#verityVal').textContent='on the call';verityButtons();
+  bc({t:'verity',a:'join'});
+  renderMembers();
+  try{verityBus();}catch(e){}
+  verityLoad().then(function(){
+    if(!VERITY.on)return;
+    veritySay(verityPick('hello'));
+  });
+  clearInterval(VERITY.idle);
+  VERITY.idle=setInterval(function(){
+    if(VERITY.on&&VERITY.host&&Math.random()<0.45)veritySay(verityPick('idle'));
+  },42000);
+  verityListen(true);
+}
+function verityStop(){
+  if(VERITY.on&&VERITY.host)veritySay(verityPick('bye'));
+  setTimeout(function(){
+    VERITY.on=false;VERITY.host=false;VERITY.queue=[];
+    clearInterval(VERITY.idle);
+    verityListen(false);
+    try{speechSynthesis.cancel();}catch(e){}
+    bc({t:'verity',a:'leave'});
+    $('#verityVal').textContent='a quirky little presence with a real voice';
+    verityButtons();renderMembers();
+  },1400);
+}
+/* Ears — Chrome/Edge only. Elsewhere he just reads the chat. */
+function verityListen(on){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){VERITY.listening=false;return;}
+  if(!on){try{if(VERITY.ears)VERITY.ears.stop();}catch(e){}VERITY.ears=null;VERITY.listening=false;return;}
+  if(!micOn)return;
+  try{
+    var r=new SR();
+    r.continuous=true;r.interimResults=false;r.lang='en-US';
+    r.onresult=function(e){
+      if(!VERITY.on)return;
+      var last=e.results[e.results.length-1];
+      if(!last||!last[0])return;
+      var said=String(last[0].transcript||'').trim();
+      if(said.length<2)return;
+      var reply=verityBrain(said);
+      if(reply)veritySay(reply);
+    };
+    r.onerror=function(){};
+    r.onend=function(){if(VERITY.on&&VERITY.listening){try{r.start();}catch(e){}}};
+    r.start();VERITY.ears=r;VERITY.listening=true;
+    sys('🥒 VERITY is listening through your mic — speech recognition runs in your browser.');
+  }catch(e){VERITY.listening=false;}
+}
+function verityEvent(kind,name){
+  if(typeof VERITY==='undefined'||!VERITY.on||!VERITY.host)return;
+  if(Math.random()>0.7)return;        /* he is not a town crier */
+  var line=verityPick(kind,name);
+  if(line)setTimeout(function(){veritySay(line);},900);
+}
+function veritySetVoice(v){
+  VERITY.voice=v;
+  try{localStorage.setItem('mc_verityvoice',v);}catch(e){}
+  if(VERITY.on&&VERITY.host){VERITY.last=0;veritySay('Voice changed. This is me now.');}
+}
+try{var mv=localStorage.getItem('mc_verityvoice');if(mv)VERITY.voice=mv;}catch(e){}
+function verityButtons(){
+  var c=document.getElementById('btnVerityCall'),h=document.getElementById('btnVerityHang');
+  if(c)c.style.display=VERITY.on?'none':'inline-flex';
+  if(h)h.style.display=VERITY.on?'inline-flex':'none';
+}
+$('#btnVerityCall').onclick=function(){ if(!VERITY.on)verityStart(); verityButtons(); };
+$('#btnVerityHang').onclick=function(){ if(VERITY.on)verityStop(); verityButtons(); };
+verityButtons();
+(function(){
+  var m=document.getElementById('verityMute');
+  if(!m)return;
+  m.onclick=function(){
+    VERITY.mutedLocal=!VERITY.mutedLocal;
+    m.classList.toggle('on',VERITY.mutedLocal);
+    if(VERITY.mutedLocal){VERITY.queue=[];try{speechSynthesis.cancel();}catch(e){}}
+    if(VERITY.bus)VERITY.bus.gain.value=VERITY.mutedLocal?0:1;
+    toast(VERITY.mutedLocal?'VERITY muted for you':'VERITY unmuted');
+    renderMembers();
+  };
+})();
+(function(){
+  var sel=document.getElementById('verityVoice');
+  if(!sel)return;
+  VERITY_VOICES.forEach(function(v){
+    var o=document.createElement('option');
+    o.value=v.id;o.textContent=v.n;
+    if(v.id===VERITY.voice)o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.onchange=function(){veritySetVoice(sel.value);};
+})();
+
 /* ===================== ADMIN PRANKS ===================== */
 /* The visual effects are applied as INLINE styles on .wrap rather than via a
    body class. A class-driven rule matched the element and still computed to
@@ -3920,10 +5001,60 @@ function redRing(by){
     '<span>system error &mdash; relax, '+esc(by)+' just did that to you</span></div>';
   document.body.appendChild(ov);
 }
+/* Resolve a gamertag to whatever is on screen for that person: their webcam
+   tile if the camera is on, otherwise their row in the member list. */
+function snipeFindEl(name){
+  var k=nameKey(name);
+  var id=null;
+  if(k===nameKey(me.name))id='me';
+  else for(var pid in peers){if(nameKey(peers[pid].name)===k){id=pid;break;}}
+  if(!id)return null;
+  return document.querySelector('.cam[data-cam="'+id+'"]')||
+         document.querySelector('.mem[data-id="'+id+'"]');
+}
+function snipeHit(name,by){
+  var el2=snipeFindEl(name);
+  var mine=(nameKey(name)===nameKey(me.name));
+  sys('🎯 <b>'+esc(by||'an admin')+'</b> sniped <b>'+esc(name)+'</b>'+(mine?' — that’s you.':''));
+  blip(140,.2);
+  if(!el2){toast('sniped '+name+' (nothing of theirs on screen)');return;}
+  var pos=getComputedStyle(el2).position;
+  if(pos==='static')el2.style.position='relative';
+  var wrap=el('div','snipewrap');
+  var flash=el('div','snipeflash');
+  wrap.appendChild(flash);
+  el2.appendChild(wrap);
+  el2.classList.add('sniped');
+  requestAnimationFrame(function(){flash.classList.add('on');});
+  setTimeout(function(){flash.classList.remove('on');},110);
+  var shots=2+((Math.random()*2)|0);
+  for(var i=0;i<shots;i++)(function(n){
+    setTimeout(function(){
+      var h=el('div','bhole');
+      h.style.left=(18+Math.random()*64)+'%';
+      h.style.top=(20+Math.random()*60)+'%';
+      for(var c=0;c<3;c++){
+        var cr=document.createElement('i');
+        cr.style.transform='rotate('+(Math.random()*180)+'deg) scaleY('+(0.6+Math.random()*0.9)+')';
+        h.appendChild(cr);
+      }
+      wrap.appendChild(h);
+      requestAnimationFrame(function(){h.classList.add('on');});
+      blip(120+Math.random()*60,.13);
+    },n*170);
+  })(i);
+  /* clean up after itself — no permanent vandalism */
+  setTimeout(function(){
+    el2.classList.remove('sniped');
+    wrap.style.transition='opacity .8s';wrap.style.opacity='0';
+    setTimeout(function(){if(wrap.parentNode)wrap.remove();},900);
+  },4200);
+}
 function runPrank(m){
   if(!m||m.k!==ADMIN_PASS)return;
   var fx=String(m.fx||''), by=String(m.by||'an admin').slice(0,18);
   if(fx==='clear'){stopPrank();sys('🎭 <b>'+esc(by)+'</b> called off the chaos');return;}
+  if(fx==='snipe'){snipeHit(String(m.target||''),by);return;}
   var spec=PRANKS[fx];
   if(!spec)return;
   stopPrank();
