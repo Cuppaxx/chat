@@ -253,7 +253,24 @@ body.touch .cam .ctl{opacity:1}
   background-color:rgba(20,8,60,.55);border-bottom:1px solid rgba(255,255,255,.14)}
 #theater h3 em{font-style:normal;font-weight:400;letter-spacing:0;text-transform:none;
   font-size:11px;opacity:.75}
-.tstage{position:relative;background:#000;margin:8px 12px;border-radius:8px;overflow:hidden;
+#theater h3 .tviews{margin-left:auto;display:flex;gap:5px;align-items:center}
+/* stage and the camera rail sit side by side; the rail collapses to zero width
+   in "Theater only" so the stage gets the whole row */
+.tmain{display:flex;gap:8px;align-items:flex-start;padding:8px 12px}
+.tstagewrap{flex:1;min-width:0}
+.tside{width:0;overflow:hidden;flex:none}
+#theater.withcams .tside{width:188px}
+/* #cams is physically MOVED in here rather than duplicated — a <video> keeps
+   its live srcObject across a DOM move, and cloning it would not */
+#theater.withcams .tside #cams{flex-direction:column;padding:0;background:transparent;
+  border:0;box-shadow:none;gap:6px}
+#theater.withcams .tside .cam{width:100%}
+#theater.withcams .tside .cam video{height:106px}
+.tstage:fullscreen{width:100vw;height:100vh;border-radius:0;border:0;margin:0}
+.tstage:fullscreen video,.tstage:fullscreen #tframe{height:100vh;max-height:100vh;width:100vw}
+.tstage:-webkit-full-screen{width:100vw;height:100vh;border-radius:0;border:0;margin:0}
+.tstage:-webkit-full-screen video,.tstage:-webkit-full-screen #tframe{height:100vh;max-height:100vh;width:100vw}
+.tstage{position:relative;background:#000;margin:0;border-radius:8px;overflow:hidden;
   border:1px solid rgba(255,255,255,.7);box-shadow:0 4px 18px rgba(0,0,0,.65)}
 .tstage video{display:block;width:100%;max-height:min(56vh,520px);background:#000}
 /* website mode — a small embedded browser pane */
@@ -287,6 +304,12 @@ body.touch .cam .ctl{opacity:1}
 @media (max-width:820px){
   .trow #tTitle{max-width:none}
   .tstage video{max-height:38vh}
+  #tframe{height:38vh}
+  .tmain{flex-direction:column}
+  #theater.withcams .tside{width:100%}
+  #theater.withcams .tside #cams{flex-direction:row;flex-wrap:wrap}
+  #theater.withcams .tside .cam{width:calc(50% - 4px)}
+  #theater.withcams .tside .cam video{height:96px}
 }
 
 /* chat */
@@ -630,7 +653,15 @@ body.touch #qPtt{display:none}
         <div id="cams"></div>
 
         <div id="theater">
-          <h3>🎬 Theater <em id="tLeadLbl">— no queue leader yet</em></h3>
+          <h3>🎬 Theater <em id="tLeadLbl">— no queue leader yet</em>
+            <span class="tviews">
+              <span class="q" data-tview="cine">Theater only</span>
+              <span class="q on" data-tview="both">Theater + cams</span>
+              <span class="q" id="tFull" title="fullscreen the stage">⛶ Fullscreen</span>
+            </span>
+          </h3>
+          <div class="tmain">
+          <div class="tstagewrap">
           <div class="tstage" id="tstage">
             <video id="tvid" playsinline preload="metadata"></video>
             <iframe id="tframe" referrerpolicy="no-referrer"
@@ -639,12 +670,16 @@ body.touch #qPtt{display:none}
             <div class="tblock" id="tblock" title="only the queue leader can interact with this"></div>
             <div class="tover" id="tover">Nothing playing.<br>Paste a link below — a media file, a website, or a YouTube video.</div>
           </div>
+          </div>
+          <div class="tside" id="tside"></div>
+          </div>
           <div class="trow">
             <button class="btn" id="tPlay">▶ Play</button>
             <button class="btn grey" id="tPause">⏸ Pause</button>
             <button class="btn grey" id="tPrev">⏮</button>
             <button class="btn grey" id="tNext">⏭</button>
             <button class="btn blue" id="tTake">🎚 Take the lead</button>
+            <button class="btn grey" id="tShare" title="share your actual screen so everyone sees this page exactly as you do, in sync">📡 Stream this page</button>
             <span class="tstat" id="tStat"></span>
           </div>
           <div class="trow">
@@ -814,7 +849,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='4.5';
+var BUILD='4.6';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -1358,7 +1393,7 @@ function savePrefs(){
     localStorage.setItem(PREFS_KEY,JSON.stringify({
       v:1,quality:quality,fx:fxMode,pitch:pitchSemis,radio:radioFx,ptt:ptt,
       ns:micNS,ec:micEC,agc:micAGC,stereo:stereo,autoMic:autoMic,
-      relay:forceRelay,deaf:deaf
+      relay:forceRelay,deaf:deaf,tview:tView
     }));
   }catch(e){}
 }
@@ -1380,6 +1415,7 @@ function loadPrefs(){
   if(typeof p.autoMic==='boolean')autoMic=p.autoMic;
   if(typeof p.relay==='boolean')forceRelay=p.relay;
   if(typeof p.deaf==='boolean')deaf=p.deaf;
+  if(p.tview==='cine'||p.tview==='both')tView=p.tview;
 }
 function applyPrefsToUI(){
   var i,cs;
@@ -1400,6 +1436,8 @@ function applyPrefsToUI(){
   $('#qAutoMic').classList.toggle('on',autoMic);
   $('#qRelay').classList.toggle('on',forceRelay);
   $('#deafLbl').textContent=deaf?'Undeafen':'Deafen';
+  var tv=document.querySelectorAll('.q[data-tview]');
+  for(i=0;i<tv.length;i++)tv[i].classList.toggle('on',tv[i].getAttribute('data-tview')===tView);
 }
 
 /* ===================== BOOT ===================== */
@@ -3440,6 +3478,17 @@ function renderAdmin(force){
       'silence them for you only — they are not told',function(){
       setVol(id,p.vol===0?1:0);renderMembers();renderAdmin();
     }));
+    if(inTheater()){
+      r.appendChild(admBtn(tLeader===p.name?'🎬 Is leader':'🎬 Make leader',
+        'hand this person the theater queue lead',function(){
+        if(tLeader===p.name)return;
+        tLeader=p.name;
+        bc({t:'tlead',name:p.name});
+        sys('🎬 <b>'+esc(p.name)+'</b> was given the queue lead by an admin');
+        toast(p.name+' is now queue leader');
+        renderTheater();renderAdmin(true);
+      },'linear-gradient(#9ad7ff,#2f8fe0 55%,#1462a8)'));
+    }
     r.appendChild(admBtn('Kick','remove them, and refuse them for 5 minutes — by name, so rejoining does not dodge it',function(){
       admKick(id,false);
     },'linear-gradient(#ffc27a,#e08a19 55%,#b46406)'));
@@ -3535,9 +3584,52 @@ try{if(sessionStorage.getItem('mc_admin')){admin=true;$('#admVal').textContent='
    with an explanation — they block direct playback and their embed player
    cannot be kept in step this way, so half-working silently would be worse. */
 var THEATER='theater';
-var tQ=[], tIdx=-1, tLeader='';
+var tQ=[], tIdx=-1, tLeader='', tView='both';
 function inTheater(){return room===THEATER;}
+/* Only the person who took the room first, and admins. A free-for-all "Take
+   the lead" button meant anyone could yank control mid-film. */
 function canDrive(){return !!(admin||(tLeader&&tLeader===me.name));}
+/* Move the webcam strip into the theater's side rail so you can watch the
+   stage and everyone's faces at once. The element is MOVED, not copied —
+   a <video> keeps its live srcObject across a DOM move. */
+function layoutTheater(){
+  var cams=document.getElementById('cams');
+  var side=document.getElementById('tside');
+  var host=document.querySelector('.layout .main');
+  var box=document.getElementById('theater');
+  if(!cams||!side||!host||!box)return;
+  var withCams=inTheater()&&tView==='both';
+  box.classList.toggle('withcams',withCams);
+  if(withCams){
+    if(cams.parentNode!==side)side.appendChild(cams);
+  }else if(cams.parentNode!==host){
+    host.insertBefore(cams,box);   /* put it back where it belongs */
+  }
+}
+function setTView(v){
+  tView=(v==='cine')?'cine':'both';
+  var chips=document.querySelectorAll('.q[data-tview]');
+  for(var i=0;i<chips.length;i++)
+    chips[i].classList.toggle('on',chips[i].getAttribute('data-tview')===tView);
+  layoutTheater();savePrefs();
+}
+function tFullscreen(){
+  var st=document.getElementById('tstage');
+  if(!st)return;
+  try{
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+      return;
+    }
+    if(st.requestFullscreen)st.requestFullscreen();
+    else if(st.webkitRequestFullscreen)st.webkitRequestFullscreen();
+    else{
+      var v=tVid();
+      if(v&&v.webkitEnterFullscreen&&v.getAttribute('src'))v.webkitEnterFullscreen();
+      else toast('fullscreen is not available in this browser');
+    }
+  }catch(e){toast('fullscreen was blocked');}
+}
 function tVid(){return document.getElementById('tvid');}
 function tFrame(){return document.getElementById('tframe');}
 /* Anything that looks like a playable file is treated as media and gets real
@@ -3580,7 +3672,10 @@ function renderTheater(){
   ['tPlay','tPause','tPrev','tNext'].forEach(function(b){
     var e=document.getElementById(b); if(e)e.disabled=!drive;
   });
-  $('#tTake').style.display=(tLeader===me.name)?'none':'inline-flex';
+  /* Taking the lead is an admin power now. Whoever got here first keeps it
+     otherwise — randoms can't grab the remote mid-film. */
+  $('#tTake').style.display=(admin&&tLeader!==me.name)?'inline-flex':'none';
+  layoutTheater();
   var v=tVid();
   v.controls=drive;
   var cur=(tIdx>=0&&tQ[tIdx])?tQ[tIdx]:null;
@@ -3594,6 +3689,8 @@ function renderTheater(){
     ? (isSite?(drive?'you are driving this page':'view only — '+(tLeader||'the leader')+' drives')
             : (drive?'you are driving':'following '+(tLeader||'…')))
     : '';
+  /* the stream button only makes sense for a site, and only for the driver */
+  $('#tShare').style.display=(isSite&&drive&&!scrOn)?'inline-flex':'none';
   var q=$('#tQueue');q.innerHTML='';
   if(!tQ.length){
     q.appendChild(el('div','tq','Queue is empty — paste a direct media link below.'));
@@ -3679,6 +3776,17 @@ function tApply(d){
 function tReset(){
   tQ=[];tIdx=-1;tLeader='';
   try{var v=tVid();if(v){v.pause();v.removeAttribute('src');v.load();}}catch(e){}
+  /* The iframe has to be torn down too. Leaving it loaded meant a YouTube embed
+     carried on playing audio from a hidden pane after you switched channels,
+     and the stage kept its 'site locked' classes — which is the leftover mess
+     you get when you come back to another room. about:blank first so the page
+     actually unloads rather than lingering in the back/forward cache. */
+  try{
+    var f=tFrame();
+    if(f){f.setAttribute('src','about:blank');f.removeAttribute('src');}
+    var st=document.getElementById('tstage');
+    if(st)st.className='tstage';
+  }catch(e){}
   renderTheater();
 }
 $('#tAdd').onclick=function(){
@@ -3719,11 +3827,29 @@ $('#tPause').onclick=function(){if(!canDrive())return;tVid().pause();setTimeout(
 $('#tNext').onclick=function(){if(canDrive())tLoad(tIdx+1,true);};
 $('#tPrev').onclick=function(){if(canDrive())tLoad(tIdx-1,true);};
 $('#tTake').onclick=function(){
+  if(!admin){toast('only an admin can take the lead');return;}
   tLeader=me.name;
   bc({t:'tlead',name:me.name});
-  sys('🎬 <b>'+esc(me.name)+'</b> took the queue lead');
+  sys('🎬 <b>'+esc(me.name)+'</b> took the queue lead (admin)');
   renderTheater();tBroadcast();
 };
+/* Cross-origin pages cannot be read or remote-controlled from here, so an
+   embedded site can never mirror the leader's scrolling and clicking. Screen
+   share can — it sends the leader's actual picture — so offer the real thing
+   right next to the thing that cannot do it. */
+$('#tShare').onclick=function(){
+  if(!canDrive()){toast('only the queue leader can stream');return;}
+  if(scrOn){toast('already streaming — use 🖥 Screen Share to stop');return;}
+  sys('🎬 pick the tab or window with the page in it — everyone will see exactly what you see, in sync');
+  toggleScreen();
+};
+(function(){
+  var chips=document.querySelectorAll('.q[data-tview]');
+  for(var i=0;i<chips.length;i++)
+    (function(c){c.onclick=function(){setTView(c.getAttribute('data-tview'));};})(chips[i]);
+  var fb=document.getElementById('tFull');
+  if(fb)fb.onclick=tFullscreen;
+})();
 (function(){
   var v=tVid();if(!v)return;
   ['play','pause','seeked'].forEach(function(ev){
