@@ -181,6 +181,9 @@ h3{margin:0;padding:8px 16px;font-size:11px;letter-spacing:2px;text-transform:up
   box-shadow:0 4px 14px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.5),0 0 0 1px rgba(120,80,255,.4)}
 .cam video{display:block;width:100%;height:147px;object-fit:cover;background:#05030f}
 .cam.me video{transform:scaleX(-1)}
+/* only the selfie camera should be mirrored — mirroring the rear camera makes
+   any text you point it at read backwards */
+body.rearcam .cam.me video{transform:none}
 .cam .tag{position:absolute;left:0;right:0;bottom:0;padding:4px 7px;font-size:12px;color:#fff;
   display:flex;align-items:center;gap:6px;text-shadow:0 1px 3px #000;
   background:linear-gradient(transparent,rgba(0,0,0,.8))}
@@ -189,7 +192,25 @@ h3{margin:0;padding:8px 16px;font-size:11px;letter-spacing:2px;text-transform:up
 .cam.talking{box-shadow:0 0 0 2px var(--ok),0 0 20px rgba(140,255,90,.7),0 4px 14px rgba(0,0,0,.65)}
 .cam .glare2{position:absolute;left:0;right:0;top:0;height:38%;pointer-events:none;
   background:linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,0))}
-@media (max-width:820px){.cam{width:calc(50% - 4px)}.cam video{height:112px}}
+
+/* spotlight — one tile blown up to full width, for a screen share or whoever
+   is actually doing something. Screen shares spotlight themselves on arrival. */
+.cam.big{width:100%}
+.cam.big video{height:min(62vh,560px)}
+.cam .ctl{position:absolute;top:6px;right:6px;z-index:4;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.cam:hover .ctl,.cam.big .ctl{opacity:1}
+body.touch .cam .ctl{opacity:1}
+.cam .ctl button{font:inherit;font-size:13px;line-height:1;cursor:pointer;
+  width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.75);color:#fff;
+  background-color:rgba(20,8,60,.72);box-shadow:0 1px 4px rgba(0,0,0,.6);
+  display:grid;place-items:center;padding:0}
+.cam .ctl button:hover{background-color:rgba(106,45,255,.85)}
+@media (max-width:820px){
+  .cam{width:calc(50% - 4px)}
+  .cam video{height:112px}
+  .cam.big{width:100%}
+  .cam.big video{height:min(52vh,420px)}
+}
 
 /* chat */
 .chat{display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.55);
@@ -251,9 +272,9 @@ h3{margin:0;padding:8px 16px;font-size:11px;letter-spacing:2px;text-transform:up
   border-top:1px solid rgba(255,255,255,.22);background-color:rgba(255,255,255,.06)}
 .compose.drag{background-color:rgba(122,255,122,.16);box-shadow:inset 0 0 0 2px #9dff7a}
 .compose input[type=text]{flex:1;min-width:0}
-input[type=text]{font:inherit;font-size:15px;padding:8px 10px;border-radius:6px;border:1px solid #9c86e0;
+input[type=text],input[type=password]{font:inherit;font-size:15px;padding:8px 10px;border-radius:6px;border:1px solid #9c86e0;
   background-color:#fff;color:var(--ink);box-shadow:inset 0 2px 4px rgba(60,20,140,.2);outline:none}
-input[type=text]:focus{border-color:#6a2dff;box-shadow:0 0 0 3px rgba(106,45,255,.25),inset 0 2px 4px rgba(60,20,140,.2)}
+input[type=text]:focus,input[type=password]:focus{border-color:#6a2dff;box-shadow:0 0 0 3px rgba(106,45,255,.25),inset 0 2px 4px rgba(60,20,140,.2)}
 
 .btn{font:inherit;font-size:14px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.7);
   cursor:pointer;color:#fff;background-color:#6a2dff;background-image:linear-gradient(#9d78ff,#6a2dff 50%,#4a1bd0);
@@ -298,7 +319,7 @@ a.btn,a.hub{text-decoration:none}
 .card h2{margin:0 0 4px;font-weight:400;font-size:27px;position:relative}
 .card p{margin:0 0 10px;color:var(--ink2);font-size:13px;position:relative}
 .card label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:12px 0 5px;position:relative}
-.card input[type=text]{width:100%;position:relative}
+.card input[type=text],.card input[type=password]{width:100%;position:relative}
 .icons{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;position:relative}
 .icons .ava{width:100%;height:auto;aspect-ratio:1;cursor:pointer;font-size:20px;opacity:.85}
 .icons .ava:hover{opacity:1;transform:scale(1.07)}
@@ -325,10 +346,46 @@ a.btn,a.hub{text-decoration:none}
 #banner.on{display:block}
 #banner a{color:#fff}
 
+/* ===================== MOBILE =====================
+   Phones were technically "supported" before in that the layout collapsed to
+   one column, but several things made it genuinely unpleasant to use. Fixed
+   here: iOS zooming the whole page whenever you tapped the chat box, the
+   address bar eating the bottom of the layout, no way to push-to-talk without
+   a keyboard, no way to reach the rear camera, and tap targets sized for a
+   mouse. */
+
+/* 100vh on mobile means "viewport with the browser chrome hidden", so the
+   bottom of the page sits under the address bar until you scroll. dvh tracks
+   the chrome as it shows and hides. Kept behind @supports so old browsers
+   still get the vh fallback above. */
+@supports (height:100dvh){
+  html,body{height:100dvh}
+  body{min-height:100dvh}
+}
+
+/* touch-only controls, revealed by the body.touch class set in JS */
+.touchonly{display:none !important}
+body.touch .touchonly{display:inline-flex !important}
+
+/* Big hold-to-talk pad. Only appears on touch devices AND only while
+   push-to-talk is armed — a floating button that does nothing would just be
+   in the way. */
+#pttPad{display:none;position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;
+  padding:16px 34px;border-radius:999px;border:2px solid #fff;
+  font:inherit;font-size:17px;font-weight:700;color:#fff;letter-spacing:.5px;
+  background-color:#4a1bd0;background-image:linear-gradient(#9d78ff,#6a2dff 55%,#4a1bd0);
+  box-shadow:0 6px 22px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.5);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  touch-action:none}
+body.touch #pttPad.on{display:block}
+#pttPad.live{background-image:linear-gradient(#c6ff9a,#4ac41f 55%,#2f7d0d);
+  color:#0a2a00;box-shadow:0 0 0 4px rgba(140,255,90,.45),0 6px 22px rgba(0,0,0,.6)}
+
 @media (max-width:820px){
   .layout{grid-template-columns:1fr}
   .side{border-right:none;border-bottom:1px solid rgba(80,50,160,.25)}
-  .rooms{display:flex;overflow-x:auto}
+  .rooms{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .side .row{white-space:nowrap;border-bottom:none;border-right:1px solid rgba(80,50,160,.15)}
   .side h3{display:none}
   .top{flex-wrap:wrap;gap:10px}
@@ -336,9 +393,35 @@ a.btn,a.hub{text-decoration:none}
   .orb{width:38px;height:38px;margin:0}
   .orb::after{left:7px;top:5px;width:21px;height:10px}
   .tab{font-size:15px;padding:8px 12px}.tab.main{font-size:16px}
-  .row,.mem{font-size:16px;padding:8px 12px}
-  .log{height:270px}
+  .row,.mem{font-size:16px;padding:10px 12px;min-height:48px}
+  .log{height:min(46vh,340px)}
   .icons{grid-template-columns:repeat(6,1fr)}
+
+  .wrap{padding:10px 10px calc(22px + env(safe-area-inset-bottom,0px))}
+  /* iOS zooms the page in whenever you focus an input under 16px. That zoom
+     is not undone on blur, so one tap on the chat box left the whole UI
+     oversized and horizontally scrolled for the rest of the session. */
+  input[type=text],input[type=password]{font-size:16px}
+  .btn{padding:10px 16px;font-size:15px}
+  .q{padding:8px 14px;font-size:14px}
+  .bottombar{gap:14px 18px;font-size:16px}
+  .bottombar .hint{padding:4px 0}
+  .vol{width:62px}
+  .compose{gap:8px;padding:10px 8px}
+  .msg .b{max-width:88%}
+  /* room tabs and the blade rows are the main touch surfaces — stop the grey
+     flash and the accidental text selection on double-tap */
+  .row.action,.tab,.q,.btn,.mem,.hint{-webkit-tap-highlight-color:transparent}
+  .row.action,.q,.btn,.hint{-webkit-user-select:none;user-select:none}
+}
+@media (max-width:420px){
+  .top h1{font-size:17px}
+  .hub{font-size:13px;padding:6px 11px 6px 8px}
+  .tab{font-size:13px;padding:7px 9px;gap:6px}
+  .tab.main{font-size:14px}
+  .icons{grid-template-columns:repeat(5,1fr)}
+  .mem .st{gap:6px}
+  .volnum{display:none}
 }
 </style>
 </head>
@@ -357,7 +440,7 @@ a.btn,a.hub{text-decoration:none}
 
   <div class="tabs">
     <div class="tab main">🎧 Party Chat (<span class="cnt" id="cnt">0</span>)</div>
-    <div class="tab" title="voice bitrate">📻 <span id="tabq">6 kbps</span></div>
+    <div class="tab" title="voice bitrate">📻 <span id="tabq">32 kbps</span></div>
     <div class="tab" title="messages"><span>✉</span> <span id="tabm">0</span></div>
     <div class="tab" title="channel">🏠 <span id="tabr">—</span></div>
   </div>
@@ -369,12 +452,14 @@ a.btn,a.hub{text-decoration:none}
     <div class="row action" id="btnScreen">🖥 Screen Share: <b id="scrState">Off</b> <span class="val">share a window, tab or your whole screen</span></div>
     <div class="row action" id="btnDiag">🩺 Network Test <span class="val">run this if you can't connect</span></div>
     <div class="row action" id="btnCfg">⚙ Connection Settings <span class="val">signaling server / TURN keys</span></div>
+    <div class="row action" id="btnAdmin">🛡 Admin Panel <span class="val" id="admVal">moderation tools</span></div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Voice:</span>
       <div class="qstrip">
-        <span class="q on" data-q="potato">Potato 6k</span>
-        <span class="q" data-q="walkie">Walkie 12k</span>
+        <span class="q on" data-q="clear">Clear 32k</span>
         <span class="q" data-q="xbox">Xbox 24k</span>
+        <span class="q" data-q="walkie">Walkie 12k</span>
+        <span class="q" data-q="potato">Potato 6k</span>
         <span class="q" id="qRadio" title="bandpass + crunch on incoming voices">Radio FX</span>
         <span class="q" id="qPtt" title="hold V to talk">Push-to-talk</span>
       </div>
@@ -389,7 +474,17 @@ a.btn,a.hub{text-decoration:none}
         <span class="q" data-fx="deep" title="pitched down">Deep</span>
         <span class="q" data-fx="chip" title="pitched up">Chipmunk</span>
         <span class="q" data-fx="cave" title="big reverb">Cave</span>
+        <span class="q" data-fx="pitch" title="free pitch control — use the slider below">Pitch ⇅</span>
       </div>
+    </div>
+    <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
+      <span class="lab">Pitch:</span>
+      <span style="font-size:12px;opacity:.7">low</span>
+      <input type="range" id="pitchSl" class="vol" min="-12" max="12" step="1" value="0"
+             style="width:200px" title="drag to pitch your voice up or down">
+      <span style="font-size:12px;opacity:.7">high</span>
+      <span id="pitchVal" style="font-size:13px;min-width:120px">normal</span>
+      <span class="q" id="pitchReset">Reset</span>
     </div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Mic processing:</span>
@@ -440,6 +535,7 @@ a.btn,a.hub{text-decoration:none}
     <span class="hint" id="hScreen">🖥 Screen</span>
     <span class="hint" id="hDeaf">🔇 <span id="deafLbl">Deafen</span></span>
     <span class="hint" id="hCam">📷 Webcam</span>
+    <span class="hint touchonly" id="hFlip">🔄 Flip Camera</span>
     <a class="grow" href="https://mingustown.neocities.org/" style="color:#cfc0ff">← back to Mingustown</a>
   </div>
   <div style="padding:0 14px;font-size:11px;opacity:.5">status: <span id="status">not connected</span> · build <span id="ver">3.0</span></div>
@@ -490,13 +586,60 @@ a.btn,a.hub{text-decoration:none}
   </div>
 </div>
 
+<!-- admin panel -->
+<div class="modal" id="admModal" style="display:none">
+  <div class="card" style="max-width:620px">
+    <h2>🛡 Admin Panel</h2>
+
+    <div id="admLock">
+      <p>Moderation tools for this room.</p>
+      <label>Password</label>
+      <input type="password" id="admPass" autocomplete="off" placeholder="admin password">
+      <div class="err" id="admErr"></div>
+      <div class="hint2">Heads up: this page is plain HTML, so the password is readable by anyone
+        who views the source. It keeps honest people out of the controls — it is not real security.
+        Kicks and locks are also requests to the other person's browser, which an unmodified
+        chatroom obeys and a tampered one could ignore.</div>
+      <div class="actions">
+        <button class="btn grey" id="admCancel">Close</button>
+        <button class="btn" id="admGo">Unlock</button>
+      </div>
+    </div>
+
+    <div id="admBody" style="display:none">
+      <p>You are an admin in <b id="admRoom">—</b>.</p>
+
+      <label>Room</label>
+      <div class="qstrip">
+        <span class="q" id="admLockRoom" title="refuse anyone new who tries to join">🔒 Lock room</span>
+        <span class="q" id="admClear" title="wipe the chat log for everybody">🧹 Clear everyone's chat</span>
+      </div>
+
+      <label>Announcement</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="admMsg" maxlength="200" placeholder="message to the whole party…" style="flex:1;min-width:0">
+        <button class="btn blue" id="admSend">📢 Send</button>
+      </div>
+
+      <label>Members</label>
+      <div id="admList" style="max-height:230px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
+
+      <div class="actions">
+        <button class="btn grey" id="admLogout">Lock panel</button>
+        <button class="btn" id="admDone">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button id="pttPad" class="touchonly">🎙 HOLD TO TALK</button>
 <div class="lb" id="lb"><img id="lbimg" alt=""></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="file" hidden>
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='3.7';
+var BUILD='3.9';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -555,7 +698,20 @@ var TURN_LIVE=null, turnFetched=false, turnWaiters=[];
 var PREFIX='mingus', MAX_SLOTS=12;
 var ROOMS=['lobby','party1','party2','chill','afk'];
 var PRESET=['🎮','🎧','🐦','🥒','👾','🔥','💜','🦈','🎸','🧊','🛹','🍕','👽','🏀','🐸','💀','⚡','🎲'];
-var Q={potato:{k:6,l:'6 kbps'},walkie:{k:12,l:'12 kbps'},xbox:{k:24,l:'24 kbps'}};
+/* Voice presets. 'clear' is the default from 3.8 on — 32 kbps mono Opus at
+   fullband is genuinely good for speech, and the old 6 kbps default was the
+   reason everyone sounded like a drive-thru.
+
+   The lower rungs do more than drop the bitrate: they also drop the sample
+   rate (maxplaybackrate) and fatten the packets (ptime). That combination is
+   what actually produces the crunchy walkie-talkie sound. Lowering bitrate
+   alone just sounds muffled and vague, which is not the fun kind of bad. */
+var Q={
+  clear :{k:32,l:'32 kbps',rate:48000,ptime:20,dtx:0},
+  xbox  :{k:24,l:'24 kbps',rate:24000,ptime:20,dtx:0},
+  walkie:{k:12,l:'12 kbps',rate:12000,ptime:40,dtx:1},
+  potato:{k:6 ,l:'6 kbps' ,rate:8000 ,ptime:60,dtx:1}
+};
 var SEG=9;
 var STREAM_TIMEOUT=18000;   /* no media after this long = declare it dead, stop lying with "Connecting…" */
 var DIAL_TIMEOUT=20000;   /* relay handshakes are slow — don't hang up early */
@@ -574,7 +730,7 @@ var me={name:'',icon:'🎮',slot:-1,id:null};
 var room='lobby', peer=null, peers={}, pending={};
 var localStream=null, micOn=false, muted=false, deaf=false, ptt=false, pttDown=false, radioFx=false;
 var camStream=null, camOn=false;
-var quality='potato', msgCount=0, leaving=false, forceRelay=false;
+var quality='clear', msgCount=0, leaving=false, forceRelay=false;
 var actx=null, localAnalyser=null;
 var outStream=null, phAudio=null, phVideo=null, phCanvas=null, phTimer=null;
 var MEDIA_OK=true, VIDEO_OK=true, audioGesture=false;
@@ -585,6 +741,9 @@ var scrStream=null, scrOn=false, scrAudioNode=null;
 var CAM_KBPS=140, SCREEN_KBPS=900;
 /* outbound voice FX */
 var fxMode='none', fxChain=null, fxSource=null, fxDest=null;
+/* free-form pitch shift, driven by the Pitch slider. Semitones, -12..+12. */
+var pitchSemis=0, fxPitchNode=null;
+function pitchRatio(){return Math.pow(2,pitchSemis/12);}
 /* file transfer */
 var MAX_FILE=25*1024*1024;      /* 25 MB — it all crosses a relay, be reasonable */
 var CHUNK=48*1024;              /* base64 chars per chunk */
@@ -598,6 +757,48 @@ var incoming={}, xferSeq=0;
 var probe={}, warnedNoRoute=false, TURN_OWN=false;
 /* how many rescans in a row a slot has come back empty — used to back off */
 var slotMiss={};
+
+/* ---------- admin ----------
+   Deliberately modest about what this is. The password lives in the page
+   source, so anyone who opens View Source can read it — it gates the controls
+   against ordinary users, nothing more. And because the party is peer-to-peer
+   with no server refereeing it, a kick is a MESSAGE asking that browser to
+   leave. The stock chatroom obeys it; a modified one could ignore it. Good
+   enough for moderating friends, not a security boundary. */
+var ADMIN_PASS='MingMing67';
+var admin=false, roomLocked=false;
+var banned={};          /* peerId -> timestamp the ban lifts (Infinity = session) */
+var everSeen={};        /* peerIds we have already accepted, so a lock only blocks NEW people */
+
+/* set by an admin's "server mute" — while true this client refuses to unmute
+   itself, so the mute actually sticks instead of being one click to undo */
+var forceMuted=false;
+
+/* which camera/screen tile is spotlighted (enlarged). null = normal grid. */
+var bigCam=null;
+
+/* Per-person volume, remembered across rejoins. Keyed by gamertag rather than
+   peer id, because the id is just a room slot — someone who leaves and comes
+   back almost always lands on a different one, which is why turning a loud
+   friend down never used to stick. */
+var volMem={};
+try{volMem=JSON.parse(localStorage.getItem('mc_vol')||'{}')||{};}catch(e){volMem={};}
+function volKey(n){return String(n||'').toLowerCase().trim().slice(0,18);}
+function rememberVol(name,v){
+  var k=volKey(name);if(!k)return;
+  if(v===1)delete volMem[k]; else volMem[k]=v;
+  try{localStorage.setItem('mc_vol',JSON.stringify(volMem));}catch(e){}
+}
+function recallVol(name){
+  var v=volMem[volKey(name)];
+  return (typeof v==='number'&&v>=0&&v<=2)?v:null;
+}
+
+/* ---------- mobile ---------- */
+var IS_TOUCH=false;
+try{IS_TOUCH=(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)||('ontouchstart' in window);}catch(e){}
+if(IS_TOUCH){try{document.body.classList.add('touch');}catch(e){}}
+var camFacing='user';   /* front camera by default; flip button swaps to 'environment' */
 
 function $(s){return document.querySelector(s);}
 function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;}
@@ -1113,14 +1314,26 @@ function scan(){
   for(var s=0;s<MAX_SLOTS;s++){
     if(s===me.slot)continue;
     var id=PREFIX+'-'+room+'-'+s;
-    if(peers[id]||pending[id])continue;
+    if(pending[id])continue;
+    /* Only a peer with a LIVE data connection counts as "already handled".
+       This used to be a bare peers[id] check, which was the main reason people
+       joined and never appeared: attachCall() creates a peers[] entry the
+       moment a media call arrives, so a peer whose data channel failed left a
+       nameless husk behind — invisible in the member list, and permanently
+       blocking every future dial to that slot. */
+    var known=peers[id];
+    if(known&&known.conn&&known.conn.open)continue;
     if(probe[id]==='empty'){
       var miss=slotMiss[id]=(slotMiss[id]||0)+1;
       /* back off on slots that keep coming back empty, but not as hard as 3.5
          did — it stretched to one probe a minute, so a friend joining late sat
          there looking disconnected for up to 60s even though everything worked.
          Now it settles at one probe every ~36s. */
-      if(miss>4&&miss%3)continue;
+      /* Probe empty-looking slots less often, but not rarely. The old rule
+         stretched to one probe a minute, so a friend who joined a slot you had
+         written off sat there unseen for up to 60s. Now it settles at every
+         other scan — about 24s worst case, and usually they find you first. */
+      if(miss>4&&miss%2)continue;
     }
     (function(pid,delay){setTimeout(function(){dial(pid);},delay);})(id,n*140);
     n++;
@@ -1135,8 +1348,13 @@ function bindPeer(p){
   p.on('disconnected',function(){if(!leaving){setStatus('reconnecting…');try{p.reconnect();}catch(e){}}});
   p.on('close',function(){if(!leaving)setStatus('connection closed');});
 }
+function isBanned(id){return banned[id]!=null&&banned[id]>Date.now();}
 function dial(id){
-  if(!peer||peer.destroyed||peers[id]||pending[id])return;
+  if(!peer||peer.destroyed||pending[id])return;
+  var known=peers[id];
+  if(known&&known.conn&&known.conn.open)return;   /* genuinely connected already */
+  if(isBanned(id))return;              /* don't re-dial someone we kicked */
+  if(roomLocked&&!everSeen[id])return; /* locked: stop reaching out to new slots */
   var c;
   try{c=peer.connect(id,{reliable:true,metadata:{name:me.name}});}catch(e){return;}
   if(!c)return;
@@ -1162,6 +1380,18 @@ function setupConn(conn,dialer){
   conn.on('open',function(){
     clearTimeout(pending[id]);delete pending[id];
     probe[id]='connected';delete slotMiss[id];
+    /* admin enforcement, applied before the peer is admitted at all */
+    if(isBanned(id)){
+      try{conn.send({t:'kick'});}catch(e){}
+      setTimeout(function(){try{conn.close();}catch(e){}},250);
+      return;
+    }
+    if(roomLocked&&!everSeen[id]&&!peers[id]){
+      try{conn.send({t:'locked'});}catch(e){}
+      setTimeout(function(){try{conn.close();}catch(e){}},250);
+      return;
+    }
+    everSeen[id]=1;
     if(!peers[id])peers[id]={};
 
     var other=peers[id].conn;
@@ -1177,6 +1407,19 @@ function setupConn(conn,dialer){
     peers[id].t0=Date.now();
     peers[id].dialer=!!dialer;
     conn.send({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK});
+    /* 'hello' used to be fired exactly once and never chased up. If it was sent
+       while the far side was still wiring its handlers, that peer stayed
+       nameless — and renderMembers() only lists peers that have a name, so they
+       were connected but invisible. Ask again if we still don't know who they
+       are; 'who' is answered with a fresh hello. */
+    (function(cid){
+      [2500,7000,15000].forEach(function(ms){
+        setTimeout(function(){
+          var pp=peers[cid];
+          if(pp&&pp.conn&&pp.conn.open&&!pp.name){try{pp.conn.send({t:'who'});}catch(e){}}
+        },ms);
+      });
+    })(id);
     if(dialer&&MEDIA_OK){
       try{attachCall(peer.call(id,outbound(),{sdpTransform:lowSdp,metadata:{name:me.name}}),true);}
       catch(e){sys('could not start voice with that peer: '+esc(e.message),true);}
@@ -1249,8 +1492,19 @@ function setPeerConfig(cfg){
 }
 function onData(id,d){
   var p=peers[id];if(!p||!d)return;
+  if(d.t==='who'){
+    /* someone still doesn't know who we are — re-introduce ourselves */
+    try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',name:me.name,icon:me.icon,
+      muted:muted||!micOn,cam:camOn,media:MEDIA_OK});}catch(e){}
+    try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true});}catch(e){}
+    return;
+  }
   if(d.t==='hello'){
     var isNew=!p.name;p.name=d.name;p.icon=d.icon;p.muted=d.muted;p.camOn=!!d.cam;p.media=d.media!==false;
+    /* restore whatever level we last set for this person, by name — this is the
+       point where we finally learn who is behind the slot id */
+    var rv=recallVol(d.name);
+    if(rv!=null){p.vol=rv;applyVol(p);}
     renderMembers();renderCams();
     if(isNew){
       sys('<b>'+esc(d.name)+'</b> joined the party');blip(880,.06);
@@ -1261,7 +1515,11 @@ function onData(id,d){
     p.camOn=d.on;renderCams();
     if(p.name)sys('<b>'+esc(p.name)+'</b> turned their camera '+(d.on?'on':'off'));
   }else if(d.t==='scr'){
-    p.screen=!!d.on;renderCams();renderMembers();
+    p.screen=!!d.on;
+    /* a screen share is the thing people actually want to look at, so give it
+       the spotlight automatically rather than a thumbnail in a row of faces */
+    if(d.on)bigCam=id; else if(bigCam===id)bigCam=null;
+    renderCams();renderMembers();
     sys('<b>'+esc(p.name||'someone')+'</b> '+(d.on?'started sharing their screen':'stopped sharing'));
   }else if(d.t==='fmeta'){onFileMeta(p,d);}
   else if(d.t==='fchunk'){onFileChunk(d);}
@@ -1271,6 +1529,51 @@ function onData(id,d){
     if(typeof d.data==='string'&&d.data.indexOf('data:image/')===0&&d.data.length<900000)addMsg(p,null,false,d.data);
     blip(520,.04);
   }else if(d.t==='mute'){p.muted=d.on;renderMembers();}
+  /* ---- admin messages ---- */
+  else if(d.t==='kick'){
+    sys('🛡 <b>An admin removed you from the party.</b>',true);
+    toast('you were removed by an admin');
+    blip(240,.18);
+    setTimeout(function(){leaveParty(false);},500);
+  }
+  else if(d.t==='locked'){
+    sys('🔒 <b>'+esc(room)+'</b> is locked right now — an admin is not letting new people in.',true);
+  }
+  else if(d.t==='announce'){
+    good('📢 '+esc(String(d.text||'').slice(0,200)));
+    blip(900,.09);
+  }
+  else if(d.t==='clearchat'){
+    $('#log').innerHTML='';
+    unread=0;setJump();
+    sys('🧹 chat was cleared by an admin');
+  }
+  else if(d.t==='lock'){
+    roomLocked=!!d.on;
+    sys(roomLocked?'🔒 an admin locked <b>'+esc(room)+'</b> — no new people can join'
+                  :'🔓 an admin unlocked <b>'+esc(room)+'</b>');
+    if(admin)renderAdmin();
+  }
+  else if(d.t==='forcemute'){
+    forceMuted=!!d.on;
+    if(forceMuted){
+      /* set the flag BEFORE muting, then mute directly — going through
+         setMute() would be fine here, but doing it straight keeps the guard
+         in setMute() purely about blocking the un-mute */
+      muted=true;
+      $('#muteLbl').textContent='Unmute';
+      if(localStream)localStream.getAudioTracks()[0].enabled=false;
+      bc({t:'mute',on:true});
+      sys('🛡 <b>An admin muted your microphone.</b> You cannot unmute until they lift it.',true);
+      toast('an admin muted you');
+      blip(260,.14);
+    }else{
+      sys('🛡 An admin lifted your mute — you can unmute yourself again.');
+      toast('mute lifted');
+      blip(820,.08);
+    }
+    renderMembers();
+  }
 }
 function dropPeer(id){
   var p=peers[id];if(!p)return;
@@ -1297,13 +1600,18 @@ function leaveParty(silent){
   clearInterval(rescanTimer);clearTimeout(joinTimer);
   for(var k in pending){clearTimeout(pending[k]);}
   pending={};probe={};slotMiss={};warnedNoRoute=false;
+  /* room-scoped admin state resets on leaving; bans are kept for the session */
+  everSeen={};roomLocked=false;bigCam=null;forceMuted=false;
   if(scrOn)stopScreen(false);
   for(var fk in incoming){try{incoming[fk].ui.fail('left');incoming[fk].ui.done();}catch(e){}}
   incoming={};
   for(var id in peers)dropPeer(id);
   peers={};
   if(peer){try{peer.destroy();}catch(e){}peer=null;}
-  me.slot=-1;leaving=false;
+  /* clearing the id too, not just the slot — a stale id here made the 🩺 report
+     claim you were still joined as an old peer after leaving, and it feeds the
+     duplicate-connection tiebreak on the next join */
+  me.slot=-1;me.id=null;leaving=false;
   setStatus('not connected');renderMembers();renderCams();renderRooms();
   if(!silent){$('#modal').style.display='grid';sys('you left the party');blip(330,.1);}
 }
@@ -1370,13 +1678,18 @@ function makePitchShift(c,ratio){
   var node=c.createScriptProcessor?c.createScriptProcessor(N,1,1):null;
   if(!node)return null;
   var ring=new Float32Array(BUF),wp=0,rp=0;
+  /* read the ratio off the node each block instead of closing over it, so the
+     Pitch slider can slide it around live without rebuilding the audio graph
+     (rebuilding mid-sentence clicks audibly and drops a word) */
+  node.__ratio=ratio;
   node.onaudioprocess=function(e){
     var inp=e.inputBuffer.getChannelData(0),out=e.outputBuffer.getChannelData(0),i;
+    var r=node.__ratio||1;
     for(i=0;i<N;i++){ring[wp]=inp[i];wp=(wp+1)%BUF;}
     for(i=0;i<N;i++){
       var fl=Math.floor(rp),i0=fl%BUF,i1=(i0+1)%BUF,fr=rp-fl;
       out[i]=ring[i0]*(1-fr)+ring[i1]*fr;
-      rp+=ratio;if(rp>=BUF)rp-=BUF;
+      rp+=r;if(rp>=BUF)rp-=BUF;
     }
     var dist=(wp-rp+BUF)%BUF;
     if(dist<N*0.5||dist>BUF-N*0.5)rp=(wp-N+BUF)%BUF;
@@ -1434,6 +1747,14 @@ function makeFx(mode){
     var hp3=c.createBiquadFilter();hp3.type='highpass';hp3.frequency.value=180;
     chain(ps2?[ps2,hp3]:[hp3]);
     if(!ps2)toast('this browser can\'t pitch shift');
+  }else if(mode==='pitch'){
+    var pn=makePitchShift(c,pitchRatio());
+    fxPitchNode=pn||null;
+    /* the shifter pushes rumble down into the sub-bass when you go low, which
+       eats bitrate and sounds like mud rather than a deep voice */
+    var pf=c.createBiquadFilter();pf.type='highpass';pf.frequency.value=80;
+    chain(pn?[pn,pf]:[pf]);
+    if(!pn)toast('this browser can\'t pitch shift');
   }else if(mode==='cave'){
     var cv=c.createConvolver();cv.buffer=makeImpulse(c,2.4,2.6);
     var wet=c.createGain();wet.gain.value=0.85;
@@ -1447,6 +1768,7 @@ function makeFx(mode){
   return {input:input,output:output,nodes:nodes};
 }
 function disposeFx(){
+  fxPitchNode=null;
   if(!fxChain)return;
   for(var i=0;i<fxChain.nodes.length;i++){
     try{fxChain.nodes[i].disconnect();}catch(e){}
@@ -1487,7 +1809,8 @@ function setFx(mode){
       return;
     }
   }
-  toast(mode==='none'?'voice FX off':'voice FX: '+mode);
+  if(mode==='pitch')toast(pitchSemis?('pitch: '+pitchLabel()):'pitch on — drag the Pitch slider');
+  else toast(mode==='none'?'voice FX off':'voice FX: '+mode);
 }
 function micConstraints(){
   return {channelCount:1,
@@ -1550,7 +1873,7 @@ function toggleCam(){
   }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('camera needs https');return;}
   navigator.mediaDevices.getUserMedia({
-    video:{width:{ideal:320},height:{ideal:240},frameRate:{ideal:15,max:20},facingMode:'user'},
+    video:{width:{ideal:320},height:{ideal:240},frameRate:{ideal:15,max:20},facingMode:{ideal:camFacing}},
     audio:false
   }).then(function(s){
     camStream=s;camOn=true;$('#camState').textContent='On';
@@ -1582,6 +1905,7 @@ function toggleScreen(){
     for(var id in peers)applyBitrate(peers[id].call);
     bc({t:'scr',on:true});
     if(camOn)sys('screen share replaced your webcam feed — turn it off to go back to the camera');
+    bigCam='me';   /* spotlight your own share so you can see what they see */
     renderCams();blip(820,.06);
     toast(at?'sharing screen + audio':'sharing screen (no audio — tick "share audio" in the picker next time)');
   }).catch(function(e){
@@ -1620,10 +1944,18 @@ function unmixScreenAudio(){
 }
 
 function lowSdp(sdp){
-  var k=Q[quality].k, lines=sdp.split('\r\n'), pt=null, i;
+  var q=Q[quality]||Q.clear;
+  var k=q.k, lines=sdp.split('\r\n'), pt=null, i;
   for(i=0;i<lines.length;i++){var m=lines[i].match(/^a=rtpmap:(\d+) opus\/48000/i);if(m){pt=m[1];break;}}
   if(!pt)return sdp;
-  var fmtp='a=fmtp:'+pt+' minptime=40;useinbandfec=1;usedtx=1;stereo=0;sprop-stereo=0;maxaveragebitrate='+(k*1000)+';maxplaybackrate=8000;sprop-maxcapturerate=8000';
+  /* maxplaybackrate/sprop-maxcapturerate used to be hardcoded to 8000 — telephone
+     narrowband — which capped the audio no matter what bitrate was negotiated.
+     32 kbps through an 8 kHz pipe still sounds like a drive-thru, so the rate now
+     rides with the preset. ptime rides with it too: 20 ms packets for the good
+     settings (lower latency, cleaner), fat 60 ms packets for Potato. */
+  var fmtp='a=fmtp:'+pt+' minptime='+Math.min(q.ptime,40)+';useinbandfec=1;usedtx='+q.dtx+
+    ';stereo=0;sprop-stereo=0;maxaveragebitrate='+(k*1000)+
+    ';maxplaybackrate='+q.rate+';sprop-maxcapturerate='+q.rate;
   var out=[],had=false;
   for(i=0;i<lines.length;i++){
     var l=lines[i];
@@ -1640,7 +1972,7 @@ function lowSdp(sdp){
     else out.push(l);
     if(l.indexOf('a=rtpmap:'+pt+' ')===0){
       if(!had){out.push(fmtp);had=true;}
-      out.push('a=ptime:60','a=maxptime:120');
+      out.push('a=ptime:'+q.ptime,'a=maxptime:'+(q.ptime*2));
     }
   }
   return out.join('\r\n');
@@ -1737,8 +2069,14 @@ function setDeaf(on){
 function setVol(id,v){
   var p=peers[id];if(!p)return;
   p.vol=v;applyVol(p);
+  rememberVol(p.name,v);   /* sticks across rejoins, keyed on their gamertag */
 }
 function setMute(on){
+  if(!on&&forceMuted){
+    toast('an admin has muted you');
+    sys('You cannot unmute — an admin server-muted you.',true);
+    return;
+  }
   muted=on;$('#muteLbl').textContent=on?'Unmute':'Mute';
   if(localStream)localStream.getAudioTracks()[0].enabled=!on&&(!ptt||pttDown);
   bc({t:'mute',on:on||!micOn});renderMembers();blip(on?300:700,.05);
@@ -1777,6 +2115,31 @@ setInterval(function(){
   }
 },80);
 
+/* Ghost sweep.
+   A peers[] entry can outlive its data connection — created by an incoming
+   media call on its own, or left behind when a connection closes without the
+   close event landing (common when someone's laptop sleeps or their phone
+   changes network). Those husks are invisible in the member list and, before
+   the scan()/dial() fix above, permanently blocked that slot from ever being
+   dialled again. Clear them out so the slot goes back into rotation and the
+   person can reappear on their next attempt. */
+setInterval(function(){
+  var now=Date.now(), dirty=false;
+  for(var gid in peers){
+    var gp=peers[gid];
+    if(gp.conn&&gp.conn.open){gp.ghostAt=null;continue;}
+    if(!gp.ghostAt){gp.ghostAt=now;continue;}
+    if(now-gp.ghostAt>20000){
+      try{gp.call&&gp.call.close();}catch(e){}
+      stopRemote(gid);
+      delete peers[gid];
+      probe[gid]=null;delete slotMiss[gid];
+      dirty=true;
+    }
+  }
+  if(dirty){renderMembers();renderCams();}
+},4000);
+
 setInterval(function(){
   var dirty=false;
   for(var id in peers){
@@ -1798,8 +2161,13 @@ function renderMembers(){
   var list=[{id:'me',name:(me.name||'you')+' (you)',icon:me.icon,muted:muted||!micOn,self:true}];
   Object.keys(peers).sort().forEach(function(id){
     var p=peers[id];
-    if(p.name)list.push({id:id,name:p.name,icon:p.icon,muted:p.muted,voice:!!p.stream,
-      vol:p.vol==null?1:p.vol,ice:p.ice,relay:p.relay,dead:p.dead,media:p.media!==false});
+    var live=!!(p.conn&&p.conn.open);
+    /* show anyone with a live data connection even before their hello lands,
+       so a real person is never silently missing from the list */
+    if(!p.name&&!live)return;
+    list.push({id:id,name:p.name||'joining…',icon:p.icon,muted:p.muted,voice:!!p.stream,
+      vol:p.vol==null?1:p.vol,ice:p.ice,relay:p.relay,dead:p.dead,media:p.media!==false,
+      unknown:!p.name});
   });
   list.forEach(function(m){
     var r=el('div','mem'+(m.muted?' muted':''));
@@ -1843,9 +2211,16 @@ function renderMembers(){
     box.appendChild(r);
   });
   $('#cnt').textContent=list.length;
+  /* keep the admin roster live while the panel is open */
+  try{if(admin&&$('#admModal').style.display==='grid')renderAdmin();}catch(e){}
 }
 
 /* ===================== WEBCAM GRID ===================== */
+function toggleBig(id){
+  if(!id)return;
+  bigCam=(bigCam===id)?null:id;
+  renderCams();
+}
 function renderCams(){
   var box=$('#cams');
   var tiles=[];
@@ -1859,6 +2234,9 @@ function renderCams(){
   box.classList.toggle('on',tiles.length>0);
   var keep={};
   tiles.forEach(function(t){keep[t.id]=1;});
+  /* if the spotlighted feed went away, fall back to the normal grid instead of
+     leaving an empty full-width hole */
+  if(bigCam&&!keep[bigCam])bigCam=null;
   Array.prototype.slice.call(box.children).forEach(function(ch){
     if(!keep[ch.getAttribute('data-cam')])box.removeChild(ch);
   });
@@ -1872,8 +2250,34 @@ function renderCams(){
       tile.appendChild(v);
       tile.appendChild(el('div','glare2'));
       tile.appendChild(el('div','tag','<span class="nm2"></span><span class="mi"></span>'));
+      var ctl=el('div','ctl');
+      var zb=document.createElement('button');
+      zb.textContent='⤢';zb.title='enlarge / restore';
+      zb.onclick=function(ev){ev.stopPropagation();toggleBig(tile.getAttribute('data-cam'));};
+      var fb=document.createElement('button');
+      fb.textContent='⛶';fb.title='fullscreen';
+      fb.onclick=function(ev){
+        ev.stopPropagation();
+        var el2=tile;
+        try{
+          if(document.fullscreenElement)document.exitFullscreen();
+          else if(el2.requestFullscreen)el2.requestFullscreen();
+          else if(el2.webkitRequestFullscreen)el2.webkitRequestFullscreen();
+          else{
+            /* iOS Safari won't fullscreen a div, but it will a <video> */
+            var v2=tile.querySelector('video');
+            if(v2&&v2.webkitEnterFullscreen)v2.webkitEnterFullscreen();
+            else toast('fullscreen not supported here');
+          }
+        }catch(e){toast('fullscreen not supported here');}
+      };
+      ctl.appendChild(zb);ctl.appendChild(fb);
+      tile.appendChild(ctl);
+      /* clicking the picture itself is the obvious gesture, so support it too */
+      tile.onclick=function(){toggleBig(tile.getAttribute('data-cam'));};
       box.appendChild(tile);
     }
+    tile.classList.toggle('big',bigCam===t.id);
     var vid=tile.querySelector('video');
     if(vid.srcObject!==t.stream){vid.srcObject=t.stream;vid.play().catch(function(){});}
     tile.querySelector('.nm2').textContent=(t.screen?'🖥 ':'')+t.name+(t.self?' (you)':'');
@@ -2271,6 +2675,28 @@ $('#hScreen').onclick=toggleScreen;
   for(var i=0;i<chips.length;i++)
     (function(c){c.onclick=function(){setFx(c.getAttribute('data-fx'));};})(chips[i]);
 })();
+/* ---------- pitch slider ---------- */
+function pitchLabel(){
+  if(!pitchSemis)return 'normal';
+  var n=Math.abs(pitchSemis);
+  return (pitchSemis>0?'+':'−')+n+' semitone'+(n===1?'':'s')+(pitchSemis>0?' — higher':' — lower');
+}
+$('#pitchSl').oninput=function(){
+  pitchSemis=parseInt(this.value,10)||0;
+  $('#pitchVal').textContent=pitchLabel();
+  if(fxMode==='pitch'&&fxPitchNode){
+    /* live — no graph rebuild, so it slides smoothly while you talk */
+    fxPitchNode.__ratio=pitchRatio();
+  }else if(pitchSemis!==0){
+    setFx('pitch');
+  }else if(fxMode==='pitch'){
+    setFx('none');
+  }
+};
+$('#pitchReset').onclick=function(){
+  pitchSemis=0;$('#pitchSl').value=0;$('#pitchVal').textContent=pitchLabel();
+  if(fxMode==='pitch')setFx('none'); else toast('pitch reset');
+};
 $('#jump').onclick=function(){stick=true;unread=0;setJump();$('#log').scrollTop=$('#log').scrollHeight;};
 $('#log').addEventListener('scroll',function(){
   if(nearBottom()){stick=true;if(unread){unread=0;setJump();}}
@@ -2346,7 +2772,9 @@ $('#qRadio').onclick=function(){setRadio(!radioFx);};
 $('#qPtt').onclick=function(){
   ptt=!ptt;$('#qPtt').classList.toggle('on',ptt);pttDown=false;
   if(localStream)localStream.getAudioTracks()[0].enabled=!muted&&!ptt;
-  toast(ptt?'push-to-talk: hold V':'open mic');
+  /* phones have no V key, so reveal the hold-to-talk pad instead */
+  var pad=$('#pttPad');if(pad)pad.classList.toggle('on',ptt);
+  toast(ptt?(IS_TOUCH?'push-to-talk: hold the button':'push-to-talk: hold V'):'open mic');
 };
 window.addEventListener('keydown',function(e){
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
@@ -2362,6 +2790,175 @@ window.addEventListener('keyup',function(e){
     if(localStream)localStream.getAudioTracks()[0].enabled=false;
   }
 });
+/* ===================== ADMIN PANEL ===================== */
+function admOpen(){
+  $('#admErr').textContent='';
+  $('#admPass').value='';
+  $('#admLock').style.display=admin?'none':'block';
+  $('#admBody').style.display=admin?'block':'none';
+  if(admin)renderAdmin();
+  $('#admModal').style.display='grid';
+  if(!admin)setTimeout(function(){try{$('#admPass').focus();}catch(e){}},60);
+}
+function admUnlock(){
+  if($('#admPass').value!==ADMIN_PASS){
+    $('#admErr').textContent='wrong password';
+    $('#admPass').value='';blip(240,.12);return;
+  }
+  admin=true;
+  try{sessionStorage.setItem('mc_admin','1');}catch(e){}
+  $('#admLock').style.display='none';
+  $('#admBody').style.display='block';
+  $('#admVal').textContent='unlocked';
+  renderAdmin();toast('admin unlocked');blip(880,.08);
+}
+function admLogout(){
+  admin=false;
+  try{sessionStorage.removeItem('mc_admin');}catch(e){}
+  $('#admVal').textContent='moderation tools';
+  $('#admModal').style.display='none';
+  toast('admin panel locked');
+}
+function admBtn(label,title,fn,grad){
+  var b=document.createElement('button');
+  b.className='btn';b.textContent=label;b.title=title;
+  b.style.cssText='padding:5px 10px;font-size:12px;flex:none';
+  if(grad)b.style.backgroundImage=grad;
+  b.onclick=fn;return b;
+}
+function renderAdmin(){
+  if(!admin)return;
+  $('#admRoom').textContent=room;
+  $('#admLockRoom').classList.toggle('on',roomLocked);
+  var box=$('#admList');if(!box)return;
+  box.innerHTML='';
+  var ids=Object.keys(peers).sort().filter(function(id){return peers[id].name;});
+  if(!ids.length){
+    var none=el('div','','nobody else is connected right now');
+    none.style.cssText='padding:14px;font-size:13px;color:#5b3fb3';
+    box.appendChild(none);return;
+  }
+  ids.forEach(function(id){
+    var p=peers[id];
+    var r=el('div','');
+    r.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 10px;flex-wrap:wrap;'+
+      'border-bottom:1px solid rgba(80,50,160,.18)';
+    r.appendChild(mkAva(p.icon));
+    var info=el('div','');info.style.cssText='flex:1;min-width:110px';
+    info.appendChild(el('div','',esc(p.name)));
+    var sub=el('div','',esc(id)+' · '+esc(p.ice||'—')+(p.relay?' · relay':'')+
+      (p.muted?' · muted':'')+(p.srvMuted?' · SERVER MUTED':''));
+    sub.style.cssText='font-size:10.5px;color:#7a6aa8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    info.appendChild(sub);
+    r.appendChild(info);
+    /* Server mute: tells their browser to shut its own microphone off and
+       refuse to turn it back on. Everyone stops hearing them, not just you. */
+    r.appendChild(admBtn(p.srvMuted?'🔊 Un-mute all':'🔇 Server mute',
+      'mute their microphone for the whole party',function(){
+      p.srvMuted=!p.srvMuted;
+      try{if(p.conn&&p.conn.open)p.conn.send({t:'forcemute',on:p.srvMuted});}catch(e){}
+      sys('🛡 <b>'+esc(p.name||id)+'</b> was '+(p.srvMuted?'server-muted':'un-muted')+' by an admin');
+      toast(p.srvMuted?('server-muted '+(p.name||id)):('un-muted '+(p.name||id)));
+      renderAdmin();renderMembers();
+    },p.srvMuted?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#c9bdf5,#7a63c8 55%,#4d3a96)'));
+    /* local-only: just turns their volume down here */
+    r.appendChild(admBtn(p.vol===0?'🔈 Unsilence':'🔕 Silence (me)',
+      'silence them for you only — they are not told',function(){
+      setVol(id,p.vol===0?1:0);renderMembers();renderAdmin();
+    }));
+    r.appendChild(admBtn('Kick','remove them, and refuse them for 5 minutes',function(){
+      admKick(id,false);
+    },'linear-gradient(#ffc27a,#e08a19 55%,#b46406)'));
+    r.appendChild(admBtn('Ban','remove them for the rest of this session',function(){
+      admKick(id,true);
+    },'linear-gradient(#ff9ca6,#e0192f 55%,#a10f20)'));
+    box.appendChild(r);
+  });
+}
+function admKick(id,forever){
+  var p=peers[id];if(!p)return;
+  var nm=p.name||id;
+  try{if(p.conn&&p.conn.open)p.conn.send({t:'kick'});}catch(e){}
+  banned[id]=forever?Infinity:(Date.now()+5*60*1000);
+  sys('🛡 <b>'+esc(nm)+'</b> was '+(forever?'banned for this session':'kicked for 5 minutes'));
+  toast((forever?'banned ':'kicked ')+nm);
+  /* give the kick message a moment to actually go out before tearing the
+     connection down, otherwise they just silently vanish and reconnect */
+  setTimeout(function(){dropPeer(id);renderAdmin();},350);
+}
+$('#btnAdmin').onclick=admOpen;
+$('#admGo').onclick=admUnlock;
+$('#admPass').onkeydown=function(e){if(e.key==='Enter')admUnlock();};
+$('#admCancel').onclick=$('#admDone').onclick=function(){$('#admModal').style.display='none';};
+$('#admLogout').onclick=admLogout;
+$('#admModal').onclick=function(e){if(e.target===this)this.style.display='none';};
+$('#admSend').onclick=function(){
+  var t=$('#admMsg').value.trim();
+  if(!t)return;
+  $('#admMsg').value='';
+  bc({t:'announce',text:t});
+  good('📢 '+esc(t));
+  toast('announcement sent');
+};
+$('#admMsg').onkeydown=function(e){if(e.key==='Enter')$('#admSend').click();};
+$('#admClear').onclick=function(){
+  bc({t:'clearchat'});
+  $('#log').innerHTML='';unread=0;setJump();
+  sys('🧹 chat cleared for everyone');
+};
+$('#admLockRoom').onclick=function(){
+  roomLocked=!roomLocked;
+  $('#admLockRoom').classList.toggle('on',roomLocked);
+  /* tell the rest of the party too — otherwise the lock would only apply to
+     this browser and everyone else would happily keep letting people in */
+  bc({t:'lock',on:roomLocked});
+  sys(roomLocked?'🔒 <b>room locked</b> — new people will be turned away':'🔓 room unlocked');
+  toast(roomLocked?'room locked':'room unlocked');
+};
+try{if(sessionStorage.getItem('mc_admin')){admin=true;$('#admVal').textContent='unlocked';}}catch(e){}
+
+/* ===================== TOUCH CONTROLS ===================== */
+(function(){
+  var pad=$('#pttPad');
+  if(!pad)return;
+  var down=function(e){
+    if(e)e.preventDefault();
+    if(!ptt)return;
+    if(!micOn){toast('turn Voice Chat on first');return;}
+    pttDown=true;pad.classList.add('live');
+    if(localStream)localStream.getAudioTracks()[0].enabled=!muted;
+  };
+  var up=function(e){
+    if(e)e.preventDefault();
+    if(!pttDown)return;
+    pttDown=false;pad.classList.remove('live');
+    if(localStream)localStream.getAudioTracks()[0].enabled=false;
+  };
+  pad.addEventListener('pointerdown',down);
+  pad.addEventListener('pointerup',up);
+  pad.addEventListener('pointercancel',up);
+  pad.addEventListener('pointerleave',up);
+  pad.addEventListener('contextmenu',function(e){e.preventDefault();});
+})();
+function flipCam(){
+  if(!camOn){toast('turn the webcam on first');return;}
+  if(scrOn){toast('stop the screen share first');return;}
+  var want=(camFacing==='user')?'environment':'user';
+  navigator.mediaDevices.getUserMedia({
+    video:{width:{ideal:320},height:{ideal:240},frameRate:{ideal:15,max:20},facingMode:{ideal:want}},
+    audio:false
+  }).then(function(s){
+    if(camStream)camStream.getTracks().forEach(function(t){t.stop();});
+    camStream=s;camFacing=want;
+    document.body.classList.toggle('rearcam',camFacing==='environment');
+    setOut('video',s.getVideoTracks()[0]);
+    for(var id in peers)applyBitrate(peers[id].call);
+    renderCams();
+    toast(camFacing==='user'?'front camera':'rear camera');
+  }).catch(function(){toast('no second camera on this device');});
+}
+$('#hFlip').onclick=flipCam;
+
 window.addEventListener('beforeunload',function(){try{peer&&peer.destroy();}catch(e){}});
 window.addEventListener('hashchange',function(){
   var r=slug(location.hash.slice(1));
