@@ -30,6 +30,11 @@ const state = {
   socket: null,     // the browser holding the bridge open
   rx: {},           // discord userId -> { slot, stream }
   nextSlot: 1,
+  rxPackets: 0,
+  txPackets: 0,     // 20 ms packets handed to the Discord player
+  rxBytes: 0,
+  clientStats: null,
+  clientStatsAt: 0,
   startedAt: 0,
   bytes: 0,
   lastError: '',
@@ -44,6 +49,15 @@ function status() {
     kb: Math.round(state.bytes / 1024),
     configured: !!(process.env.DISCORD_TOKEN && process.env.DISCORD_GUILD_ID && process.env.DISCORD_CHANNEL_ID),
     lastError: state.lastError || null,
+    txPackets: state.txPackets,
+    rx: {
+      packets: state.rxPackets,
+      kb: Math.round(state.rxBytes / 1024),
+      speakers: Object.keys(state.rx).map((id) => ({ slot: state.rx[id].slot, name: state.rx[id].name })),
+      socketBuffered: state.socket ? state.socket.bufferedAmount : null,
+    },
+    browser: state.clientStats,
+    browserAgeSec: state.clientStatsAt ? Math.round((Date.now() - state.clientStatsAt) / 1000) : null,
   };
 }
 
@@ -89,8 +103,22 @@ async function joinDiscord() {
   }
   log('voice connection ready');
 
+  // Browser -> WebM bytes -> demux -> split every packet into 20 ms Opus
+  // packets -> player. Chrome's MediaRecorder writes 60 ms Opus packets and the
+  // player sends one packet per 20 ms tick, so without the split Discord gets
+  // audio at 3x speed with broken timing and its receiver shreds it.
+  const prism = require('prism-media');
+  const { Transform } = require('stream');
+  const { splitOpusPacket } = require('./opus-split');
   state.feed = new PassThrough({ highWaterMark: 1 << 20 });
-  const resource = createAudioResource(state.feed, { inputType: StreamType.WebmOpus });
+  const demux = new prism.opus.WebmDemuxer();
+  const split = new Transform({
+    readableObjectMode: true, writableObjectMode: true,
+    transform(pkt, enc, cb) { for (const f of splitOpusPacket(pkt)) { state.txPackets++; this.push(f); } cb(); },
+  });
+  demux.on('error', (e) => { state.lastError = 'demux: ' + (e && e.message || e); log(state.lastError); });
+  state.feed.pipe(demux).pipe(split);
+  const resource = createAudioResource(split, { inputType: StreamType.Opus });
   // The browser sends a chunk every ~200 ms, but the player polls every 20 ms
   // and by default gives up after 5 empty polls (100 ms). That made it go
   // idle right after the first chunk while audio kept arriving. Gaps are
@@ -139,7 +167,7 @@ function wireReceiver(connection, selfId) {
     log('hearing', name, 'on slot', slot);
     sendToBrowser(JSON.stringify({ t: 'speaker', slot, id: userId, name }));
     const hdr = Buffer.alloc(3); hdr[0] = 0xD1; hdr.writeUInt16BE(slot, 1);
-    stream.on('data', (pkt) => sendToBrowser(Buffer.concat([hdr, pkt])));
+    stream.on('data', (pkt) => { state.rxPackets++; state.rxBytes += pkt.length; sendToBrowser(Buffer.concat([hdr, pkt])); });
     stream.on('error', (e) => log('rx error', name, e && e.message));
   });
   receiver.speaking.on('end', (userId) => {
@@ -151,7 +179,7 @@ function wireReceiver(connection, selfId) {
 function leaveDiscord(reason) {
   log('tearing down:', reason || 'requested');
   for (const id in state.rx) { try { state.rx[id].stream.destroy(); } catch (e) {} }
-  state.rx = {};
+  state.rx = {}; state.rxPackets = 0; state.rxBytes = 0; state.txPackets = 0; state.clientStats = null; state.clientStatsAt = 0;
   try { if (state.player) state.player.stop(true); } catch (e) {}
   try { if (state.feed) state.feed.end(); } catch (e) {}
   try { if (state.connection) state.connection.destroy(); } catch (e) {}
@@ -226,7 +254,14 @@ function attachBridgeFeed(server, adminPass) {
     state.socket = ws;
 
     ws.on('message', (data, isBinary) => {
-      if (!isBinary || !state.feed) return;
+      if (!isBinary) {
+        try {
+          const m = JSON.parse(data.toString());
+          if (m && m.t === 'stats') { state.clientStats = m; state.clientStatsAt = Date.now(); }
+        } catch (e) {}
+        return;
+      }
+      if (!state.feed) return;
       state.bytes += data.length || 0;
       try { state.feed.write(data); } catch (e) {
         state.lastError = String(e && e.message || e);

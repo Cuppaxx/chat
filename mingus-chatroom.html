@@ -986,7 +986,7 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='6.2';
+var BUILD='6.3';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3937,7 +3937,8 @@ async function brLink(){
    also feeds this machine's speakers. verityMixStream() (what goes TO Discord)
    only ever mixes the raw mic and the peers, never fxDest, so Discord does not
    hear itself echoed back. */
-BR.rx={}; BR.bus=null; BR.names={}; BR.warnedDec=false;
+BR.rx={}; BR.bus=null; BR.names={}; BR.warnedDec=false; BR.dctx=null; BR.dsrc=null;
+BR.st={got:0,played:0,under:0,decErr:0,bad:0};
 function brBus(){
   var c=ctx(); ensureFxGraph();
   if(!BR.bus){
@@ -3945,6 +3946,22 @@ function brBus(){
     BR.bus.connect(fxDest);        /* out to the room */
     BR.bus.connect(c.destination); /* and to this machine's speakers */
   }
+  /* Decoded Discord audio is 48 kHz. Playing 20 ms buffers straight into the
+     main context (often 44.1 kHz) resamples each one separately and puts a
+     seam every 20 ms — audible as flutter. So playback happens in its own
+     48 kHz context, and its output enters the main graph as a MediaStream,
+     which the browser resamples continuously. */
+  if(!BR.dctx){
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      BR.dctx=new AC({sampleRate:48000});
+      if(BR.dctx.sampleRate!==48000)throw new Error('no 48k context');
+      BR.dout=BR.dctx.createMediaStreamDestination();
+      BR.dsrc=c.createMediaStreamSource(BR.dout.stream);
+      BR.dsrc.connect(BR.bus);
+    }catch(e){ BR.dctx=null; BR.dout=null; BR.dsrc=null; }
+  }
+  if(BR.dctx&&BR.dctx.state==='suspended')BR.dctx.resume();
   var t=fxDest.stream.getAudioTracks()[0];
   if(t)setOut('audio',t);
   return BR.bus;
@@ -3953,6 +3970,9 @@ function brRxReset(){
   for(var k in BR.rx){ try{BR.rx[k].dec.close();}catch(e){} try{BR.rx[k].gain.disconnect();}catch(e){} }
   BR.rx={}; BR.names={};
   if(BR.bus){ try{BR.bus.disconnect();}catch(e){} BR.bus=null; }
+  if(BR.dsrc){ try{BR.dsrc.disconnect();}catch(e){} BR.dsrc=null; }
+  if(BR.dctx){ try{BR.dctx.close();}catch(e){} BR.dctx=null; BR.dout=null; }
+  BR.st={got:0,played:0,under:0,decErr:0,bad:0};
   /* give the outgoing track back to whatever the mic/FX state wants */
   try{
     if(micOn){ if(!wireFx()&&localStream)setOut('audio',localStream.getAudioTracks()[0]); }
@@ -3967,15 +3987,26 @@ function brSlot(slot){
           'Chrome or Edge can; the other direction still works.',true);}
     return null;
   }
-  var c=ctx(); var bus=brBus();
-  var g=c.createGain(); g.gain.value=1; g.connect(bus);
-  r={gain:g,next:0,ts:0,dec:null,slot:slot};
+  var bus=brBus();
+  var pc=BR.dctx||ctx();                 /* playback context */
+  var g=pc.createGain(); g.gain.value=1; g.connect(BR.dctx?BR.dout:bus);
+  r={gain:g,next:0,ts:0,dec:null,slot:slot,pc:pc};
+  brNewDecoder(r);
+  BR.rx[slot]=r; return r;
+}
+function brNewDecoder(r){
+  try{ if(r.dec&&r.dec.state!=='closed')r.dec.close(); }catch(e){}
   r.dec=new AudioDecoder({
     output:function(ad){ try{brPlay(r,ad);}catch(e){} try{ad.close();}catch(e){} },
-    error:function(e){ sys('🔗 Discord audio decoder error: '+esc(String(e&&e.message||e)),true); delete BR.rx[slot]; }
+    error:function(e){
+      BR.st.decErr++;
+      if(BR.st.decErr<=2)sys('🔗 Discord audio decoder error: '+esc(String(e&&e.message||e)),true);
+      /* a bad packet closes the decoder; start a fresh one so the stream carries on */
+      setTimeout(function(){ if(BR.rx[r.slot]===r)brNewDecoder(r); },0);
+    }
   });
   r.dec.configure({codec:'opus',sampleRate:48000,numberOfChannels:2});
-  BR.rx[slot]=r; return r;
+  r.ts=0;
 }
 function brPcm(ad){
   /* -> array of Float32Array planes, whatever format the decoder chose */
@@ -4003,7 +4034,8 @@ function brPcm(ad){
 }
 function brPlay(r,ad){
   var planes=brPcm(ad); if(!planes)return;
-  var c=ctx(), n=ad.numberOfFrames, sr=ad.sampleRate||48000;
+  BR.st.played++;
+  var c=r.pc||ctx(), n=ad.numberOfFrames, sr=ad.sampleRate||48000;
   var buf=c.createBuffer(planes.length,n,sr);
   for(var i=0;i<planes.length;i++)buf.copyToChannel(planes[i],i);
   var src=c.createBufferSource(); src.buffer=buf; src.connect(r.gain);
@@ -4016,7 +4048,7 @@ function brPlay(r,ad){
   if(!r.primed){ r.primed=true; r.next=now+r.lead; }   /* first packet: just prime */
   else if(r.next<now){                    /* late: we ran dry */
     var gap=now-r.next;
-    if(gap<1.5){ r.under=(r.under||0)+1; r.lead=Math.min(0.6,r.lead+0.1); }
+    if(gap<1.5){ r.under=(r.under||0)+1; BR.st.under++; r.lead=Math.min(0.6,r.lead+0.1); }
     else r.under=0;                       /* long silence between sentences — not an underrun */
     r.next=now+r.lead;
   }else if(r.next>now+r.lead+0.6){        /* drifted far ahead (clock skew) — resync */
@@ -4033,13 +4065,29 @@ function brOnMessage(ev){
     return;
   }
   var u=new Uint8Array(ev.data);
-  if(u.length<4||u[0]!==0xD1)return;
+  if(u.length<4||u[0]!==0xD1){BR.st.bad++;return;}
+  BR.st.got++;
   var slot=(u[1]<<8)|u[2];
   var r=brSlot(slot); if(!r)return;
   try{
+    if(r.dec.state!=='configured')throw new Error('decoder '+r.dec.state);
     r.dec.decode(new EncodedAudioChunk({type:'key',timestamp:r.ts,data:u.subarray(3)}));
     r.ts+=20000;                        /* Discord frames are 20 ms */
-  }catch(e){}
+  }catch(e){ BR.st.decErr++; }
+  brStatsTick();
+}
+/* every ~2 s tell the server what this browser is seeing, so /bridge/status
+   shows both ends of the return path without opening a console */
+function brStatsTick(){
+  var now=Date.now();
+  if(BR.lastStats&&now-BR.lastStats<2000)return;
+  BR.lastStats=now;
+  var leads=[]; for(var k in BR.rx)leads.push(+(BR.rx[k].lead||0).toFixed(2));
+  var o={t:'stats',got:BR.st.got,played:BR.st.played,under:BR.st.under,decErr:BR.st.decErr,bad:BR.st.bad,
+         leads:leads,mainRate:actx?actx.sampleRate:0,playRate:BR.dctx?BR.dctx.sampleRate:0,
+         mainState:actx?actx.state:'',playState:BR.dctx?BR.dctx.state:'',
+         hidden:document.hidden,sentKB:Math.round(BR.sent/1024)};
+  try{ if(BR.ws&&BR.ws.readyState===1)BR.ws.send(JSON.stringify(o)); }catch(e){}
 }
 
 $('#brLink').onclick=brLink;
