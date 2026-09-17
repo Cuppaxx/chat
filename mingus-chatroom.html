@@ -5816,6 +5816,13 @@ function brOnMessage(ev){
     var m=null; try{m=JSON.parse(ev.data);}catch(e){return;}
     if(!m)return;
     if(m.t==='speaker'){
+      /* Discord tells us who is speaking, authoritatively. Comparing signal
+         levels across a summed mix is guesswork by comparison, and it was
+         getting it wrong - putting Joe's words in KANE's mouth, and giving up
+         with "someone" whenever two levels were close. Discord's own speaking
+         events are ground truth for everyone on the bridge; use them. */
+      BR.speakingNow=BR.speakingNow||{};
+      BR.speakingNow[m.slot]=Date.now();
       BR.names[m.slot]=m.name;
       if(m.id)BR.slotById[m.id]=m.slot;
       BR.nameBySlot[m.slot]=m.name;
@@ -5825,7 +5832,10 @@ function brOnMessage(ev){
       }
       renderMembers();
     }
-    else if(m.t==='quiet'){ brStat('linked · '+Math.round(BR.sent/1024)+' KB sent'); }
+    else if(m.t==='quiet'){
+      if(BR.speakingNow&&m.slot!=null)delete BR.speakingNow[m.slot];
+      brStat('linked · '+Math.round(BR.sent/1024)+' KB sent');
+    }
     else if(m.t==='vc'){
       /* the whole voice channel, not just whoever happens to be talking */
       BR.vc=Array.isArray(m.members)?m.members:[];
@@ -7749,14 +7759,23 @@ function verityEnqueue(text){
      late answer is not a worse answer, it is the wrong answer.
      So the pending queue holds exactly one line: the newest. Anything still
      waiting when a fresher line arrives is dropped. */
-  if(VERITY.queue.length||VERITY.speaking){
-    /* Something newer has arrived. Drop whatever was waiting AND cut short
-       whatever is mid-sentence: capping the queue at one was not enough on
-       its own, because a reply is rendered in up to three pieces and the
-       chain would still play all of them before looking at the queue again.
-       That is how he got behind a second time. */
+  /* Interrupting on EVERY newer line was too blunt: he would cut himself off
+     a second into one reply, start the next, be cut off again, and neither
+     line ever got said. A sentence takes a few seconds and the room produces
+     new material faster than that, so "newer exists" is almost always true
+     and cannot be the trigger.
+
+     Only genuinely STALE speech gets cut - something that has been going for
+     more than five seconds, or a third line arriving while one is already
+     waiting. Otherwise he finishes the sentence he is on and the newest line
+     replaces whatever was queued behind it. */
+  var speakingFor=VERITY.speakStart?(Date.now()-VERITY.speakStart):0;
+  var badlyBehind=(VERITY.queue.length>=1&&speakingFor>2500);
+  if(VERITY.speaking&&(speakingFor>5000||badlyBehind)){
     VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
     verityBumpGen();
+  }else if(VERITY.queue.length){
+    VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
   }
   VERITY.queue=[text];
   if(!VERITY.speaking)verityDrain();
@@ -7764,6 +7783,7 @@ function verityEnqueue(text){
 function verityDrain(){
   if(!VERITY.queue.length){VERITY.speaking=false;return;}
   VERITY.speaking=true;
+  VERITY.speakStart=Date.now();
   var text=VERITY.queue.shift();
   verityRender(text).then(function(){setTimeout(verityDrain,220);})
                     .catch(function(){setTimeout(verityDrain,220);});
@@ -8643,7 +8663,11 @@ function verityListen(on){
           EARS.whoTicks++;
           try{
             if(micOn&&!muted&&(!ptt||pttDown))
-              EARS.who[me.name||'you']=(EARS.who[me.name||'you']||0)+lvl(localAnalyser);
+              /* The local microphone is the one source we know is not a
+                 summed mix of anything, so it gets the benefit of the doubt
+                 in a close call rather than losing to bleed off somebody
+                 else's channel. */
+              EARS.who[me.name||'you']=(EARS.who[me.name||'you']||0)+lvl(localAnalyser)*1.35;
             for(var wid in peers){
               var wp=peers[wid];
               if(!wp||!wp.analyser||!wp.name)continue;
@@ -8655,6 +8679,10 @@ function verityListen(on){
                 if(!wr||!wr.an)continue;
                 var wn=(BR.nameBySlot[ws]||BR.names[ws]);
                 if(!wn)continue;
+                /* Discord has already told us whether this person is talking.
+                   If it says they are not, their level is room tone or bleed
+                   and must not be allowed to win the comparison. */
+                if(!(BR.speakingNow&&BR.speakingNow[ws]))continue;
                 /* Just the name. This used to append ' (Discord)', which
                    became the speaker's name as far as the model was
                    concerned — so it addressed people as "Discord". Where

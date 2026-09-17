@@ -441,9 +441,22 @@ app.post('/verity/brain', async (req, res) => {
   // Everything the room said becomes ONE user turn rather than a fake
   // multi-turn history. The room is many people talking past each other, not a
   // dialogue, and flattening it keeps who-said-what attached to the words.
-  const transcript = lines
-    .map((l) => `${l.who}${l.spoken ? ' [heard]' : ''}: ${l.text}`)
-    .join('\n');
+  // He was answering things said several turns ago - saying "Paris, Kane"
+  // three separate times because the question was still sitting in the
+  // fourteen-line window and nothing in the prompt marked which line was new.
+  // Given a wall of undifferentiated chatter, a model picks whatever looks
+  // most answerable, and an old direct question beats a fresh throwaway remark
+  // every time.
+  //
+  // So the newest line is pulled out and labelled. Everything else is
+  // explicitly demoted to background.
+  const latest = lines[lines.length - 1];
+  const earlier = lines.slice(0, -1);
+  const fmt = (l) => `${l.who}${l.spoken ? ' [heard]' : ''}: ${l.text}`;
+  const transcript =
+    (earlier.length ? 'Earlier in the room (context only - do NOT reply to these):\n'
+                      + earlier.map(fmt).join('\n') + '\n\n' : '')
+    + 'JUST SAID:\n' + fmt(latest);
 
   // A persona the room has tuned from inside the chatroom. It replaces the
   // CHARACTER only — VERITY_RULES is appended afterwards either way, so no
@@ -465,7 +478,9 @@ app.post('/verity/brain', async (req, res) => {
   // - and burying the permission at the top of a very long sheet is not
   // enough to overcome it. Repeating it last measurably helps.
   const closing = [
-    'Reply as Verity. Talk to them by name.',
+    'Reply as Verity, to the line marked JUST SAID. The earlier lines are only there so you know what is going on.',
+    'Do NOT answer a question from further up unless it was just repeated - it has almost certainly already been answered.',
+    'Talk to them by name.',
     'If someone actually asked you a real question and wants a real answer, ANSWER IT properly - that is Serious Mode, and it is as long as it honestly needs to be.',
     'Otherwise: one or two sentences. This is a room full of people talking, not an essay.',
     'Swear naturally where it fits. Do not sanitise yourself into a customer-service voice - that is the one thing Verity is not.',
@@ -493,7 +508,7 @@ app.post('/verity/brain', async (req, res) => {
         top_p: 0.95,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\n' + closing },
+          { role: 'user', content: transcript + '\n\n' + closing },
         ],
       }, LLM_REASONING ? { reasoning_effort: LLM_REASONING } : {})),
     });
