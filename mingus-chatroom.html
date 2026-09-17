@@ -1488,7 +1488,8 @@ body.touch #qPtt{display:none}
                 <span class="q on" data-best="3">Best of 3</span>
                 <span class="q" data-best="5">Best of 5</span>
               </span>
-              <span class="qstrip" id="duelRps" style="display:none">
+              <button class="btn" id="duelPractice" title="play this on your own against the house — the only way to try these without a second person here">🤖 Practice</button>
+            <span class="qstrip" id="duelRps" style="display:none">
                 <span class="q" data-rps="rock">✊ Rock</span>
                 <span class="q" data-rps="paper">✋ Paper</span>
                 <span class="q" data-rps="scissors">✌ Scissors</span>
@@ -1813,7 +1814,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.2';
+var BUILD='8.3';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3131,43 +3132,7 @@ function onData(id,d){
     megaAnnounce(String(d.text||'').slice(0,42),String(d.by||'an admin').slice(0,18));
     return;
   }
-  if(d.t==='duel'){
-    if(d.a==='challenge'){
-      gmIncoming(id,String(d.from||p.name||'?').slice(0,18),String(d.mode||'quickdraw'),Number(d.best)||3);
-      return;
-    }
-    if(!gm||gm.id!==id)return;
-    if(d.a==='accept'){                 /* challenger drives the round clock */
-      if(gm.host){
-        gmPaint(null,'GO!');
-        var sd=gmSeed();gmSend({a:'round',seed:sd});gmNextRound(sd);
-      }
-      return;
-    }
-    if(d.a==='round'){gmNextRound(d.seed);return;}
-    if(d.a==='decline'){sys('⚔ <b>'+esc(gm.name)+'</b> declined');gmQuit();return;}
-    if(d.a==='quit'){sys('⚔ <b>'+esc(gm.name)+'</b> left the match');gmQuit();return;}
-    if(d.a==='ms'){gm.theirMs=Math.max(0,Number(d.ms)||0);gmTryResolve();return;}
-    if(d.a==='pick'){gm.theirPick=String(d.p||'');gmTryResolve();return;}
-    if(d.a==='taps'){gm.theirTaps=Math.max(0,Number(d.n)||0);return;}
-    if(d.a==='pad'){gm.p2=Number(d.y)||gm.p2;return;}
-    if(d.a==='pong'){
-      /* guest: the challenger is the authority on the ball and on paddle 1 */
-      if(gm.host)return;
-      gm.bx=Number(d.bx)||0;gm.by=Number(d.by)||0;
-      gm.p1=Number(d.p1)||gm.p1;
-      gm.s1=Number(d.s1)||0;gm.s2=Number(d.s2)||0;
-      return;
-    }
-    if(d.a==='pongend'){
-      if(gm.host)return;
-      clearInterval(gm.tick);
-      gm.meScore=Number(d.s2)||0;gm.themScore=Number(d.s1)||0;
-      gmMatchOver();
-      return;
-    }
-    return;
-  }
+  if(d.t==='duel'){ gmDuelMsg(id,d); return; }
   if(d.t==='tstate'){tApply(d);return;}
   if(d.t==='tadd'){
     if(d.item&&typeof d.item.url==='string'&&tQ.length<200){
@@ -6838,12 +6803,53 @@ var gmAnim=null, gmRaf=null;
 /* who and what the last match was, so Rematch can re-issue it in one click */
 var gmLast=null;
 
+/* The duel protocol, in one place, so the house can speak it too. It used to
+   live inside onData(), which meant only something with a peer connection
+   could ever drive a match. */
+function gmDuelMsg(id,d){
+  if(d.a==='challenge'){
+    var pp=peers[id];
+    gmIncoming(id,String(d.from||(pp&&pp.name)||'?').slice(0,18),
+               String(d.mode||'quickdraw'),Number(d.best)||3);
+    return;
+  }
+  if(!gm||gm.id!==id)return;
+  if(d.a==='accept'){
+    if(gm.host){
+      gmPaint(null,'GO!');
+      var sd=gmSeed();gmSend({a:'round',seed:sd});gmNextRound(sd);
+    }
+    return;
+  }
+  if(d.a==='round'){gmNextRound(d.seed);return;}
+  if(d.a==='decline'){sys('⚔ <b>'+esc(gm.name)+'</b> declined');gmQuit();return;}
+  if(d.a==='quit'){sys('⚔ <b>'+esc(gm.name)+'</b> left the match');gmQuit();return;}
+  if(d.a==='ms'){gm.theirMs=Math.max(0,Number(d.ms)||0);gmTryResolve();return;}
+  if(d.a==='pick'){gm.theirPick=String(d.p||'');gmTryResolve();return;}
+  if(d.a==='taps'){gm.theirTaps=Math.max(0,Number(d.n)||0);return;}
+  if(d.a==='pad'){gm.p2=Number(d.y)||gm.p2;return;}
+  if(d.a==='pong'){
+    if(gm.host)return;
+    gm.bx=Number(d.bx)||0;gm.by=Number(d.by)||0;
+    gm.p1=Number(d.p1)||gm.p1;
+    gm.s1=Number(d.s1)||0;gm.s2=Number(d.s2)||0;
+    return;
+  }
+  if(d.a==='pongend'){
+    if(gm.host)return;
+    clearInterval(gm.tick);
+    gm.meScore=Number(d.s2)||0;gm.themScore=Number(d.s1)||0;
+    gmMatchOver();
+    return;
+  }
+}
 function gmEl(){return document.getElementById('duel');}
 function gmShow(on){var d=gmEl();if(d)d.classList.toggle('on',!!on);}
 function gmStat(t){var e=document.getElementById('duelStat');if(e)e.textContent=t||'';}
 function gmHint(h){var e=document.getElementById('duelHint');if(e)e.innerHTML=h||'';}
 function gmBtns(o){
-  var map={duelAccept:o.accept,duelDecline:o.decline,duelSendChal:o.send,duelClose:true};
+  var map={duelAccept:o.accept,duelDecline:o.decline,duelSendChal:o.send,duelClose:true,
+           duelPractice:o.send};      /* offered wherever a challenge is */
   for(var k in map){var e=document.getElementById(k);if(e)e.style.display=map[k]?'inline-flex':'none';}
   var picker=document.getElementById('duelModes');
   if(picker)picker.style.display=o.modes?'flex':'none';
@@ -6852,8 +6858,65 @@ function gmBtns(o){
 }
 function gmSend(o){
   if(!gm)return;
+  if(gm.bot){gmBotHears(o);return;}     /* nobody to send to; the house answers */
   var p=peers[gm.id];
   if(p&&p.conn&&p.conn.open){try{p.conn.send(Object.assign({t:'duel'},o));}catch(e){}}
+}
+/* ---------------------------------------------------------------------------
+   The house.
+
+   Every one of these needs a second person to accept a challenge, so on your
+   own there is nothing to see - which is what "the minigames are broken" looks
+   like from the inside. The house speaks the same protocol a real opponent
+   does, through the same handler, so nothing else has to know the difference.
+
+   Deliberately beatable: reaction times around a fifth of a second with real
+   variance, and it fumbles the memory game about as often as a person does.
+   --------------------------------------------------------------------------- */
+var GM_BOT_ID='__house__';
+function gmBotHears(o){
+  if(!gm||!gm.bot)return;
+  var reply=function(d,ms){ setTimeout(function(){ if(gm&&gm.bot)gmDuelMsg(GM_BOT_ID,d); },ms); };
+  var jit=function(base,spread){return base+Math.random()*spread;};
+  if(o.a==='challenge'){ reply({a:'accept'},450); return; }
+  if(o.a==='round'){
+    if(gm.mode==='rps'){
+      var picks=['rock','paper','scissors'];
+      reply({a:'pick',p:picks[(Math.random()*3)|0]},jit(500,900));
+    }else if(gm.mode==='tug'){
+      gm.botTaps=0;
+      clearInterval(gm.botMash);
+      gm.botMash=setInterval(function(){
+        if(!gm||!gm.bot){clearInterval(gm.botMash);return;}
+        gm.botTaps+=1;
+        gmDuelMsg(GM_BOT_ID,{a:'taps',n:gm.botTaps});
+      },jit(105,70));
+    }else if(gm.mode==='simon'){
+      reply({a:'ms',ms:(Math.random()<0.8?jit(2200,1400):99999)},jit(2600,1600));
+    }else{
+      reply({a:'ms',ms:jit(185,170)},jit(700,900));
+    }
+    return;
+  }
+  if(o.a==='quit'){ clearInterval(gm.botMash); return; }
+}
+function gmPractice(){
+  if(gm){toast('finish the current match first');return;}
+  var mode='quickdraw';
+  var picker=document.getElementById('duelModes');
+  if(picker){var on=picker.querySelector('.q.on');if(on)mode=on.getAttribute('data-gm')||mode;}
+  gm={id:GM_BOT_ID,name:'The House',mode:mode,phase:'picking',round:0,
+      meScore:0,themScore:0,host:true,bot:true};
+  gmShow(true);
+  var again=document.getElementById('duelAgain');
+  if(again)again.style.display='none';
+  gmSetMode(mode);
+  gmPaint();
+  gm.phase='waiting';
+  gmBtns({});
+  gmStat('practising against the house');
+  gmSend({a:'challenge',from:me.name,mode:gm.mode,best:ROUNDS});
+  sys('🤖 <b>Practice — ' + esc(GAMES[mode].n) + '</b> against the house. It is beatable.');
 }
 function gmScoreLine(){
   if(!gm)return '';
@@ -7127,6 +7190,7 @@ function gmMatchOver(){
   setTimeout(function(){gm=null;gmBtns({});gmPaint();},1600);
 }
 function gmQuit(){
+  if(gm&&gm.botMash){clearInterval(gm.botMash);gm.botMash=null;}
   if(gm){clearTimeout(gm.timer);clearInterval(gm.tick);gmSend({a:'quit'});}
   gm=null;gmShow(false);
   if(gmRaf){cancelAnimationFrame(gmRaf);gmRaf=null;}
@@ -7408,36 +7472,164 @@ function gmSparks(g){
 }
 
 /* ---- per-game drawing ---- */
+/* ---------------------------------------------------------------------------
+   A person, rather than four lines and a circle.
+
+   Built out of rounded capsules with a vertical gradient down each one, which
+   is what stops a flat fill reading as a sticker, plus a face that reacts and
+   a hat that stays on when they fall over. Two palettes so the two sides are
+   telling apart at a glance, taken from the same blades colours as the rest of
+   the room.
+   --------------------------------------------------------------------------- */
+function gmCapsule(g,x1,y1,x2,y2,r,c1,c2){
+  var dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy)||1;
+  g.save();
+  g.translate(x1,y1);
+  g.rotate(Math.atan2(dy,dx));
+  var grd=g.createLinearGradient(0,-r,0,r);
+  grd.addColorStop(0,c1);grd.addColorStop(1,c2);
+  g.fillStyle=grd;
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-r,-r,len+r*2,r*2,r);
+  else{g.arc(0,0,r,0,7);g.rect(0,-r,len,r*2);g.arc(len,0,r,0,7);}
+  g.fill();
+  g.restore();
+}
+var GM_SKINS={
+  me   :{body:'#7b4dff',body2:'#3d1f9e',trim:'#c9b3ff',hat:'#2a1560',skin:'#f0c9a4'},
+  them :{body:'#e0533a',body2:'#8c2412',trim:'#ffc0a8',hat:'#5a1c0c',skin:'#e8bb92'}
+};
+/* o: {x, flip, side:'me'|'them', fall (0..1), arm (0..1), hit, blink} */
+function gmGuy(g,o){
+  var S=GM_SKINS[o.side]||GM_SKINS.me;
+  g.save();
+  g.translate(o.x,GA.H-34);
+  /* a shadow on the ground, so they are standing on something */
+  g.save();g.scale(1,0.3);
+  g.fillStyle='rgba(0,0,0,.42)';
+  g.beginPath();g.arc(0,0,26,0,7);g.fill();
+  g.restore();
+  if(o.flip)g.scale(-1,1);
+  if(o.fall)g.rotate(-o.fall*Math.PI/2*0.92);
+  g.shadowColor='rgba(0,0,0,.55)';g.shadowBlur=8;g.shadowOffsetY=3;
+
+  /* legs */
+  gmCapsule(g,-8,-30,-9,-2,7,S.body,S.body2);
+  gmCapsule(g, 8,-30, 10,-2,7,S.body,S.body2);
+  /* boots */
+  g.fillStyle=S.hat;
+  g.beginPath();
+  if(g.roundRect){g.roundRect(-17,-6,18,7,3);g.roundRect(2,-6,18,7,3);}
+  else{g.rect(-17,-6,18,7);g.rect(2,-6,18,7);}
+  g.fill();
+  /* torso */
+  gmCapsule(g,0,-62,0,-28,15,S.body,S.body2);
+  /* belt */
+  g.fillStyle=S.hat;
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-15,-36,30,7,3); else g.rect(-15,-36,30,7);
+  g.fill();
+  g.fillStyle='#ffd23a';
+  g.beginPath();g.arc(0,-32.5,3.2,0,7);g.fill();
+  /* far arm, tucked */
+  gmCapsule(g,-6,-58,-14,-36,5.5,S.body,S.body2);
+  /* gun arm: swings up from the holster as `arm` goes 0 -> 1 */
+  var a=-0.95+(o.arm||0)*0.95;          /* radians, down to level */
+  var sx=8, sy=-58, L=24;
+  var hx=sx+Math.cos(a)*L, hy=sy-Math.sin(a)*L*-1;
+  hy=sy+Math.sin(a)*L;
+  gmCapsule(g,sx,sy,hx,hy,5.5,S.trim,S.body2);
+  /* the revolver */
+  g.save();
+  g.translate(hx,hy);g.rotate(a);
+  g.fillStyle='#3a3550';
+  g.beginPath();
+  if(g.roundRect)g.roundRect(0,-3,19,6,2); else g.rect(0,-3,19,6);
+  g.fill();
+  g.fillStyle='#8a7fa8';
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-1,-5,9,10,3); else g.rect(-1,-5,9,10);
+  g.fill();
+  g.fillStyle='#5a4a2a';
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-3,2,7,10,2); else g.rect(-3,2,7,10);
+  g.fill();
+  if(o.flash){
+    g.globalAlpha=o.flash;
+    g.fillStyle='#ffe98a';g.shadowColor='#ffd23a';g.shadowBlur=18;
+    g.beginPath();
+    g.moveTo(19,0);g.lineTo(34,-9);g.lineTo(29,0);g.lineTo(34,9);
+    g.closePath();g.fill();
+    g.globalAlpha=1;g.shadowBlur=0;
+  }
+  g.restore();
+
+  /* head */
+  g.shadowBlur=6;
+  var hgr=g.createRadialGradient(-4,-82,2,0,-78,17);
+  hgr.addColorStop(0,'#fff0dd');hgr.addColorStop(1,S.skin);
+  g.fillStyle=hgr;
+  g.beginPath();g.arc(0,-78,15,0,7);g.fill();
+  g.shadowBlur=0;
+  /* face, pointing the way they are facing */
+  g.fillStyle='#241436';
+  if(o.hit){
+    /* X eyes */
+    g.strokeStyle='#241436';g.lineWidth=2.2;g.lineCap='round';
+    g.beginPath();
+    g.moveTo(1,-84);g.lineTo(7,-78); g.moveTo(7,-84);g.lineTo(1,-78);
+    g.moveTo(-9,-84);g.lineTo(-3,-78); g.moveTo(-3,-84);g.lineTo(-9,-78);
+    g.stroke();
+  }else if(o.blink){
+    g.fillRect(2,-81,6,1.8); g.fillRect(-8,-81,6,1.8);
+  }else{
+    g.beginPath();g.arc(5,-80,2.4,0,7);g.fill();
+    g.beginPath();g.arc(-5,-80,2.4,0,7);g.fill();
+  }
+  /* a determined little mouth */
+  g.strokeStyle='#8a5a48';g.lineWidth=1.8;g.lineCap='round';
+  g.beginPath();
+  if(o.hit){g.arc(1,-68,4,Math.PI,0);}
+  else{g.moveTo(-2,-71);g.lineTo(6,-71);}
+  g.stroke();
+  /* hat */
+  g.fillStyle=S.hat;
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-23,-90,46,6,3); else g.rect(-23,-90,46,6);
+  g.fill();
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-11,-103,23,15,6); else g.rect(-11,-103,23,15);
+  g.fill();
+  g.fillStyle=S.trim;
+  g.beginPath();
+  if(g.roundRect)g.roundRect(-11,-92,23,4,2); else g.rect(-11,-92,23,4);
+  g.fill();
+  g.shadowBlur=0;g.shadowOffsetY=0;
+  g.restore();
+}
 function gmDrawQuickdraw(g,el){
   var drawn=gm&&(gm.phase==='draw'||gm.phase==='fired');
-  function guy(x,flip,fallen,ang,arm){
-    g.save();g.translate(x,GA.H-42);
-    if(flip)g.scale(-1,1);
-    if(fallen)g.rotate(ang);
-    g.strokeStyle='#efe9ff';g.lineWidth=4.5;g.lineCap='round';
-    g.shadowColor='rgba(140,90,255,.85)';g.shadowBlur=12;
-    g.beginPath();
-    g.moveTo(0,0);g.lineTo(0,-42);
-    g.moveTo(0,-13);g.lineTo(-13,10);
-    g.moveTo(0,-13);g.lineTo(13,10);
-    if(arm){g.moveTo(0,-32);g.lineTo(25,-32);}
-    else{g.moveTo(0,-32);g.lineTo(12,-13);}
-    g.stroke();
-    g.beginPath();g.arc(0,-53,11,0,7);g.stroke();
-    g.shadowBlur=0;
-    g.fillStyle='#b48cff';
-    if(arm)g.fillRect(22,-37,15,8); else g.fillRect(9,-13,11,8);
-    g.restore();
-  }
-  var fallL=(gmFx.outcome==='lose'), fallR=(gmFx.outcome==='win');
-  var ang=Math.min(Math.PI/2,el/380);
-  guy(120,false,fallL,fallL?-ang:0,drawn||!!gmFx.outcome);
-  guy(GA.W-120,true,fallR,fallR?-ang:0,drawn||!!gmFx.outcome);
+  /* the desert line they are standing on */
+  var sky=g.createLinearGradient(0,GA.H-120,0,GA.H);
+  sky.addColorStop(0,'rgba(120,70,220,0)');sky.addColorStop(1,'rgba(60,30,130,.45)');
+  g.fillStyle=sky;g.fillRect(0,GA.H-120,GA.W,120);
+  g.strokeStyle='rgba(190,160,255,.35)';g.lineWidth=2;
+  g.beginPath();g.moveTo(0,GA.H-30);g.lineTo(GA.W,GA.H-30);g.stroke();
+
+  var lose=(gmFx.outcome==='lose'), win=(gmFx.outcome==='win');
+  var fall=Math.min(1,el/380);
+  var arm=(drawn||!!gmFx.outcome)?1:0;
+  var blink=(Math.floor(gmFx.t/55)%9===0);
+  var flash=(gmFx.outcome&&el<140)?(1-el/140):0;
+  gmGuy(g,{x:130,flip:false,side:'me',  fall:lose?fall:0,arm:arm,hit:lose,blink:blink,
+           flash:win?flash:0});
+  gmGuy(g,{x:GA.W-130,flip:true,side:'them',fall:win?fall:0,arm:arm,hit:win,blink:blink,
+           flash:lose?flash:0});
   if(gmFx.outcome&&el<900){
-    var from=(gmFx.outcome==='win')?120:GA.W-120, to=(gmFx.outcome==='win')?GA.W-120:120;
+    var from=win?130:GA.W-130, to=win?GA.W-130:130;
     var k=Math.min(1,el/260), bx=from+(to-from)*k;
     g.fillStyle='#ffd23a';g.shadowColor='#ffd23a';g.shadowBlur=14;
-    g.beginPath();g.arc(bx,GA.H-74,4.5,0,7);g.fill();g.shadowBlur=0;
+    g.beginPath();g.arc(bx,GA.H-92,4.5,0,7);g.fill();g.shadowBlur=0;
   }
 }
 function gmDrawRps(g){
@@ -7678,6 +7870,8 @@ function gmPaint(outcome,banner){
     duelStart(pid);
     if(gm){gmSetMode(gmLast.mode);document.getElementById('duelSendChal').onclick();}
   };
+  var prc=document.getElementById('duelPractice');
+  if(prc)prc.onclick=function(){gmPractice();};
   var snd=document.getElementById('duelSendChal');
   if(snd)snd.onclick=function(){
     if(!gm||gm.phase!=='picking')return;
