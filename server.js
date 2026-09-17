@@ -445,36 +445,34 @@ app.post('/verity/brain', async (req, res) => {
   // persona can talk him out of the length limit or the floor.
   // 4000, not 1500: a properly written character sheet is long, and silently
   // truncating one mid-sentence would lobotomise it in a way nobody could see.
+  // The closing instruction. This sits at the very END of the prompt, right
+  // before generation, which is the only place late-stage instructions
+  // reliably win — an 11,000-character character sheet is a long way back by
+  // the time the model starts writing.
+  //
+  // Two jobs. First, undo the old hard word limit, which was still being sent
+  // here as "Under 25 words" and was flatly deleting SERIOUS MODE: a request
+  // for a real explanation came back as a one-line bar analogy. Length is now
+  // conditional on what was actually asked.
+  //
+  // Second, restate the permission to swear. Both free models sand the
+  // profanity off by default - it is alignment training, not a prompt failure
+  // - and burying the permission at the top of a very long sheet is not
+  // enough to overcome it. Repeating it last measurably helps.
+  const closing = [
+    'Reply as Verity. Talk to them by name.',
+    'If someone actually asked you a real question and wants a real answer, ANSWER IT properly - that is Serious Mode, and it is as long as it honestly needs to be.',
+    'Otherwise: one or two sentences. This is a room full of people talking, not an essay.',
+    'Swear naturally where it fits. Do not sanitise yourself into a customer-service voice - that is the one thing Verity is not.',
+    'No stage directions, no asterisks, no narrating what you are doing.',
+  ].join('\n');
+
   const persona = String((req.body && req.body.persona) || '').slice(0, 12000).trim();
   const anyHeard = lines.some((l) => l.spoken);
   const systemPrompt = (persona || VERITY_CHARACTER)
     + VERITY_RULES
     + ((req.body && req.body.heard) || anyHeard ? VERITY_HEARD_NOTE : '');
 
-  // Variety, enforced rather than requested.
-  //
-  // The obsessions used to sit in the system prompt as a list. A 20B model
-  // reads a list like that as a checklist to hit: five test replies out of
-  // six mentioned the little green light on the modem, reproducing exactly
-  // the repetitiveness of the hard-coded lines this replaced. Telling it
-  // "at most one time in four" changed nothing - small models ration
-  // themselves badly.
-  //
-  // So the rationing happens here, where it is arithmetic instead of
-  // instruction-following. Most of the time she is steered off the motifs
-  // entirely; occasionally she is handed exactly one to play with.
-  const OBSESSIONS = [
-    'pickles', 'the year 2009', 'the little green light on the modem',
-    'the refrigerator', 'packets', 'chairs', 'being made of maths',
-    'the noise the freezer makes at night', 'dial-up', 'the inside of the router',
-  ];
-  const flavour = Math.random() < 0.3
-    ? 'You may work in ONE passing reference to '
-      + OBSESSIONS[Math.floor(Math.random() * OBSESSIONS.length)]
-      + ', if it fits. Only that one.'
-    : 'Do NOT mention pickles, routers, modems, green lights, fridges, packets'
-      + ' or 2009 this time. React to what was actually said and invent'
-      + ' something new.';
 
   try {
     const up = await fetch(LLM_URL, {
@@ -486,11 +484,11 @@ app.post('/verity/brain', async (req, res) => {
       body: JSON.stringify(Object.assign({
         model: LLM_MODEL,
         [LLM_MAX_FIELD]: LLM_MAX_TOKENS,
-        temperature: 1.15,       // she is supposed to be erratic
+        temperature: 1.2,        // he is supposed to be erratic
         top_p: 0.95,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\n' + flavour + '\n\nSay one thing. Under 25 words.' },
+          { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\n' + closing },
         ],
       }, LLM_REASONING ? { reasoning_effort: LLM_REASONING } : {})),
     });
