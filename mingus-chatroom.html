@@ -789,6 +789,17 @@ body.compact .tab{padding:4px 11px;font-size:13.5px}
   #theater h3 .tviews{margin-left:0;flex-wrap:wrap}
 }
 
+
+/* the loud-mic reducer slider, in member rows and the admin panel */
+.limwrap{display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
+.limwrap .limsl{width:62px;height:14px;accent-color:#7a6bd6;cursor:pointer}
+.limwrap.srv .limsl{width:96px;accent-color:#e06a19}
+.limwrap .limtag{font-size:10px;min-width:26px;opacity:.6;letter-spacing:.2px}
+.limwrap.on .limtag{opacity:1;color:#cfc4ff;font-weight:600}
+.limwrap.srv.on .limtag{color:#ffc9a8}
+.limwrap.lock{opacity:.45}
+.limwrap.lock .limsl{cursor:not-allowed}
+
 /* ===== theatre: transport bar, stage and queue =====
    The stage used to be a bare <video> with a row of buttons under it and no
    position indicator at all — followers had `controls` switched off (so they
@@ -1777,7 +1788,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.3';
+var BUILD='7.4';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -1941,9 +1952,34 @@ function screenKbps(){return scrHQ?4000:900;}
 var fxMode='none', fxChain=null, fxSource=null, fxDest=null;
 /* self-monitor: hear your own microphone, and nobody else's */
 var monOn=false, monGain=null, monAn=null, monSrcNode=null, monTimer=null, monVol=0.85;
+/* ---------------------------------------------------------------------------
+   Everyone who is not you - peers, Discord, VERITY - goes to the speakers
+   through this one gain. The self-monitor does not.
+
+   The monitor always tapped the right point, so the claim "no voice chat in
+   this path" was true of the monitor itself; it just was not the thing anyone
+   wanted. Turning it on left the entire room still playing underneath, so
+   "hear only yourself" meant "hear yourself as well as everyone else", which
+   is useless for the one job it has - checking your own microphone.
+
+   With a single bus, "just me" is a property of the graph rather than a list
+   of sources somebody has to remember to mute every time a new one is added.
+   --------------------------------------------------------------------------- */
+var SPK=null;
+function spk(){
+  var c=ctx();
+  if(!SPK||SPK.context!==c){
+    SPK=c.createGain();SPK.gain.value=1;
+    SPK.connect(c.destination);
+  }
+  return SPK;
+}
 /* moderation: gamertags an admin has put a hard limiter on */
-var limitNames={}, forceLimited=false;
+var limitNames={}, forceLimS=0;
 function isNameLimited(n){var k=nameKey(n);return !!k&&!!limitNames[k];}
+/* limitNames holds the admin's strength for that gamertag, so a peer who
+   joins after the limiter was set still arrives with it applied */
+function nameLimitPct(n){var k=nameKey(n);return (k&&limitNames[k])|0;}
 /* gamertags an admin has stopped sending files, with an expiry */
 var noFileNames={};
 function isNameNoFiles(n){var k=nameKey(n);return !!k&&noFileNames[k]>Date.now();}
@@ -2032,10 +2068,11 @@ function isNameMuted(n){var k=nameKey(n);return !!k&&!!muteNames[k];}
    cannot casually issue commands. It is not real authentication — the password
    is in the page source that everyone already has — it just stops idle
    mischief. Anyone determined can still forge these. */
-function modBroadcast(action,name,id,mins){
+function modBroadcast(action,name,id,mins,val){
   /* sign with whichever password this person actually holds */
   var key=isAdmin()?ADMIN_PASS:MOD_PASS;
   var m={t:'mod',k:key,action:action,name:name,id:id||'',by:me.name||'a moderator',
+         val:(typeof val==='number'?val:undefined),
          until:mins?(Date.now()+mins*60000):0};
   bc(m);
   applyMod(m,true);
@@ -3111,8 +3148,8 @@ function onData(id,d){
        point where we finally learn who is behind the slot id */
     var rv=recallVol(d.name);
     if(rv!=null){p.vol=rv;applyVol(p);}
-    p.limMode=recallLim(d.name);
-    if(isNameLimited(d.name))p.srvLimited=true;
+    p.limPct=recallLim(d.name);
+    p.srvLimPct=nameLimitPct(d.name);
     applyLimiter(p);
     renderMembers();renderCams();
     if(isNew){
@@ -3600,7 +3637,7 @@ function wireFx(){
     /* The bare-mic shortcut has to be skipped whenever anything else needs to
        be mixed into, or tapped off, the outgoing chain: VERITY, the Discord
        return, screen audio, the self-monitor, or an admin's forced limiter. */
-    if(fxMode==='none'&&!scrAudioNode&&!monOn&&!forceLimited&&!dnActive()&&
+    if(fxMode==='none'&&!scrAudioNode&&!monOn&&!forceLimS&&!dnActive()&&
        !(typeof VERITY!=='undefined'&&VERITY.on)&&!(typeof BR!=='undefined'&&BR.bus)){
       setOut('audio',localStream.getAudioTracks()[0]);
       monTap(null);
@@ -3619,11 +3656,16 @@ function wireFx(){
       fxSource.connect(fxChain.input);
     }
     var tail=fxChain.output;
-    if(forceLimited){
+    var fspec=limSpec(forceLimS), fmk=fspec?limComp(forceLimS):null;
+    if(fspec&&fmk!=null){
       var oc=c.createDynamicsCompressor();
-      oc.threshold.value=-30;oc.knee.value=3;oc.ratio.value=20;
-      oc.attack.value=0.002;oc.release.value=0.10;
-      var og=c.createGain();og.gain.value=1.7;
+      oc.threshold.value=fspec.th;oc.knee.value=fspec.kn;oc.ratio.value=fspec.ra;
+      oc.attack.value=fspec.at;oc.release.value=fspec.re;
+      /* There used to be a flat 1.7x makeup here, on top of the node's own.
+         A quiet talker sailed past the threshold uncompressed and came out
+         13.8 dB LOUDER - the exact opposite of what an admin reaches for this
+         to do. Now the node's makeup is measured and divided back out. */
+      var og=c.createGain();og.gain.value=fmk;
       tail.connect(oc);oc.connect(og);
       fxChain.nodes.push(oc,og);
       tail=og;
@@ -3903,10 +3945,10 @@ function playRemote(id,stream){
       limIn.connect(limDry);limDry.connect(limOut);
       limIn.connect(comp);comp.connect(limWet);limWet.connect(limOut);
       limOut.connect(autoG);
-      autoG.connect(c.destination);
+      autoG.connect(spk());
       p.analyser=an;p.gain=g;p.dry=dry;p.wet=wet;
       p.comp=comp;p.limDry=limDry;p.limWet=limWet;p.autoG=autoG;
-      if(p.limMode==null)p.limMode=recallLim(p.name);
+      if(p.limPct==null)p.limPct=recallLim(p.name);
       applyLimiter(p);
     }catch(e){
       a.muted=false;a.volume=deaf?0:Math.min(1,p.vol);
@@ -3967,7 +4009,7 @@ function applyVol(p){
      what makes a server mute actually take effect: even if the muted person's
      browser ignores the instruction and keeps sending audio, nobody's speakers
      play it. */
-  var v=(deaf||p.srvMuted)?0:(p.vol==null?1:p.vol);
+  var v=(deaf||monOn||p.srvMuted)?0:(p.vol==null?1:p.vol);
   if(p.gain)p.gain.gain.value=v;
   else if(p.audioEl)p.audioEl.volume=Math.min(1,v);
 }
@@ -4016,20 +4058,26 @@ function applyMod(m,local){
      afterwards. Unlike a server mute it does not silence them; it just stops
      them being able to peak. */
   if(m.action==='limit'||m.action==='unlimit'){
-    var lon=(m.action==='limit');
-    if(k){ if(lon)limitNames[k]=1; else delete limitNames[k]; }
+    /* m.val is the strength. An older build sends none, so treat a bare
+       'limit' as the brick wall it used to mean. */
+    var lpct=(m.action==='unlimit')?0
+            :(typeof m.val==='number'?Math.max(0,Math.min(100,m.val|0)):100);
+    if(k){ if(lpct)limitNames[k]=lpct; else delete limitNames[k]; }
     if(mine){
-      forceLimited=lon;
+      var had=forceLimS;
+      forceLimS=lpct;
       if(micOn)wireFx();
-      sys(lon?'🛡 <b>An admin put a limiter on your microphone.</b> You are not muted — your peaks are just being held down.'
-             :'🛡 An admin lifted the limiter on your microphone.');
-      toast(lon?'an admin limited your mic':'mic limiter lifted');
+      if(lpct)sys('🛡 <b>An admin set a limiter on your microphone — '+limLabel(lpct)+' ('+lpct+'%).</b> '+
+                  'You are not muted and you are not quieter; your peaks are just being held down.');
+      else if(had)sys('🛡 An admin lifted the limiter on your microphone.');
+      toast(lpct?('an admin limited your mic — '+limLabel(lpct)):'mic limiter lifted');
     }else{
       for(id in peers){
         if(nameKey(peers[id].name)!==k)continue;
-        peers[id].srvLimited=lon;applyLimiter(peers[id]);
+        peers[id].srvLimPct=lpct;applyLimiter(peers[id]);
       }
-      if(!local)sys('🛡 <b>'+esc(m.name||'someone')+'</b> was '+(lon?'put on a limiter':'taken off the limiter')+' by an admin');
+      if(!local)sys('🛡 <b>'+esc(m.name||'someone')+'</b> was '+
+                    (lpct?('put on a '+limLabel(lpct)+' limiter ('+lpct+'%)'):'taken off the limiter')+' by an admin');
     }
     renderMembers();
     return;
@@ -4286,21 +4334,20 @@ function renderMembers(){
         };
       })(m.id,num);
       st.appendChild(sl);st.appendChild(num);
-      /* loud-mic reducer — cycles Off → Auto-level → Limiter → Brick wall */
-      var lb=document.createElement('button');
-      lb.className='duelbtn lim';
+      /* loud-mic reducer, as a slider */
       (function(pid){
         var pp=peers[pid]||{};
-        var mode=pp.srvLimited?'hard':(pp.limMode||'off');
-        var spec=LIMS[mode]||LIMS.off;
-        lb.textContent=spec.icon;
-        lb.classList.toggle('on',mode!=='off');
-        lb.title=pp.srvLimited
-          ? ('an admin has this person on a brick-wall limiter')
-          : (spec.l+' — click to cycle. Local to you; they are never told.');
-        lb.onclick=function(e){e.stopPropagation();cycleLim(pid);};
+        var forced=(pp.srvLimPct>0);
+        st.appendChild(limSlider({
+          pct:limNet(pp),
+          forced:forced,
+          disabled:!pp.comp||ELEMENT_AUDIO,
+          who:pp.name||'them',
+          why:ELEMENT_AUDIO?'the reducer needs WebAudio — Safari plays remote voices directly'
+             :(!pp.comp?'available once their audio path is up':''),
+          onset:function(v){setLim(pid,v);}
+        }));
       })(m.id);
-      st.appendChild(lb);
       /* whisper */
       var wb=document.createElement('button');
       wb.className='duelbtn pmb';wb.textContent='✉';
@@ -4387,21 +4434,18 @@ function renderMembers(){
           };
         })(d.name,dnum);
         st.appendChild(dsl);st.appendChild(dnum);
-        /* the same Off → Auto-level → Limiter → Brick wall cycle everyone
-           else in the room has */
+        /* the same reducer everyone else in the room has */
         var dRx=(d.slot!=null)?BR.rx[d.slot]:null;
-        var dlb=document.createElement('button');
-        dlb.className='duelbtn lim';
-        var dmode=(dRx&&dRx.srvLimited)?'hard':((dRx&&dRx.limMode)||recallDcLim(d.name));
-        var dspec=LIMS[dmode]||LIMS.off;
-        dlb.textContent=dspec.icon;
-        dlb.classList.toggle('on',dmode!=='off');
-        dlb.disabled=!dRx||!dRx.comp;
-        dlb.title=dRx&&dRx.comp
-          ? (dspec.l+' — click to cycle. Local to you; they are never told.')
-          : ('loud-mic reducer for '+d.name+' — available once their audio path is up');
-        (function(sl){dlb.onclick=function(e){e.stopPropagation();cycleDcLim(sl);};})(d.slot);
-        st.appendChild(dlb);
+        (function(sl,nm){
+          st.appendChild(limSlider({
+            pct:dRx?limNet(dRx):recallDcLim(nm),
+            forced:!!(dRx&&dRx.srvLimPct>0),
+            disabled:!dRx||!dRx.comp,
+            who:nm,
+            why:(!dRx||!dRx.comp)?'available once their audio path is up':'',
+            onset:function(v){setDcLim(sl,v);}
+          }));
+        })(d.slot,d.name);
         st.appendChild(el('span','pip'+(d.muted?' off':'')));
         r.appendChild(st);
         box.appendChild(r);
@@ -5380,7 +5424,7 @@ function admBtn(label,title,fn,grad){
 function admSig(){
   return Object.keys(peers).sort().map(function(id){
     var p=peers[id];
-    return id+':'+(p.name||'')+':'+(p.srvMuted?1:0)+':'+(p.srvLimited?1:0)+':'+
+    return id+':'+(p.name||'')+':'+(p.srvMuted?1:0)+':'+(p.srvLimPct||0)+':'+
            (isNameNoFiles(p.name)?1:0)+':'+(p.vol===0?1:0)+':'+(p.ice||'');
   }).join('|')+'|'+(roomLocked?1:0);
 }
@@ -5450,14 +5494,20 @@ function renderAdmin(force){
       toast(blocked?('files allowed for '+(p.name||id)):('files blocked for '+(p.name||id)));
       renderAdmin(true);
     },blocked?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#ffc9a8,#e06a19 55%,#a34506)'));
-    r.appendChild(admBtn(p.srvLimited?'🔊 Lift limiter':'🧱 Limit mic',
-      'hard-limit their microphone for the whole party — they can still talk, they just cannot be loud',function(){
-      var wasLim=!!p.srvLimited;
-      warnIfStale(p);
-      modBroadcast(wasLim?'unlimit':'limit',p.name,id);
-      toast(wasLim?('limiter lifted on '+(p.name||id)):('limiter on '+(p.name||id)));
-      renderAdmin(true);
-    },p.srvLimited?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#ffe6a8,#e8b800 55%,#9c7a00)'));
+    /* The server limiter, as a slider. Everyone in the party gets the same
+       setting and it is applied on their outgoing mic too, so it bites for
+       anyone who joins later. It can only ever hold peaks down. */
+    r.appendChild(limSlider({
+      pct:p.srvLimPct||0,
+      server:true,
+      who:p.name||id,
+      onset:function(v){
+        warnIfStale(p);
+        p.srvLimPct=v;
+        modBroadcast(v?'limit':'unlimit',p.name,id,0,v);
+        toast(v?('server limiter on '+(p.name||id)+' — '+limLabel(v)):('server limiter off '+(p.name||id)));
+      }
+    }));
     /* local-only: just turns their volume down here */
     r.appendChild(admBtn(p.vol===0?'🔈 Unsilence':'🔕 Silence (me)',
       'silence them for you only — they are not told',function(){
@@ -5698,26 +5748,19 @@ function dcVolOf(name){
    sharing a setting. */
 var dcLimMem={};
 try{dcLimMem=JSON.parse(localStorage.getItem('mc_dclim')||'{}')||{};}catch(e){dcLimMem={};}
-function recallDcLim(name){
-  var m=dcLimMem[dcKey(name)];
-  return LIMS[m]?m:'off';
-}
-function rememberDcLim(name,mode){
+function recallDcLim(name){ return limMigrate(dcLimMem[dcKey(name)]); }
+function rememberDcLim(name,pct){
   var k=dcKey(name);if(!k)return;
-  if(mode==='off')delete dcLimMem[k]; else dcLimMem[k]=mode;
+  if(!pct)delete dcLimMem[k]; else dcLimMem[k]=pct|0;
   try{localStorage.setItem('mc_dclim',JSON.stringify(dcLimMem));}catch(e){}
 }
-function cycleDcLim(slot){
+function setDcLim(slot,pct){
   var r=BR.rx[slot];
-  if(!r||!r.comp){toast('no audio path for them yet');return;}
-  if(r.srvLimited){toast('an admin has them on a limiter');return;}
-  var nm=BR.nameBySlot[slot]||BR.names[slot]||'them';
-  var i=LIM_ORDER.indexOf(r.limMode||'off');
-  r.limMode=LIM_ORDER[(i+1)%LIM_ORDER.length];
-  rememberDcLim(nm,r.limMode);
+  if(!r||!r.comp)return;
+  if(r.srvLimPct>0)return;
+  r.limPct=pct|0;
+  rememberDcLim(BR.nameBySlot[slot]||BR.names[slot]||'them',r.limPct);
   applyLimiter(r);
-  toast(nm+': '+LIMS[r.limMode].l);
-  renderMembers();
 }
 
 /* Push a stored level onto a live decoder slot. */
@@ -5764,7 +5807,7 @@ function brBus(){
   if(!BR.bus){
     BR.bus=c.createGain(); BR.bus.gain.value=1;
     BR.bus.connect(fxDest);        /* out to the room */
-    BR.bus.connect(c.destination); /* and to this machine's speakers */
+    BR.bus.connect(spk()); /* and to this machine's speakers */
   }
   /* Decoded Discord audio is 48 kHz. Playing 20 ms buffers straight into the
      main context (often 44.1 kHz) resamples each one separately and puts a
@@ -5858,10 +5901,10 @@ function brGain(slot){
   BR.rx[slot]=r;
   dcApplyVol(slot);
   var dnm=BR.nameBySlot[slot]||BR.names[slot];
-  r.limMode=recallDcLim(dnm);
+  r.limPct=recallDcLim(dnm);
   /* an admin's forced limiter is keyed on the name, so it reaches Discord
      people too if they happen to share a gamertag with somebody moderated */
-  if(dnm&&isNameLimited(dnm))r.srvLimited=true;
+  if(dnm)r.srvLimPct=nameLimitPct(dnm);
   applyLimiter(r);
   return r;
 }
@@ -7540,7 +7583,7 @@ function verityBus(){
        call is the difference between a character and a nuisance. */
     VERITY.bus.gain.value=verityVolWanted();
     VERITY.bus.connect(fxDest);        /* out to everyone over the voice stream */
-    VERITY.bus.connect(c.destination); /* and out of the caller's own speakers */
+    VERITY.bus.connect(spk()); /* and out of the caller's own speakers */
     /* and into the Discord send bus, so the voice channel hears her too */
     MIX.vHooked=false;try{mixSync();}catch(e){}
   }
@@ -9606,63 +9649,149 @@ function blip(f,d){
    peaks; restoring the average level is the auto-level gain's job, further
    down the chain, where it can respond to how loud that person actually is
    rather than guessing in advance. */
-var LIMS={
-  off  :{l:'Off',          icon:'🔊', wet:0, auto:false, th:0,   kn:0,  ra:1,  at:.01,  re:.25, mk:1},
-  auto :{l:'Auto-level',   icon:'📉', wet:1, auto:true,  th:-18, kn:14, ra:3,  at:.02,  re:.30, mk:0.8},
-  limit:{l:'Limiter',      icon:'🎚', wet:1, auto:true,  th:-24, kn:10, ra:8,  at:.006, re:.20, mk:0.55},
-  hard :{l:'Brick wall',   icon:'🧱', wet:1, auto:true,  th:-32, kn:3,  ra:20, at:.002, re:.10, mk:0.35}
-};
-var LIM_ORDER=['off','auto','limit','hard'];
-var AUTO_TARGET=0.085;        /* RMS we aim a talking voice at */
+/* ---------------------------------------------------------------------------
+   One continuous strength, 0 to 100, and NO MAKEUP GAIN AT ANY SETTING.
+
+   That second part is the whole fix. The old table carried a makeup gain per
+   preset and the forced chain carried a flat 1.7x, and both of them turned a
+   reducer into an amplifier for anybody who was already quiet - measured at
+   +13.8 dB on the forced chain and +11 to +13 dB on the presets.
+
+   A DynamicsCompressor with ratio >= 1 and unity makeup cannot make any sample
+   louder than it arrived. So the promise this control makes is now true
+   because of the shape of the graph rather than because someone tuned four
+   numbers correctly, and it stays true if the numbers below are ever edited.
+
+   If somebody ends up too quiet, their volume slider is immediately to the
+   left of this one. That is the control for making a person louder.
+   --------------------------------------------------------------------------- */
+function limSpec(pct){
+  var v=Math.max(0,Math.min(100,pct|0));
+  if(!v)return null;
+  var x=v/100;
+  return {th:-6-30*x, kn:18-15*x, ra:1+19*x, at:0.020-0.018*x, re:0.30-0.20*x};
+}
+/* ---------------------------------------------------------------------------
+   Cancelling the compressor's OWN makeup gain.
+
+   "Just do not add makeup gain" was not enough, and the measurement is what
+   caught it: a quiet talker still came out up to +14.7 dB hotter. A Web Audio
+   DynamicsCompressorNode does not only reduce - it applies an automatic makeup
+   gain derived from the threshold, knee and ratio, so a signal quiet enough
+   that it is never compressed at all still leaves the node louder than it
+   arrived. The makeup is inside the node; there is no property to switch off.
+
+   It is a constant for a given setting, so it can be measured instead of
+   guessed: render a tone far below the threshold, where nothing except the
+   makeup can possibly be acting on it, and divide by what comes back. Measured
+   in this browser, on this engine, at this sample rate.
+
+   Until a setting has been measured the control stays OFF rather than
+   approximately right, because approximately right is how this broke.
+   --------------------------------------------------------------------------- */
+var LIM_COMP={}, limProbeRan=false;
+function limComp(pct){
+  var v=LIM_COMP[pct];
+  return (typeof v==='number'&&isFinite(v)&&v>0)?v:null;   /* null = not measured */
+}
+function refreshAllLimiters(){
+  try{for(var id in peers)applyLimiter(peers[id]);}catch(e){}
+  try{if(typeof BR!=='undefined'&&BR.rx)for(var sl in BR.rx)applyLimiter(BR.rx[sl]);}catch(e){}
+  try{if(micOn&&forceLimS)wireFx();}catch(e){}
+}
+function limProbe(){
+  if(limProbeRan)return; limProbeRan=true;
+  var OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  if(!OC)return;                         /* cannot measure -> stays off, safely */
+  var rate=48000;
+  try{ if(actx&&actx.sampleRate)rate=actx.sampleRate; }catch(e){}
+  var steps=[],v;
+  for(v=5;v<=100;v+=5)steps.push(v);
+  var i=0, AMP=0.0015;                   /* -56 dBFS: far under every threshold */
+  function one(){
+    if(i>=steps.length){refreshAllLimiters();return;}
+    var pct=steps[i++], spec=limSpec(pct);
+    try{
+      var N=Math.floor(rate*0.3);
+      var oc=new OC(1,N,rate);
+      var b=oc.createBuffer(1,N,rate), d=b.getChannelData(0);
+      for(var k=0;k<N;k++)d[k]=AMP*Math.sin(2*Math.PI*220*k/rate);
+      var src=oc.createBufferSource(); src.buffer=b;
+      var cp=oc.createDynamicsCompressor();
+      cp.threshold.value=spec.th;cp.knee.value=spec.kn;cp.ratio.value=spec.ra;
+      cp.attack.value=spec.at;cp.release.value=spec.re;
+      src.connect(cp);cp.connect(oc.destination);src.start();
+      oc.startRendering().then(function(buf){
+        var a=buf.getChannelData(0),pk=0;
+        for(var k2=Math.floor(N*0.5);k2<N;k2++){var x=Math.abs(a[k2]);if(x>pk)pk=x;}
+        var mk=pk/AMP;
+        /* 1/makeup, so the pair is exactly unity below the threshold */
+        if(mk>0.01&&isFinite(mk))LIM_COMP[pct]=1/mk;
+        one();
+      },function(){one();});
+    }catch(e){one();}
+  }
+  one();
+}
+setTimeout(limProbe,1200);
+function limLabel(pct){
+  var v=Math.max(0,Math.min(100,pct|0));
+  if(!v)return 'off';
+  if(v<34)return 'gentle';
+  if(v<67)return 'firm';
+  return 'brick wall';
+}
+/* the strength actually in force: an admin's setting always wins */
+function limNet(p){
+  if(!p)return 0;
+  return (p.srvLimPct>0)?p.srvLimPct:(p.limPct||0);
+}
+var AUTO_TARGET=0.085;        /* RMS we pull a shouting voice DOWN to */
 
 var limMem={};
 try{limMem=JSON.parse(localStorage.getItem('mc_lim')||'{}')||{};}catch(e){limMem={};}
-function rememberLim(name,mode){
+/* the four old preset names, mapped onto the new scale so nobody's saved
+   setting silently turns itself off */
+var LIM_OLD={off:0,auto:30,limit:60,hard:100};
+function limMigrate(v){
+  if(typeof v==='number')return Math.max(0,Math.min(100,v|0));
+  return LIM_OLD[v]||0;
+}
+function rememberLim(name,pct){
   var k=volKey(name);if(!k)return;
-  if(mode==='off')delete limMem[k]; else limMem[k]=mode;
+  if(!pct)delete limMem[k]; else limMem[k]=pct|0;
   try{localStorage.setItem('mc_lim',JSON.stringify(limMem));}catch(e){}
 }
-function recallLim(name){
-  var m=limMem[volKey(name)];
-  return LIMS[m]?m:'off';
-}
+function recallLim(name){ return limMigrate(limMem[volKey(name)]); }
 function applyLimiter(p){
   if(!p||!p.comp)return;
-  /* an admin's forced limiter always wins over the local setting */
-  var mode=p.srvLimited?'hard':(p.limMode||'off');
-  var spec=LIMS[mode]||LIMS.off;
+  var pct=limNet(p), spec=limSpec(pct), mk=spec?limComp(pct):null;
+  var on=!!(spec&&mk!=null);
   try{
-    p.comp.threshold.value=spec.th;
-    p.comp.knee.value=spec.kn;
-    p.comp.ratio.value=spec.ra;
-    p.comp.attack.value=spec.at;
-    p.comp.release.value=spec.re;
-    p.limWet.gain.value=spec.wet?spec.mk:0;
-    p.limDry.gain.value=spec.wet?0:1;
+    if(on){
+      p.comp.threshold.value=spec.th;
+      p.comp.knee.value=spec.kn;
+      p.comp.ratio.value=spec.ra;
+      p.comp.attack.value=spec.at;
+      p.comp.release.value=spec.re;
+    }
+    /* the measured inverse of the node's own makeup - never above unity */
+    p.limWet.gain.value=on?mk:0;
+    p.limDry.gain.value=on?0:1;
   }catch(e){}
-  if(!spec.auto&&p.autoG){
+  if(!on&&p.autoG){
     /* ease back to unity rather than jumping, or switching it off mid-sentence
        is itself an audible thump */
     p.autoTarget=1;
   }
 }
-function cycleLim(id){
+function setLim(id,pct){
   var p=peers[id];if(!p)return;
-  if(p.srvLimited){toast('an admin has them on a limiter — you cannot change it');return;}
-  if(ELEMENT_AUDIO){toast('the mic reducer needs WebAudio — Safari plays remote voices directly');return;}
-  /* Without the chain there is nothing to adjust, and applyLimiter() returns
-     silently — so the button appeared to work and did nothing. Say so. */
-  if(!p.comp){
-    toast(p.stream?'their audio chain is not built yet — try again in a moment'
-                  :'no voice from them yet');
-    return;
-  }
-  var i=LIM_ORDER.indexOf(p.limMode||'off');
-  p.limMode=LIM_ORDER[(i+1)%LIM_ORDER.length];
-  rememberLim(p.name,p.limMode);
+  if(p.srvLimPct>0)return;          /* an admin's setting is not yours to move */
+  if(!p.comp)return;
+  p.limPct=Math.max(0,Math.min(100,pct|0));
+  rememberLim(p.name,p.limPct);
   applyLimiter(p);
-  toast((p.name||'them')+': '+LIMS[p.limMode].l);
-  renderMembers();
 }
 /* The auto-level loop. Deliberately slow and deliberately gated on speech. */
 /* One tick of auto-level for anything shaped like a voice: a chatroom peer
@@ -9670,17 +9799,20 @@ function cycleLim(id){
    does not need two copies. */
 function autoLevelTick(p){
   if(!p||!p.autoG||!p.analyser)return;
-  var mode=p.srvLimited?'hard':(p.limMode||'off');
-  var spec=LIMS[mode]||LIMS.off;
   var cur=p.autoG.gain.value;
-  if(!spec.auto){
+  if(!limNet(p)){
     if(Math.abs(cur-1)>0.01)p.autoG.gain.value=cur+(1-cur)*0.2;
     return;
   }
   var v=lvl(p.analyser);
   if(v>0.02){                      /* only learn from actual speech */
+    /* Clamped AT ONE. This used to be allowed up to 3.5x, which is how a
+       "reducer" ended up making a quiet person 11 dB LOUDER: it is an
+       auto-gain, and an auto-gain pointed at a quiet source turns it up.
+       Downward only - somebody shouting gets pulled to the target, and
+       somebody quiet is simply left alone. */
     var want=AUTO_TARGET/Math.max(v,0.005);
-    want=Math.max(0.3,Math.min(3.5,want));
+    want=Math.max(0.25,Math.min(1,want));
     p.autoTarget=want;
   }
   var t=(p.autoTarget==null?1:p.autoTarget);
@@ -9725,6 +9857,20 @@ function monTap(node){
     monSrcNode=src;
   }catch(e){}
 }
+/* silence, or restore, everybody else */
+var monPrevTv=null;
+function monDuck(on){
+  try{ spk().gain.value=on?0:1; }catch(e){}
+  try{ for(var id in peers)applyVol(peers[id]); }catch(e){}
+  /* the theatre is playing out of a <video>, which is not on the bus */
+  try{
+    var v=tVid();
+    if(v){
+      if(on){ if(monPrevTv===null)monPrevTv=v.volume; v.volume=0; }
+      else if(monPrevTv!==null){ v.volume=monPrevTv; monPrevTv=null; }
+    }
+  }catch(e){}
+}
 function setMonitor(on){
   monOn=!!on;
   var chip=document.getElementById('qMonitor');
@@ -9733,19 +9879,24 @@ function setMonitor(on){
     if(monSrcNode&&monGain){try{monSrcNode.disconnect(monGain);}catch(e){}}
     monSrcNode=null;
     if(monGain){try{monGain.disconnect();}catch(e){}monGain=null;monAn=null;}
+    monDuck(false);
     setMonVal('off');
     return;
   }
   if(!micOn){
     monOn=false;if(chip)chip.classList.remove('on');
+    monDuck(false);
     toast('turn Voice Chat on first');
     return;
   }
   /* rebuild the outgoing chain so the tap exists */
   wireFx();
-  setMonVal('on — you are hearing only yourself');
-  sys('🎧 <b>Self-monitor on.</b> You are hearing your own microphone and nothing else — '+
-      'no voice chat, no VERITY, no Discord. On speakers this will feed back; use headphones.');
+  monDuck(true);
+  setMonVal('on — the room is muted, you are hearing only yourself');
+  sys('🎧 <b>Self-monitor on.</b> Everyone else is muted while this is on — voice chat, '+
+      'Discord, VERITY and the theatre - so what you are hearing is your microphone and '+
+      'nothing else. Turn it off to get the room back. On speakers this will feed back; '+
+      'use headphones.');
 }
 function setMonVal(t){var e=document.getElementById('monVal');if(e)e.textContent=t;}
 
@@ -11071,6 +11222,54 @@ function setDenoise(lv){
     if(micOn)wireFx();
     toast(lv>=2?'denoise: max — fans and hum gone':'denoise: on');
   });
+}
+
+/* ---------------------------------------------------------------------------
+   The reducer slider. One of these per person, in three different lists, so it
+   is built once here rather than three times badly.
+
+   0 is off. It cannot make anybody louder at any position - see limSpec().
+   --------------------------------------------------------------------------- */
+function limSlider(o){
+  var wrap=document.createElement('span');
+  wrap.className='limwrap'+(o.server?' srv':'');
+  var pct=Math.max(0,Math.min(100,o.pct|0));
+  var tag=document.createElement('span');
+  tag.className='limtag';
+  var sl=document.createElement('input');
+  sl.type='range';sl.min=0;sl.max=100;sl.step=5;sl.value=pct;
+  sl.className='limsl';
+  function paint(v){
+    tag.textContent=v?(v+'%'):'off';
+    wrap.classList.toggle('on',v>0);
+    tag.title=v?(limLabel(v)+' — holding their peaks down by '+v+'%'):'reducer off';
+  }
+  paint(pct);
+  if(o.forced||o.disabled){
+    sl.disabled=true;wrap.classList.add('lock');
+    wrap.title=o.forced
+      ? ('an admin has set this person\'s limiter to '+pct+'% — you cannot move it')
+      : (o.why||'not available yet');
+  }else{
+    wrap.title=(o.server?'server limiter for ':'loud-mic reducer for ')+(o.who||'them')+
+      ' — drag right to hold their peaks down. '+
+      (o.server?'Applies for everyone in the party.'
+               :'Local to you; they are never told.')+
+      ' It can never make them louder — use the volume slider for that.';
+    sl.oninput=function(e){
+      e.stopPropagation();
+      paint(+sl.value);
+      /* the audio graph follows the drag; the broadcast does not */
+      if(!o.server&&o.onset)o.onset(+sl.value);
+    };
+    sl.onchange=function(e){
+      e.stopPropagation();
+      if(o.server&&o.onset)o.onset(+sl.value);
+    };
+    sl.onclick=function(e){e.stopPropagation();};
+  }
+  wrap.appendChild(sl);wrap.appendChild(tag);
+  return wrap;
 }
 </script>
 </body>
