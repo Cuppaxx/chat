@@ -440,7 +440,15 @@ body.touch .cam .ctl{opacity:1}
 .msg .who span{font-weight:400;color:#8d7cc0}
 .msg .b img{max-width:280px;max-height:210px;border-radius:6px;display:block;margin-top:5px;cursor:zoom-in;
   border:1px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.4)}
-.msg.sys{justify-content:center;font-size:12px;color:#d3c4ff;font-style:italic;text-align:center;
+/* display:block, NOT the flex it inherits from .msg.
+   .msg is flex so a normal message can sit an avatar beside a bubble. A system
+   message has no avatar - it is one run of text - and under flex every direct
+   child becomes a flex item, INCLUDING each <b> and each bare text node
+   between them. So "<b>Server cost...</b> Voice, video and files never..."
+   rendered as four columns sitting side by side with an 8px gap, the bold ones
+   squeezed to 74px and wrapping into narrow stacks. Every system message with
+   a bold phrase mid-sentence was mangled, which is most of them. */
+.msg.sys{display:block;font-size:12px;color:#d3c4ff;font-style:italic;text-align:center;
   text-shadow:0 1px 3px rgba(0,0,0,.7)}
 .msg.sys b{font-style:normal;color:#fff}
 .msg.sys.bad{color:#ffb3c2}
@@ -1814,7 +1822,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.3';
+var BUILD='8.4';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
