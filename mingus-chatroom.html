@@ -1787,7 +1787,9 @@ body.touch #qPtt{display:none}
         </div>
       </details>
 
-      <label>Members</label>
+      <label>Members <span class="q" id="admTraceAll" title="list every address in the party and flag any that more than one person is using — the quickest way to spot somebody back under a new name">🔍 Trace all addresses</span></label>
+      <div id="tracePanel" style="display:none;margin-bottom:8px;padding:9px 11px;border-radius:9px;
+        border:1px solid rgba(25,90,160,.55);background:linear-gradient(rgba(222,238,255,.93),rgba(196,222,250,.93))"></div>
       <div id="rawPanel" style="display:none;margin-bottom:8px;padding:9px 11px;border-radius:9px;
         border:1px solid rgba(224,138,25,.55);background:linear-gradient(rgba(255,240,220,.9),rgba(255,226,196,.9))"></div>
       <div id="admList" style="max-height:230px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
@@ -1811,7 +1813,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.7';
+var BUILD='7.8';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -2007,8 +2009,8 @@ var forceClean=false, cleanNames={};
    that owns it, because applyVol() reads RAW.id and applyVol runs long before
    the bottom of the file does. A var hoists as undefined; its assignment does
    not. Getting this wrong once already took the whole room down. */
-var RAW={id:null,src:null,gain:null,an:null,buf:null,timer:null,ms:null,el:null,
-         peak:0,hold:0,holdAt:0,clips:0,started:0,checkAt:0,sawAny:0,rms:0};
+var RAW={id:null,src:null,gain:null,an:null,buf:null,timer:null,ms:null,el:null,pitch:null,
+         semis:0,peak:0,hold:0,holdAt:0,clips:0,started:0,checkAt:0,sawAny:0,rms:0};
 function isNameLimited(n){var k=nameKey(n);return !!k&&!!limitNames[k];}
 /* limitNames holds the admin's strength for that gamertag, so a peer who
    joins after the limiter was set still arrives with it applied */
@@ -5664,6 +5666,11 @@ function renderAdmin(force){
       'silence them for you only — they are not told',function(){
       setVol(id,p.vol===0?1:0);renderMembers();renderAdmin();
     }));
+    if(isAdmin())r.appendChild(admBtn('🔍 Trace',
+      'their address, who else is on it right now, and who was recently — '+
+      'which is how you catch somebody rejoining under a new name',function(){
+      traceUser(id);
+    },'linear-gradient(#cfe4ff,#3f7fd6 55%,#1b4c8c)'));
     if(isAdmin())r.appendChild(admBtn('🎯 Snipe','put bullet holes through their webcam tile',function(){
       var m={t:'prank',k:ADMIN_PASS,fx:'snipe',target:p.name,by:me.name||'an admin'};
       bc(m);runPrank(m);
@@ -11498,6 +11505,8 @@ function rawStop(quiet){
   if(RAW.timer){clearInterval(RAW.timer);RAW.timer=null;}
   if(RAW.src){try{RAW.src.disconnect();}catch(e){}}
   if(RAW.gain){try{RAW.gain.disconnect();}catch(e){}}
+  if(RAW.pitch){try{RAW.pitch.disconnect();}catch(e){}RAW.pitch=null;}
+  RAW.semis=0;
   if(RAW.el){try{RAW.el.pause();RAW.el.srcObject=null;RAW.el.remove();}catch(e){}}
   var was=RAW.id;
   RAW.id=null;RAW.src=null;RAW.gain=null;RAW.an=null;RAW.buf=null;RAW.ms=null;RAW.el=null;
@@ -11542,9 +11551,9 @@ function rawListen(id){
     RAW.gain=c.createGain();RAW.gain.gain.value=1;      /* unity. The whole point. */
     RAW.an=c.createAnalyser();RAW.an.fftSize=2048;
     RAW.buf=new Float32Array(RAW.an.fftSize);
-    RAW.src.connect(RAW.an);
-    RAW.src.connect(RAW.gain);
+    RAW.src.connect(RAW.an);        /* the meter reads the TRUE arriving level */
     RAW.gain.connect(c.destination);                    /* NOT through spk(), which is muted */
+    rawWire();
     RAW.id=id;RAW.started=Date.now();RAW.clips=0;RAW.peak=0;RAW.hold=0;
     /* everybody else goes quiet, including this person's processed copy */
     spk().gain.value=0;
@@ -11565,6 +11574,44 @@ function rawListen(id){
     rawStop(true);
   }
   renderAdmin(true);
+}
+/* ---------------------------------------------------------------------------
+   Transpose what you are hearing.
+
+   Someone running a voice changer outside the browser - in their driver, in
+   VoiceMeeter, in whatever - has already shifted their voice before it ever
+   reaches the microphone, so nothing on their end of this app can switch it
+   off. Shifting it back the other way is the only move left. If they sound
+   pitched down about five semitones, set +5 and you get something close to
+   the real voice.
+
+   It only goes in the path when it is doing something, so at 0 the tap really
+   is untouched rather than "untouched plus a resampler".
+   --------------------------------------------------------------------------- */
+function rawWire(){
+  if(!RAW.src||!RAW.gain)return;
+  var c;try{c=ctx();}catch(e){return;}
+  try{RAW.src.disconnect(RAW.gain);}catch(e){}
+  if(RAW.pitch){try{RAW.src.disconnect(RAW.pitch);}catch(e){}
+                try{RAW.pitch.disconnect();}catch(e){}}
+  if(!RAW.semis){
+    RAW.pitch=null;
+    RAW.src.connect(RAW.gain);
+    return;
+  }
+  if(!RAW.pitch)RAW.pitch=makePitchShift(c,1);
+  if(!RAW.pitch){RAW.src.connect(RAW.gain);return;}   /* no ScriptProcessor here */
+  RAW.pitch.__ratio=Math.pow(2,RAW.semis/12);
+  RAW.src.connect(RAW.pitch);
+  RAW.pitch.connect(RAW.gain);
+}
+function rawSetSemis(n){
+  n=Math.max(-12,Math.min(12,n|0));
+  var had=RAW.semis;
+  RAW.semis=n;
+  /* sliding within a shift is seamless - only crossing zero rebuilds */
+  if(had&&n&&RAW.pitch){RAW.pitch.__ratio=Math.pow(2,n/12);}
+  else rawWire();
 }
 function rawTick(){
   if(!RAW.an||!RAW.buf)return;
@@ -11619,6 +11666,34 @@ function rawPanel(meterOnly){
     var fill=el('div','');fill.id='rawFill';
     fill.style.cssText='height:100%;width:0%;background:linear-gradient(90deg,#3ec46a,#e8c000 72%,#e0192f 92%)';
     bar.appendChild(fill);box.appendChild(bar);
+    /* transpose */
+    var pr=el('div','');
+    pr.style.cssText='display:flex;align-items:center;gap:6px;margin:6px 0 2px;flex-wrap:wrap';
+    var plab=el('span','','🎚 Transpose');
+    plab.style.cssText='font-size:11px;font-weight:700;color:#7a3f00';
+    var psl=document.createElement('input');
+    psl.type='range';psl.min=-12;psl.max=12;psl.step=1;psl.value=RAW.semis;
+    psl.style.cssText='width:150px;accent-color:#d8791b;cursor:pointer';
+    psl.title='shift what you are hearing up or down, to undo a voice changer running '+
+              'outside their browser. If they sound pitched DOWN by five, set +5.';
+    var pval=el('span','');pval.id='rawSemis';
+    pval.style.cssText='font-size:11px;min-width:96px;font-family:ui-monospace,Consolas,monospace';
+    var setLbl=function(){
+      var n=RAW.semis;
+      pval.textContent=(n===0?'off (true pitch)':((n>0?'+':'')+n+' semitone'+(Math.abs(n)===1?'':'s')));
+    };
+    setLbl();
+    psl.oninput=function(e){e.stopPropagation();rawSetSemis(+psl.value);setLbl();};
+    var prst=document.createElement('button');
+    prst.className='duelbtn';prst.textContent='0';prst.title='back to their true pitch';
+    prst.onclick=function(){RAW.semis=0;psl.value=0;rawWire();setLbl();};
+    pr.appendChild(plab);pr.appendChild(psl);pr.appendChild(pval);pr.appendChild(prst);
+    box.appendChild(pr);
+    var phint=el('div','','A voice changer running outside their browser is already in the audio '+
+                          'when it arrives — shifting it back is the only way to hear through it.');
+    phint.style.cssText='font-size:11px;opacity:.6;margin-bottom:3px';
+    box.appendChild(phint);
+
     var what=el('div','','bypassed here: radio FX · your volume · limiter · auto-level');
     what.style.cssText='font-size:11px;opacity:.75;margin-top:3px';
     box.appendChild(what);
@@ -11641,6 +11716,185 @@ function rawPanel(meterOnly){
   if(f)f.style.width=Math.max(0,Math.min(100,(RAW.peak*100)))+'%';
   var t=document.getElementById('rawTheirs');
   if(t)t.textContent='their mic: '+micDesc(p.mic);
+}
+
+/* ============================================================================
+   ADMIN: IP TRACER
+
+   The server has held peerId -> address all along, because that is what Ban
+   works from. This shows it, along with the part that is actually useful:
+   everyone currently on the same address, and everyone recently on it. A kick
+   only means something if you can tell when the same person walks back in
+   under a different gamertag.
+
+   Admin only, at both ends - the routes want the admin password and the button
+   is not rendered for a moderator. None of this reaches an ordinary member.
+
+   The location/ISP lookup is a second, separate click on purpose. Everything
+   else is data this server already had; that one hands the address to a third
+   party, so it should be a decision rather than a side effect.
+   ============================================================================ */
+var TRACE={ip:null,id:null,data:null,busy:false};
+function traceAgo(t){
+  if(!t)return '—';
+  var s=Math.max(0,Math.round((Date.now()-t)/1000));
+  if(s<60)return s+'s ago';
+  if(s<3600)return Math.round(s/60)+' min ago';
+  return (s/3600).toFixed(1)+' h ago';
+}
+/* the server knows ids; only this browser knows gamertags */
+function traceName(pid){
+  if(pid===myPeerId())return (me.name||'you')+' (you)';
+  var p=peers[pid];
+  if(p&&p.name)return p.name;
+  return null;
+}
+function myPeerId(){ try{return (peer&&peer.id)||'';}catch(e){return '';} }
+function traceUser(id){
+  if(!isAdmin()){toast('tracing is an admin action');return;}
+  TRACE.busy=true;TRACE.id=id;TRACE.data=null;tracePanel();
+  admApi('/admin/trace',{peerId:id}).then(function(j){
+    TRACE.busy=false;
+    if(!j||!j.ok){
+      TRACE.data=null;TRACE.ip=null;tracePanel();
+      toast((j&&j.error)||'trace failed');
+      sys('🔍 Trace failed: '+esc((j&&j.error)||'the server refused')+'.',true);
+      return;
+    }
+    TRACE.ip=j.ip;TRACE.data=j;tracePanel();
+  }).catch(function(e){
+    TRACE.busy=false;TRACE.data=null;tracePanel();
+    toast('trace failed — server unreachable');
+  });
+}
+function traceLookup(){
+  if(!TRACE.ip||TRACE.busy)return;
+  TRACE.busy=true;tracePanel();
+  admApi('/admin/trace',{ip:TRACE.ip,lookup:1}).then(function(j){
+    TRACE.busy=false;
+    if(j&&j.ok){TRACE.data=j;}
+    else toast((j&&j.error)||'lookup failed');
+    tracePanel();
+  }).catch(function(){TRACE.busy=false;tracePanel();toast('lookup failed');});
+}
+function traceAll(){
+  if(!isAdmin()){toast('tracing is an admin action');return;}
+  fetch(adminBase()+'/admin/trace/all?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j||!j.ok){toast('could not read the address list');return;}
+      var lines=[];
+      j.groups.forEach(function(g){
+        var who=g.peers.map(function(x){return traceName(x.id)||('unknown ('+x.id.slice(-6)+')');});
+        lines.push((g.peers.length>1?'⚠ ':'  ')+g.ip+(g.banned?'  [BANNED]':'')+
+                   '  ×'+g.peers.length+'  — '+who.join(', '));
+      });
+      var shared=j.groups.filter(function(g){return g.peers.length>1;}).length;
+      sys('🔍 <b>Addresses in the party</b> — '+j.online+' connected, '+j.groups.length+' distinct'+
+          (shared?(', <b>'+shared+' shared</b>'):', none shared')+
+          '<br><pre style="margin:6px 0 0;font-size:11px;line-height:1.5;white-space:pre-wrap;'+
+          'color:#efe9ff">'+esc(lines.join('\n'))+'</pre>');
+      if(shared)toast(shared+' address'+(shared>1?'es':'')+' shared by more than one person');
+    })
+    .catch(function(){toast('could not read the address list');});
+}
+function traceClose(){TRACE.ip=null;TRACE.id=null;TRACE.data=null;tracePanel();renderAdmin(true);}
+function tracePanel(){
+  var box=document.getElementById('tracePanel');
+  if(!box)return;
+  if(!TRACE.id&&!TRACE.busy){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.innerHTML='';
+  var d=TRACE.data;
+  var title=el('div','','🔍 TRACE — '+((traceName(TRACE.id)||TRACE.id||'').toString()));
+  title.style.cssText='font-weight:700;font-size:13px;color:#123f6b;margin-bottom:4px';
+  box.appendChild(title);
+  if(TRACE.busy&&!d){
+    box.appendChild(el('div','','asking the server…'));
+    return;
+  }
+  if(!d)return;
+  var mono='font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6';
+  var main=el('div','');main.style.cssText=mono;
+  var p=peers[TRACE.id]||{};
+  main.innerHTML=
+    '<b>'+esc(d.ip)+'</b>'+(d.banned?'  <b style="color:#b0122a">[BANNED]</b>':'')+'<br>'+
+    'connected '+esc(traceAgo(d.since))+
+    ' · route '+esc(p.ice||'unknown')+
+    (p.relay?' (through a relay — their address here is the TURN server, not theirs)':'')+
+    ' · build '+esc(p.build||'?');
+  box.appendChild(main);
+
+  /* the point of the whole feature */
+  var others=(d.here||[]).filter(function(h){return h.id!==TRACE.id;});
+  var alt=el('div','');
+  alt.style.cssText=mono+';margin-top:6px';
+  if(others.length){
+    alt.innerHTML='<b style="color:#b0122a">⚠ '+others.length+' other '+
+      (others.length===1?'person is':'people are')+' on this address right now:</b><br>'+
+      others.map(function(h){
+        return '  • '+esc(traceName(h.id)||('unknown ('+h.id.slice(-6)+')'))+'  — joined '+esc(traceAgo(h.at));
+      }).join('<br>');
+  }else{
+    alt.innerHTML='nobody else is on this address right now';
+  }
+  box.appendChild(alt);
+
+  if((d.recent||[]).length){
+    var rec=el('div','');
+    rec.style.cssText=mono+';margin-top:6px;opacity:.85';
+    rec.innerHTML='recently on this address (gone now):<br>'+
+      d.recent.map(function(h){
+        return '  • '+esc(traceName(h.id)||('unknown ('+h.id.slice(-6)+')'))+'  — '+esc(traceAgo(h.at));
+      }).join('<br>');
+    box.appendChild(rec);
+  }
+
+  if(d.geo){
+    var g=el('div','');
+    g.style.cssText=mono+';margin-top:6px';
+    if(d.geo.error){
+      g.innerHTML='location lookup: <i>'+esc(d.geo.error)+'</i>';
+    }else{
+      var flags=[];
+      if(d.geo.proxy)flags.push('<b style="color:#b0122a">VPN / PROXY</b>');
+      if(d.geo.hosting)flags.push('<b style="color:#b0122a">DATACENTRE</b>');
+      if(d.geo.mobile)flags.push('mobile network');
+      g.innerHTML=
+        esc([d.geo.city,d.geo.region,d.geo.country].filter(Boolean).join(', ')||'location unknown')+'<br>'+
+        esc(d.geo.isp||d.geo.org||'network unknown')+(d.geo.as?('  ['+esc(d.geo.as)+']'):'')+
+        (flags.length?('<br>'+flags.join(' · ')):'');
+    }
+    box.appendChild(g);
+  }
+
+  var row=el('div','');row.style.cssText='margin-top:7px;display:flex;gap:6px;flex-wrap:wrap';
+  if(!d.geo){
+    row.appendChild(admBtn(TRACE.busy?'…':'🌐 Look up location & network',
+      'sends this address to ip-api.com and shows the country, the ISP, and whether it is a '+
+      'VPN or a datacentre. Nothing else here leaves your server.',function(){
+      traceLookup();
+    },'linear-gradient(#cfe4ff,#3f7fd6 55%,#1b4c8c)'));
+  }
+  row.appendChild(admBtn(d.banned?'✅ Unban this address':'⛔ Ban this address',
+    d.banned?'lift the block on this address'
+            :'block this address at the server — everyone on it, including anyone above',function(){
+    admApi(d.banned?'/admin/unban':'/admin/ban',{ip:d.ip}).then(function(j){
+      if(j&&j.ok!==false){
+        toast(d.banned?('unbanned '+d.ip):('banned '+d.ip));
+        sys('🛡 <b>'+esc(d.ip)+'</b> is '+(d.banned?'no longer blocked':'blocked at the server')+'.');
+        traceUser(TRACE.id);
+        try{loadServerBans();}catch(e){}
+      }else toast((j&&j.error)||'that failed');
+    });
+  },d.banned?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#ff9ca6,#e0192f 55%,#a10f20)'));
+  row.appendChild(admBtn('✕ Close','',function(){traceClose();}));
+  box.appendChild(row);
+
+  var note=el('div','','Addresses are held in memory only and are gone when the server restarts. '+
+                       'Nothing here is ever shown to anyone but an admin.');
+  note.style.cssText='font-size:11px;opacity:.6;margin-top:5px';
+  box.appendChild(note);
 }
 </script>
 </body>

@@ -30,7 +30,15 @@ const PORT = process.env.PORT || 9000;
 const ADMIN_PASS = process.env.ADMIN_PASS || 'MingMing67';
 
 const bannedIps = new Set();   // addresses refused at the handshake
-const peerIps = new Map();     // peerId -> ip, so the admin can ban by person
+const peerIps = new Map();     // peerId -> { ip, at }, so the admin can ban by person
+// A short arrivals log, so somebody who just left can still be traced - which
+// is the case that matters, because the question is almost always "who was
+// that, and are they already back under another name". Capped, in memory, and
+// gone on restart like everything else here.
+const peerLog = [];
+const PEERLOG_MAX = 300;
+// Location/ISP answers, cached so repeat traces do not re-ask a third party.
+const geoCache = new Map();
 
 app.use(express.json({ limit: '16kb' }));
 
@@ -163,19 +171,84 @@ app.get('/admin/bans', requireAdmin, (req, res) => {
   res.json({
     ok: true,
     ips: Array.from(bannedIps),
-    online: Array.from(peerIps.entries()).map(([id, ip]) => ({ id, ip })),
+    online: Array.from(peerIps.entries()).map(([id, r]) => ({ id, ip: r.ip, at: r.at })),
   });
 });
 
 app.post('/admin/ban', requireAdmin, (req, res) => {
   const { peerId, ip } = req.body || {};
-  const target = ip || peerIps.get(peerId);
+  const rec = peerId ? peerIps.get(peerId) : null;
+  const target = ip || (rec && rec.ip);
   if (!target) {
     return res.json({ ok: false, error: 'no address on record for that peer — they may have already disconnected' });
   }
   bannedIps.add(target);
   console.log('BAN ' + target + (peerId ? ' (' + peerId + ')' : ''));
   res.json({ ok: true, ip: target, count: bannedIps.size });
+});
+
+// ---- the tracer ------------------------------------------------------------
+// Everything below /admin/ is admin-only and answers only to the admin
+// password. None of it is ever sent to an ordinary member.
+function traceFor(ip) {
+  const here = [], recent = [];
+  for (const [id, r] of peerIps) if (r.ip === ip) here.push({ id, at: r.at });
+  const seenIds = new Set(here.map((h) => h.id));
+  for (let i = peerLog.length - 1; i >= 0 && recent.length < 25; i--) {
+    const e = peerLog[i];
+    if (e.ip !== ip || seenIds.has(e.id)) continue;
+    seenIds.add(e.id);
+    recent.push({ id: e.id, at: e.at });
+  }
+  return { here, recent };
+}
+// A location/ISP answer for one address. The proxy/hosting flags are the
+// moderation-relevant part: they say "this is a VPN or a datacentre", which is
+// what somebody dodging a ban tends to be sitting behind.
+async function geoLookup(ip) {
+  if (geoCache.has(ip)) return geoCache.get(ip);
+  let out;
+  try {
+    const u = 'http://ip-api.com/json/' + encodeURIComponent(ip) +
+      '?fields=status,message,country,regionName,city,isp,org,as,proxy,hosting,mobile';
+    const r = await fetch(u, { signal: AbortSignal.timeout(7000) });
+    const j = await r.json();
+    out = (j && j.status === 'success')
+      ? { country: j.country, region: j.regionName, city: j.city, isp: j.isp,
+          org: j.org, as: j.as, proxy: !!j.proxy, hosting: !!j.hosting, mobile: !!j.mobile }
+      : { error: (j && j.message) || 'lookup failed' };
+  } catch (e) {
+    out = { error: String((e && e.message) || e) };
+  }
+  geoCache.set(ip, out);
+  if (geoCache.size > 500) geoCache.clear();
+  return out;
+}
+app.post('/admin/trace', requireAdmin, async (req, res) => {
+  const { peerId, ip: rawIp, lookup } = req.body || {};
+  const rec = peerId ? peerIps.get(peerId) : null;
+  const ip = rawIp || (rec && rec.ip);
+  if (!ip) {
+    return res.json({ ok: false, error: 'no address on record for that peer — they may have already dropped' });
+  }
+  const t = traceFor(ip);
+  const out = {
+    ok: true, ip, banned: bannedIps.has(ip), since: rec ? rec.at : null,
+    here: t.here, recent: t.recent, online: peerIps.size
+  };
+  if (lookup) out.geo = await geoLookup(ip);
+  res.json(out);
+});
+app.get('/admin/trace/all', requireAdmin, (req, res) => {
+  const byIp = new Map();
+  for (const [id, r] of peerIps) {
+    if (!byIp.has(r.ip)) byIp.set(r.ip, []);
+    byIp.get(r.ip).push({ id, at: r.at });
+  }
+  const groups = Array.from(byIp.entries())
+    .map(([ip, list]) => ({ ip, banned: bannedIps.has(ip), peers: list }))
+    .sort((a, b) => b.peers.length - a.peers.length);
+  res.json({ ok: true, groups, online: peerIps.size, logged: peerLog.length });
 });
 
 app.post('/admin/unban', requireAdmin, (req, res) => {
@@ -717,7 +790,12 @@ server.prependListener('upgrade', (req, socket) => {
   }
   try {
     const id = new URL(req.url, 'http://x').searchParams.get('id');
-    if (id) peerIps.set(id, ip);
+    if (id) {
+      const at = Date.now();
+      peerIps.set(id, { ip, at });
+      peerLog.push({ id, ip, at });
+      if (peerLog.length > PEERLOG_MAX) peerLog.splice(0, peerLog.length - PEERLOG_MAX);
+    }
   } catch (e) {}
 });
 
