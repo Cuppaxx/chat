@@ -1560,6 +1560,34 @@ body.touch #qPtt{display:none}
         </div>
       </details>
 
+      <details class="fold">
+        <summary>🥒 VERITY <span class="cnt2">personality &amp; how often he butts in</span></summary>
+        <div class="foldbody">
+          <div class="qstrip" id="vpPresets" style="margin-bottom:6px">
+            <span class="q on" data-vp="default">🥒 Unhinged</span>
+            <span class="q" data-vp="deadpan">😐 Deadpan</span>
+            <span class="q" data-vp="hype">📣 Hype man</span>
+            <span class="q" data-vp="menace">😈 Menace</span>
+            <span class="q" data-vp="helpful">🤓 Actually helpful</span>
+          </div>
+          <textarea id="vpText" rows="7" maxlength="1500"
+            style="width:100%;font:inherit;font-size:12.5px;line-height:1.45;padding:8px 10px;
+                   border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d;
+                   resize:vertical"></textarea>
+          <div class="brline">
+            <span class="lab" style="font-size:12px;opacity:.75">butts in</span>
+            <input type="range" id="vpChatty" class="vol" min="0" max="100" step="5" value="32" style="width:150px">
+            <span id="vpChattyVal" style="font-size:12px;min-width:120px">about 1 message in 3</span>
+            <span class="q" id="vpSave">💾 Apply</span>
+            <span class="q" id="vpReset">↺ Default</span>
+          </div>
+          <div class="hint2">This changes <b>who he is</b>, not the safety floor or the length
+            limit — those are enforced on the server and no wording here removes them. Saying his
+            name always gets a reply regardless of the slider. Takes effect on his next line; no
+            redeploy, and it is saved on this machine only.</div>
+        </div>
+      </details>
+
       <details class="fold" data-role="admin">
         <summary>🔗 Discord bridge <span class="cnt2">voice + text channels</span></summary>
         <div class="foldbody">
@@ -2820,7 +2848,7 @@ function onData(id,d){
     if(d.a==='say'){addMsg(VERITY_ME,String(d.text||'').slice(0,300),false);return;}
     if(d.a==='heard'){
       if(!VERITY.host)return;              /* only the caller runs her brain */
-      verityRespond(p.name||'someone',String(d.text||'').slice(0,200));
+      verityRespond(p.name||'someone',String(d.text||'').slice(0,200),true);
       return;
     }
     return;
@@ -7393,6 +7421,99 @@ function verityFallbackSpeak(text){
     speechSynthesis.cancel();speechSynthesis.speak(u);
   }catch(e){}
 }
+/* ---------------------------------------------------------- personality ---
+   Tuning the character from inside the room rather than from a Render
+   environment variable. The server keeps the length limit and the floor and
+   appends them to whatever is set here, so this box can make him into
+   anything except long-winded or vile. */
+var VP_PRESETS={
+  default:'',   /* filled in from the server's own default at probe time */
+  deadpan:[
+    "You are VERITY: a flat, deadpan presence in a voice chatroom.",
+    "You state absurd things as though they are dull facts. You never sound excited.",
+    "You treat the most ridiculous thing in the room as unremarkable and the most ordinary thing as deeply suspicious.",
+    "Dry understatement only. No exclamation marks."
+  ].join('\n'),
+  hype:[
+    "You are VERITY: the hype man of a voice chatroom.",
+    "Everything anybody does is the greatest thing you have ever witnessed, and you say so with total conviction.",
+    "You give people absurd titles and announce them like a ring announcer.",
+    "Relentlessly positive, slightly unhinged about it."
+  ].join('\n'),
+  menace:[
+    "You are VERITY: a small menace in a voice chatroom who is clearly plotting something.",
+    "You imply you know things about people that you should not know. You never explain how.",
+    "You are ominous about completely trivial things - somebody's headset, the weather, a song choice.",
+    "Threatening in a way that is obviously a bit. Never actually cruel."
+  ].join('\n'),
+  helpful:[
+    "You are VERITY: a genuinely useful presence in a voice chatroom, with a slightly odd sense of humour.",
+    "If somebody asks a real question, answer it properly and briefly.",
+    "If nobody asked anything, make one short dry observation about what is going on.",
+    "Helpful first, funny second."
+  ].join('\n')
+};
+var VP={text:'',preset:'default',chatty:32};
+try{
+  var _vp=JSON.parse(localStorage.getItem('mc_vp')||'null');
+  if(_vp&&typeof _vp==='object'){
+    if(typeof _vp.text==='string')VP.text=_vp.text;
+    if(typeof _vp.preset==='string')VP.preset=_vp.preset;
+    if(typeof _vp.chatty==='number')VP.chatty=_vp.chatty;
+  }
+}catch(e){}
+function vpSave(){try{localStorage.setItem('mc_vp',JSON.stringify(VP));}catch(e){}}
+function vpChattyLabel(){
+  if(VP.chatty<=0)return 'only when named';
+  if(VP.chatty>=100)return 'every single message';
+  return 'about 1 message in '+Math.max(2,Math.round(100/VP.chatty));
+}
+function vpSyncUI(){
+  var t=document.getElementById('vpText');
+  if(t)t.value=VP.text||VP_PRESETS[VP.preset]||VP_PRESETS.default||'';
+  var c=document.getElementById('vpChatty');
+  if(c)c.value=VP.chatty;
+  var l=document.getElementById('vpChattyVal');
+  if(l)l.textContent=vpChattyLabel();
+  var ps=document.querySelectorAll('#vpPresets .q');
+  for(var i=0;i<ps.length;i++)
+    ps[i].classList.toggle('on',ps[i].getAttribute('data-vp')===VP.preset);
+}
+(function(){
+  var ps=document.querySelectorAll('#vpPresets .q');
+  for(var i=0;i<ps.length;i++)(function(p){
+    p.onclick=function(){
+      VP.preset=p.getAttribute('data-vp');
+      VP.text=VP_PRESETS[VP.preset]||'';
+      vpSave();vpSyncUI();
+      toast('VERITY: '+p.textContent.trim());
+    };
+  })(ps[i]);
+  var c=document.getElementById('vpChatty');
+  if(c)c.oninput=function(){
+    VP.chatty=parseInt(this.value,10)||0;
+    var l=document.getElementById('vpChattyVal');
+    if(l)l.textContent=vpChattyLabel();
+    vpSave();
+  };
+  var sv=document.getElementById('vpSave');
+  if(sv)sv.onclick=function(){
+    var t=document.getElementById('vpText');
+    VP.text=(t&&t.value||'').trim();
+    VP.preset='custom';
+    vpSave();vpSyncUI();
+    good('🥒 VERITY\u2019s personality updated \u2014 it applies to his next line.');
+    if(VERITY.on&&VERITY.host){VERITY.last=0;VERITY.lastThought=0;}
+  };
+  var rs=document.getElementById('vpReset');
+  if(rs)rs.onclick=function(){
+    VP.text='';VP.preset='default';VP.chatty=32;
+    vpSave();vpSyncUI();
+    toast('VERITY back to default');
+  };
+  vpSyncUI();
+})();
+
 /* ============================ VERITY'S BRAIN ============================
    What used to be here was a regex. verityBrain() matched about a dozen
    keywords against forty hard-coded lines — say "pickle", get a pickle joke.
@@ -7413,23 +7534,33 @@ function verityFallbackSpeak(text){
    * She must not talk over herself. The model call takes a moment, then the
      voice takes a few seconds; without a busy flag three overlapping requests
      produce three overlapping sentences. */
-function verityLog(who,text){
+function verityLog(who,text,spoken){
   var t=String(text||'').trim();
   if(!t)return;
-  VERITY.lines.push({who:String(who||'?').slice(0,24),text:t.slice(0,300)});
+  /* Marking spoken lines matters: the model treats a typed line as exact and
+     a transcribed one as approximate, which stops it latching onto a word the
+     recogniser invented. */
+  VERITY.lines.push({who:String(who||'?').slice(0,24),text:t.slice(0,300),
+                     spoken:!!spoken});
   if(VERITY.lines.length>24)VERITY.lines.shift();
 }
 function verityShouldRespond(text){
   if(!VERITY.on||!VERITY.host)return false;
   if(VERITY.brainBusy)return false;
-  var t=' '+String(text||'').toLowerCase()+' ';
+  var raw=String(text||'');
+  var t=' '+raw.toLowerCase()+' ';
   /* being addressed by name always earns an answer, cooldown or not */
   if(/\bverity\b/.test(t))return true;
+  /* Not enough words to have said anything. Answering these is what made him
+     look like he was talking to himself. */
+  if(raw.split(/\s+/).filter(Boolean).length<4)return false;
+  if(VP.chatty<=0)return false;          /* "only when named" */
   var since=Date.now()-VERITY.lastThought;
   if(since<11000)return false;
+  var p=Math.max(0,Math.min(1,VP.chatty/100));
   /* a direct question in the room is worth interrupting for more often */
-  if(/\?\s*$/.test(t.trim()))return Math.random()<0.55;
-  return Math.random()<0.32;
+  if(/\?\s*$/.test(t.trim()))return Math.random()<Math.min(1,p*1.7);
+  return Math.random()<p;
 }
 function verityProbeBrain(){
   return fetch(adminBase()+'/verity/brain/status',{cache:'no-store'})
@@ -7438,6 +7569,9 @@ function verityProbeBrain(){
       VERITY.brainOk=!!(j&&j.ok);
       VERITY.brainWhy=(j&&j.reason)||'';
       VERITY.brainModel=(j&&j.model)||'';
+      /* show the server's real default in the box rather than a blank field,
+         so somebody editing it is editing the actual thing */
+      if(j&&j.defaultPersona){VP_PRESETS.default=j.defaultPersona;try{vpSyncUI();}catch(e){}}
       return VERITY.brainOk;
     })
     .catch(function(e){
@@ -7456,7 +7590,10 @@ function verityThink(nudge){
   VERITY.brainBusy=true;
   return fetch(adminBase()+'/verity/brain',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({lines:lines})
+    /* persona: whatever the room has tuned him to. heard: tells the model the
+       transcript came off a speech recogniser and may be wrong, so it stops
+       confidently building jokes on top of a mis-heard word. */
+    body:JSON.stringify({lines:lines,persona:VP.text||'',heard:true})
   }).then(function(r){
     if(!r.ok)return r.json().catch(function(){return {};}).then(function(j){
       var e=new Error((j&&j.error)||('server said '+r.status));e.status=r.status;throw e;
@@ -7479,8 +7616,8 @@ function verityThink(nudge){
 }
 /* The single entry point: something was said, decide whether to answer and
    how. Falls back to the keyword matcher whenever the model is not there. */
-function verityRespond(who,text){
-  verityLog(who,text);
+function verityRespond(who,text,spoken){
+  verityLog(who,text,spoken);
   if(!verityShouldRespond(text))return;
   VERITY.lastThought=Date.now();
   if(!VERITY.brainOk){
@@ -7648,9 +7785,22 @@ function verityStop(){
    Chunking is a plain energy gate: start on sound, stop after a beat of quiet,
    ignore anything too short to be a sentence. Crude, but a real VAD would be a
    lot of machinery for a bot that only reacts to keywords. */
-var ASR_MODEL='onnx-community/whisper-tiny.en';
+/* whisper-tiny.en was producing fragments like "What?" and "Okay, what?
+   Like..." — see the chunking notes below for why that is mostly a gating
+   problem rather than a model problem, but tiny is also genuinely the least
+   accurate model in the family. base.en is roughly three times the parameters
+   and noticeably better on casual, overlapping, swearing-in-a-Discord-call
+   speech, for about 40 MB instead of 25 MB, downloaded once and then cached.
+   Override with ?asr=small.en in the URL if you want better still and can
+   afford the CPU. */
+var ASR_MODEL='onnx-community/whisper-base.en';
+try{
+  var _am=new URLSearchParams(location.search).get('asr');
+  if(_am&&/^[a-z0-9.\-]+$/i.test(_am))ASR_MODEL='onnx-community/whisper-'+_am;
+}catch(e){}
 var ASR_TFJS='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
-var EARS={ node:null, mix:null, buf:[], samples:0, speaking:false, quiet:0, busy:false, reqId:0 };
+var EARS={ node:null, mix:null, buf:[], samples:0, speaking:false, quiet:0, busy:false, reqId:0,
+           pre:[], preMs:0 };
 var ASR_RATE=16000;
 
 function verityCanHear(){ return true; }   /* Whisper works everywhere */
@@ -7763,16 +7913,56 @@ function verityListen(on){
         var outLen=Math.floor(inp.length/ratio), down=new Float32Array(outLen), rms=0;
         for(var i=0;i<outLen;i++){ var v=inp[Math.floor(i*ratio)]; down[i]=v; rms+=v*v; }
         rms=Math.sqrt(rms/(outLen||1));
+        /* ---- utterance gating ----------------------------------------
+           This is what was actually breaking VERITY's comprehension, and it
+           was two separate mistakes stacked on each other:
+
+           1. A 650 ms silence threshold. That is shorter than an ordinary
+              pause for breath, so a single sentence got cut into three or
+              four pieces and each piece was transcribed on its own with no
+              context. The result was a stream of "What?", "Okay, what?
+              Like...", "Can I say this?" — fragments that mean nothing, which
+              VERITY then had to respond to. He was not making weird comments
+              about nothing; he was making comments about nothing.
+
+           2. Nothing was buffered until the level crossed the threshold, so
+              the attack of the first word was always missing. Whisper is
+              worst exactly at the start of a clip, and feeding it audio that
+              begins mid-consonant makes it guess. That is where a lot of the
+              mis-hearing came from.
+
+           Both fixed: a rolling pre-roll so the run-up to speech is always
+           included, and a silence threshold long enough to let somebody
+           think mid-sentence without being cut off. */
         var LOUD=0.012, chunkMs=(outLen/ASR_RATE)*1000;
+        /* Pre-roll: always keep the most recent ~400 ms, speaking or not, so
+           the clip handed to Whisper starts before the first syllable. */
+        EARS.pre.push(down);
+        EARS.preMs+=chunkMs;
+        while(EARS.preMs>400&&EARS.pre.length>1){
+          var dropped=EARS.pre.shift();
+          EARS.preMs-=(dropped.length/ASR_RATE)*1000;
+        }
         if(rms>LOUD){
-          EARS.speaking=true; EARS.quiet=0;
+          if(!EARS.speaking){
+            /* speech just started — seed the buffer with the pre-roll */
+            EARS.speaking=true;
+            for(var pi=0;pi<EARS.pre.length;pi++){
+              EARS.buf.push(EARS.pre[pi]);EARS.samples+=EARS.pre[pi].length;
+            }
+          }
+          EARS.quiet=0;
           EARS.buf.push(down); EARS.samples+=outLen;
         }else if(EARS.speaking){
           EARS.quiet+=chunkMs;
           EARS.buf.push(down); EARS.samples+=outLen;      /* keep the tail */
-          if(EARS.quiet>650)verityFlushUtterance();
+          /* 1.1 s of quiet, not 0.65 — long enough to survive a mid-sentence
+             pause, short enough that a reply still feels like a reply */
+          if(EARS.quiet>1100)verityFlushUtterance();
         }
-        if(EARS.samples>ASR_RATE*12)verityFlushUtterance();  /* never hoard */
+        /* 20 s ceiling rather than 12: somebody telling a story should be
+           transcribed as a story, not chopped at the twelve-second mark */
+        if(EARS.samples>ASR_RATE*20)verityFlushUtterance();
       };
       src.connect(node);
       /* ScriptProcessor only ticks when connected to a sink; a muted gain keeps
@@ -7791,7 +7981,10 @@ function verityFlushUtterance(){
   var n=EARS.samples;
   EARS.speaking=false; EARS.quiet=0;
   var parts=EARS.buf; EARS.buf=[]; EARS.samples=0;
-  if(n<ASR_RATE*0.6)return;            /* too short to be a sentence */
+  /* 1.2 s, up from 0.6 s. Anything shorter is "uh", "what?" or a cough, and
+     transcribing it produces a fragment that is worse than silence because
+     VERITY then feels obliged to answer it. */
+  if(n<ASR_RATE*1.2)return;
   if(EARS.busy)return;                 /* one at a time; drop rather than queue */
   var pcm=new Float32Array(n), o=0;
   for(var i=0;i<parts.length;i++){ pcm.set(parts[i],o); o+=parts[i].length; }
@@ -7803,9 +7996,15 @@ function verityFlushUtterance(){
     if(err||!text)return;
     var clean=String(text).replace(/\[.*?\]|\(.*?\)/g,'').trim();
     if(clean.length<2)return;
-    if(/^(you|thanks for watching|thank you|bye)\.?$/i.test(clean))return;  /* whisper's silence tics */
+    /* Whisper hallucinates stock phrases when handed near-silence — these are
+       its most common ones, and they are indistinguishable from someone
+       actually saying them, so they get dropped either way. */
+    if(/^(you|thanks for watching|thank you|thanks|bye|bye\.|okay|ok|yeah|uh|um|hmm|mm|so|and|the|[.,!?\-]*)$/i.test(clean))return;
+    if(/^(subtitles by|transcription by|amara\.org|www\.|\[.*\]|\(.*\))/i.test(clean))return;
+    /* fewer than three words is a fragment, not a thought */
+    if(clean.split(/\s+/).filter(Boolean).length<3)return;
     sys('🎧 heard: <i>'+esc(clean)+'</i>');
-    verityRespond(me.name||'someone',clean);
+    verityRespond(me.name||'someone',clean,true);
   };
   try{ VERITY.worker.postMessage({cmd:'asr',id:id,pcm:pcm},[pcm.buffer]); }
   catch(e){ EARS.busy=false; }

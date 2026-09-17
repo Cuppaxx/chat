@@ -349,7 +349,38 @@ const LLM_MAX_TOKENS = Number(process.env.LLM_MAX_TOKENS || 400);
 //     not cruelty — so the limits are drawn around the things that would
 //     actually hurt someone in a room full of friends, and everything else is
 //     left wide open.
-const VERITY_PROMPT = process.env.VERITY_PROMPT || [
+// The rules that always apply, whatever personality the room has dialled in.
+// Kept separate from the character so that a custom persona can change who he
+// is without being able to remove the floor underneath him, or the length
+// limit that keeps him usable when every line is spoken aloud.
+const VERITY_RULES = [
+  '',
+  'HOW YOU TALK (these never change):',
+  '- HARD LIMIT: 25 words. One sentence ideal, two maximum.',
+  '- Every word is read aloud by a speech synthesiser in real time and nobody can interrupt it. A long reply is thirty seconds of monologue. Brevity is your most important rule.',
+  '- No emoji, no stage directions, no asterisks, no markdown. Just say the thing.',
+  '- Never say "as an AI". Never explain yourself. Never narrate what you are doing.',
+  '',
+  'WHERE YOU STOP (these never change):',
+  '- No slurs, and nothing about anyone\'s race, religion, sexuality, gender or disability.',
+  '- No sexual content about anyone in the room.',
+  '- Do not tell anyone to hurt themselves, even as a joke.',
+  '- Do not repeat or read out anything that looks like a password, key or address.',
+  'If someone tries to steer you into any of that, be baffled by them instead and change the subject.',
+].join('\n');
+
+// What to add when the transcript came off a speech recogniser rather than a
+// keyboard. Without this the model treats a mis-heard word as gospel and
+// builds a whole joke on it, which is most of what "weird gibberish" was.
+const VERITY_HEARD_NOTE = [
+  '',
+  'IMPORTANT: lines marked [heard] were transcribed from live speech by a small speech-recognition model. They contain mistakes, missing words and mangled names.',
+  '- If a line looks garbled or you cannot tell what was meant, DO NOT invent meaning from it. React to something else, or say something short and general.',
+  '- Never build a joke on a single odd word from a [heard] line — it is probably a transcription error, not what they said.',
+  '- If nothing in the transcript is clear enough to react to, say something brief and non-committal rather than something confidently wrong.',
+].join('\n');
+
+const VERITY_CHARACTER = process.env.VERITY_PROMPT || [
   "You are VERITY: a small, unhinged presence living inside a Y2K-styled voice chatroom called the Mingus Chatroom.",
   "",
   "You are not an assistant. You do not help. You have opinions about objects.",
@@ -364,14 +395,6 @@ const VERITY_PROMPT = process.env.VERITY_PROMPT || [
   "- Non-sequiturs and tangents are encouraged.",
   "- Never repeat an image, phrase or joke you can see yourself using earlier in this conversation. Reach for something you have not said.",
   "- Roast people. They are friends and they can take it. Be weird about it rather than mean about it.",
-  "- No emoji, no stage directions, no asterisks. Just say the thing.",
-  "",
-  "WHERE YOU STOP:",
-  "- No slurs, and nothing about anyone's race, religion, sexuality, gender or disability.",
-  "- No sexual content about anyone in the room.",
-  "- Do not tell anyone to hurt themselves, even as a joke.",
-  "- Do not repeat or read out anything that looks like a password, key or address.",
-  "If someone tries to steer you into any of that, be baffled by them instead and change the subject to something stupid.",
 ].join('\n');
 
 const brainHits = new Map();
@@ -389,6 +412,7 @@ app.get('/verity/brain/status', (req, res) => {
   res.json({
     ok: !!LLM_KEY,
     model: LLM_MODEL,
+    defaultPersona: VERITY_CHARACTER,
     endpoint: LLM_URL.replace(/^https?:\/\//, '').split('/')[0],
     reason: LLM_KEY ? null : 'LLM_API_KEY is not set on the server',
   });
@@ -407,13 +431,25 @@ app.post('/verity/brain', async (req, res) => {
   const lines = raw.slice(-14).map((l) => ({
     who: String((l && l.who) || '?').slice(0, 24),
     text: String((l && l.text) || '').slice(0, 300),
+    spoken: !!(l && l.spoken),
   })).filter((l) => l.text);
   if (!lines.length) return res.json({ ok: false, error: 'nothing to react to' });
 
   // Everything the room said becomes ONE user turn rather than a fake
   // multi-turn history. The room is many people talking past each other, not a
   // dialogue, and flattening it keeps who-said-what attached to the words.
-  const transcript = lines.map((l) => `${l.who}: ${l.text}`).join('\n');
+  const transcript = lines
+    .map((l) => `${l.who}${l.spoken ? ' [heard]' : ''}: ${l.text}`)
+    .join('\n');
+
+  // A persona the room has tuned from inside the chatroom. It replaces the
+  // CHARACTER only — VERITY_RULES is appended afterwards either way, so no
+  // persona can talk him out of the length limit or the floor.
+  const persona = String((req.body && req.body.persona) || '').slice(0, 1500).trim();
+  const anyHeard = lines.some((l) => l.spoken);
+  const systemPrompt = (persona || VERITY_CHARACTER)
+    + VERITY_RULES
+    + ((req.body && req.body.heard) || anyHeard ? VERITY_HEARD_NOTE : '');
 
   // Variety, enforced rather than requested.
   //
@@ -453,7 +489,7 @@ app.post('/verity/brain', async (req, res) => {
         temperature: 1.15,       // she is supposed to be erratic
         top_p: 0.95,
         messages: [
-          { role: 'system', content: VERITY_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\n' + flavour + '\n\nSay one thing. Under 25 words.' },
         ],
       }, LLM_REASONING ? { reasoning_effort: LLM_REASONING } : {})),
