@@ -5861,6 +5861,12 @@ function brOnMessage(ev){
   BR.st.got++;
   var slot=(u[1]<<8)|u[2];
   var r=brSlot(slot); if(!r)return;
+  /* Ground truth for who is talking: a packet from this slot, right now.
+     The speaking/quiet events were the previous basis and they are coarse -
+     'quiet' can be missed entirely, leaving somebody flagged as speaking for
+     the rest of the session and stealing the attribution for everything
+     anybody said. Audio arriving cannot be wrong. */
+  r.lastPacket=Date.now();
   try{
     if(r.dec.state!=='configured')throw new Error('decoder '+r.dec.state);
     r.dec.decode(new EncodedAudioChunk({type:'key',timestamp:r.ts,data:u.subarray(3)}));
@@ -8250,6 +8256,9 @@ function veritySay(text){
   if(now-VERITY.last<900)return;
   VERITY.last=now;
   addMsg(VERITY_ME,text,false);        /* the FULL reply, readable and re-readable */
+  /* Log his own line into the transcript he is shown next time. Without this
+     he had no idea what he had just said and repeated himself indefinitely. */
+  verityLog('VERITY',text);
   bc({t:'verity',a:'say',text:text});  /* text only: audio rides the voice stream */
   var spoken=veritySpeakable(text);
   /* If the voice really is going to stop short of what is written, say so.
@@ -8743,18 +8752,29 @@ function earsWho(){
   if(best==='discord'){
     /* Which Discord person. Prefer whoever Discord says was speaking; if
        several were, take the one whose own meter was loudest. */
-    var who=null,loud=0,n=0;
+    var who=null,best=0,n=0,now=Date.now();
     try{
-      for(var sl in (BR.speakingNow||{})){
-        n++;
+      for(var sl in BR.rx){
         var r=BR.rx[sl];
-        var v=(r&&r.an)?lvl(r.an):0.0001;
-        if(v>=loud){loud=v;who=BR.nameBySlot[sl]||BR.names[sl];}
+        if(!r||!r.lastPacket)continue;
+        /* only slots that have actually delivered audio in the last second */
+        if(now-r.lastPacket>1200)continue;
+        n++;
+        var v=(r.an)?lvl(r.an):0.0001;
+        if(v>=best){best=v;who=BR.nameBySlot[sl]||BR.names[sl];}
       }
       if(!n){
-        /* nobody flagged as speaking right now - fall back to the last one who
-           was, which is usually right for a clip that has just ended */
-        who=BR.lastSpokeName||null;
+        /* nobody is sending audio this instant - the clip has just ended, so
+           the most recent sender is the right answer */
+        var newest=0;
+        for(var s2 in BR.rx){
+          var r2=BR.rx[s2];
+          if(r2&&r2.lastPacket&&r2.lastPacket>newest){
+            newest=r2.lastPacket;who=BR.nameBySlot[s2]||BR.names[s2];
+          }
+        }
+        /* and if that was ages ago, it was not Discord at all */
+        if(newest&&now-newest>4000)who=null;
       }
     }catch(e){}
     return who||'someone in Discord';
@@ -8888,9 +8908,18 @@ function verityEarsReport(){
 
 function verityEvent(kind,name){
   if(typeof VERITY==='undefined'||!VERITY.on||!VERITY.host)return;
-  if(Math.random()>0.7)return;        /* he is not a town crier */
-  var line=verityPick(kind,name);
-  if(line)setTimeout(function(){veritySay(line);},900);
+  if(Math.random()>0.55)return;       /* he is not a town crier */
+  /* These were the last place the old canned pool was still being used -
+     "I was running out of people to perceive" every single time somebody
+     joined. Same line, every time, forever. Let him actually say something
+     about the person instead, and stay quiet if he cannot. */
+  if(!VERITY.brainOk)return;
+  verityLog('(the room)',name+' '+(kind==='joined'?'just joined the room.':'just left the room.'));
+  setTimeout(function(){
+    verityThink('('+name+' just '+(kind==='joined'?'joined':'left')+
+                '. One short line about that, then drop it.)')
+      .then(function(line){ if(VERITY.on&&line)veritySay(line); });
+  },900);
 }
 function veritySetVoice(v){
   VERITY.voice=v;
