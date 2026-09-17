@@ -775,6 +775,20 @@ body.compact .tab{padding:4px 11px;font-size:13.5px}
 .sw span{display:block;font-size:11px;font-weight:700;padding:4px 6px;text-align:center;
   background:rgba(255,255,255,.72);color:#2a1173;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* The theatre lives far enough down the page that the settings rows are
+   scrolled off the top, so from inside it there was no way to reach your own
+   microphone without scrolling back up and losing your place in whatever was
+   playing. These mirror the blade rows. */
+#theater h3 .tviews .q{font-size:11px;padding:2px 8px}
+#theater h3 .tviews .q.live{background-image:linear-gradient(var(--sel1),var(--sel2));
+  color:#fff;border-color:#fff;box-shadow:0 0 9px var(--bladeGlow)}
+#theater h3 .tviews .q.warn{background-image:linear-gradient(#ffb3c2,#e0192f);
+  color:#fff;border-color:#fff}
+@media (max-width:820px){
+  #theater h3{flex-wrap:wrap}
+  #theater h3 .tviews{margin-left:0;flex-wrap:wrap}
+}
+
 /* ===== theatre: transport bar, stage and queue =====
    The stage used to be a bare <video> with a row of buttons under it and no
    position indicator at all — followers had `controls` switched off (so they
@@ -1356,6 +1370,12 @@ body.touch #qPtt{display:none}
         <div id="theater">
           <h3>🎬 Theater <em id="tLeadLbl">— no queue leader yet</em>
             <span class="tviews">
+              <span class="q" id="tvMic" title="turn your microphone on or off">🎙 Mic</span>
+              <span class="q" id="tvMute" title="mute yourself">🔇 Mute</span>
+              <span class="q" id="tvDeaf" title="stop hearing everyone">🔈 Deafen</span>
+              <span class="q" id="tvCam" title="your webcam">📷 Cam</span>
+              <span class="q" id="tvScr" title="share your screen to the stage">🖥 Share</span>
+              <span style="width:10px"></span>
               <span class="q" data-tview="cine">Theater only</span>
               <span class="q on" data-tview="both">Theater + cams</span>
               <span class="q" id="tFull" title="fullscreen the stage">⛶ Fullscreen</span>
@@ -1752,7 +1772,11 @@ body.touch #qPtt{display:none}
 
 <script>
 /* ===================== CONFIG ===================== */
-var BUILD='7.0';
+/* Bump this on every deploy. It has sat at 7.0 through roughly twenty
+   deploys, which meant neither of us could tell from a screenshot whether a
+   fix was actually running or the browser was serving a cached copy - and a
+   bug report against an unknown build is very hard to act on. */
+var BUILD='7.1';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -4586,12 +4610,14 @@ function runCommand(line){
     return true;
   }
   if(cmd==='help'){
-    sys('<b>Commands</b> — <b>/w name message</b> whisper · <b>/r message</b> reply to the last whisper · '+
+    sys('<b>Commands</b> — <b>/layout</b> report the page layout (paste it when something looks wrong) · '+
+        '<b>/w name message</b> whisper · <b>/r message</b> reply to the last whisper · '+
         '<b>/shout message</b> leave whisper mode and talk to the room · <b>/me does a thing</b> · '+
         '<b>/clear</b> clear your own chat log');
     return true;
   }
   if(cmd==='clear'){$('#log').innerHTML='';unread=0;setJump();sys('your chat log was cleared (only yours)');return true;}
+  if(cmd==='layout'){layoutReport();return true;}
   return false;   /* unknown: let it go out as an ordinary message */
 }
 $('#btnSend').onclick=send;
@@ -10563,6 +10589,104 @@ setInterval(function(){ if(inTheater())tSyncBar(); },400);
     document.body.classList.toggle('cinema',inTheater()&&tView==='cine');
     try{tSyncBar();}catch(e){}
   };
+})();
+/* ============================================================================
+   /layout — a layout report you can paste
+
+   Two rounds of guessing at "the theatre breaks the formatting" produced one
+   real fix and one that turned out not to reproduce, because a description of
+   a visual bug is not enough to find it and a fresh lobby renders identically
+   to one reached through the theatre on this machine. This dumps the actual
+   geometry at the moment it looks wrong, which is the thing that was missing.
+   ============================================================================ */
+function layoutReport(){
+  function box(sel,label){
+    var e=(typeof sel==='string')?document.querySelector(sel):sel;
+    if(!e)return '  '+label+': (missing)';
+    var r=e.getBoundingClientRect();
+    var cs=getComputedStyle(e);
+    return '  '+label+
+      ': top '+Math.round(r.top+scrollY)+
+      ' · h '+Math.round(r.height)+
+      ' · w '+Math.round(r.width)+
+      (cs.display==='none'?' · HIDDEN':'')+
+      (e.className?(' · ['+String(e.className).slice(0,40)+']'):'');
+  }
+  var cams=document.getElementById('cams');
+  var lines=[
+    'room: '+room+'  ·  build '+BUILD+'  ·  viewport '+innerWidth+'x'+innerHeight,
+    'document height '+document.documentElement.scrollHeight+'  ·  scrollY '+Math.round(scrollY),
+    'body classes: ['+(document.body.className||'none')+']',
+    box('.wrap','.wrap'),
+    box('.blade','.blade'),
+    box('.layout','.layout'),
+    box('.side','.side  (channels)'),
+    box('.layout .main','.main'),
+    box('#members','#members'),
+    box(cams,'#cams'),
+    '    #cams parent: '+(cams?(cams.parentNode.id||cams.parentNode.className||'?'):'?'),
+    box('#theater','#theater'),
+    box('#tside','#tside  (camera rail)'),
+    box('.chat','.chat'),
+    box('#log','#log'),
+    box('.compose','.compose')
+  ];
+  /* find anything that is leaving a visible hole: a tall element with nothing
+     of its own inside it */
+  var holes=[];
+  try{
+    var all=document.querySelectorAll('.blade *');
+    for(var i=0;i<all.length;i++){
+      var e=all[i], r=e.getBoundingClientRect();
+      if(r.height<150)continue;
+      if(e.children.length)continue;
+      if(!e.textContent.trim())
+        holes.push((e.id?'#'+e.id:'.'+String(e.className).split(' ')[0])+' h'+Math.round(r.height));
+    }
+  }catch(e){}
+  if(holes.length)lines.push('EMPTY TALL ELEMENTS: '+holes.slice(0,8).join(', '));
+
+  sys('📐 <b>Layout report</b><br><pre style="margin:6px 0 0;font-size:11px;line-height:1.45;'+
+      'white-space:pre-wrap;color:#efe9ff">'+esc(lines.join('\n'))+'</pre>');
+  try{
+    navigator.clipboard.writeText(lines.join('\n'));
+    toast('layout report copied — paste it to Claude');
+  }catch(e){}
+}
+/* ---------------------------------------------------------------------------
+   The blade's own controls, mirrored into the theatre header.
+   They drive exactly the same functions as the rows at the top of the page -
+   no second implementation of anything - and re-read their state from the
+   same variables, so the two can never disagree about whether your mic is on.
+   --------------------------------------------------------------------------- */
+function tvSync(){
+  function set(id,on,warn,label){
+    var e=document.getElementById(id);
+    if(!e)return;
+    e.classList.toggle('live',!!on&&!warn);
+    e.classList.toggle('warn',!!warn);
+    if(label)e.textContent=label;
+  }
+  set('tvMic',micOn,false,micOn?'🎙 Mic on':'🎙 Mic off');
+  set('tvMute',muted,muted,muted?'🔇 Muted':'🔇 Mute');
+  set('tvDeaf',deaf,deaf,deaf?'🔈 Deafened':'🔈 Deafen');
+  set('tvCam',camOn,false,camOn?'📷 Cam on':'📷 Cam');
+  set('tvScr',scrOn,false,scrOn?'🖥 Sharing':'🖥 Share');
+}
+(function(){
+  var wire=function(id,fn){
+    var e=document.getElementById(id);
+    if(e)e.onclick=function(){fn();setTimeout(tvSync,60);};
+  };
+  wire('tvMic',function(){toggleMic();});
+  wire('tvMute',function(){setMute(!muted);});
+  wire('tvDeaf',function(){setDeaf(!deaf);});
+  wire('tvCam',function(){toggleCam();});
+  wire('tvScr',function(){toggleScreen();});
+  /* keep them honest against the blade rows, which can change these from
+     anywhere - a keyboard shortcut, an admin mute, the mic being dropped */
+  setInterval(function(){ if(inTheater())tvSync(); },700);
+  tvSync();
 })();
 </script>
 </body>
