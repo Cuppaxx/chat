@@ -1570,7 +1570,7 @@ body.touch #qPtt{display:none}
             <span class="q" data-vp="menace">😈 Menace</span>
             <span class="q" data-vp="helpful">🤓 Actually helpful</span>
           </div>
-          <textarea id="vpText" rows="9" maxlength="4000"
+          <textarea id="vpText" rows="10" maxlength="12000"
             style="width:100%;font:inherit;font-size:12.5px;line-height:1.45;padding:8px 10px;
                    border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d;
                    resize:vertical"></textarea>
@@ -7697,14 +7697,39 @@ function verityBrain(text){
   return null;
 }
 /* ---------- plumbing ---------- */
+/* What actually gets read aloud, as opposed to what gets written down.
+   These are deliberately different. The chat log keeps the whole reply,
+   because SERIOUS MODE means somebody asked a real question and deserves the
+   real answer in a form they can re-read. The voice gets a shortened copy,
+   because a spoken paragraph is thirty seconds nobody can interrupt.
+   Emoji are stripped from the spoken copy for the obvious reason: a speech
+   synthesiser reads them out as "face with tears of joy". */
+function veritySpeakable(text){
+  var t=String(text||'')
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu,'')
+    .replace(/\s+/g,' ')
+    .trim();
+  if(t.length<=230)return t;
+  var parts=t.split(/(?<=[.!?])\s+/).filter(Boolean);
+  var out='';
+  for(var i=0;i<parts.length;i++){
+    if(out&&(out+' '+parts[i]).length>230)break;
+    out=out?out+' '+parts[i]:parts[i];
+  }
+  if(!out){                               /* one enormous sentence */
+    var cut=t.slice(0,230), sp=cut.lastIndexOf(' ');
+    out=(sp>120?cut.slice(0,sp):cut).replace(/[,;:\s]+$/,'')+'\u2026';
+  }
+  return out;
+}
 function veritySay(text){
   if(!text||!VERITY.on||!VERITY.host)return;
   var now=Date.now();
   if(now-VERITY.last<2200)return;      /* don't let him talk over himself */
   VERITY.last=now;
-  addMsg(VERITY_ME,text,false);        /* readable even if muted or still loading */
-  bc({t:'verity',a:'say',text:text});  /* text only: ~60 bytes, audio rides the voice stream */
-  verityEnqueue(text);
+  addMsg(VERITY_ME,text,false);        /* the FULL reply, readable and re-readable */
+  bc({t:'verity',a:'say',text:text});  /* text only: audio rides the voice stream */
+  verityEnqueue(veritySpeakable(text));/* a shorter, emoji-free copy for the voice */
 }
 function verityStart(){
   if(VERITY.on){verityStop();return;}
