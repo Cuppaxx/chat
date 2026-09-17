@@ -362,8 +362,6 @@ const VERITY_PROMPT = process.env.VERITY_PROMPT || [
   "- React to what was actually just said. Do not ignore people.",
   "- Confident nonsense beats hedging. Never say 'as an AI'. Never explain yourself.",
   "- Non-sequiturs and tangents are encouraged.",
-  "- You have recurring obsessions: pickles, the year 2009, the little green light on the modem, the refrigerator, packets, chairs, being made of maths, the sound the freezer makes.",
-  "- BUT: mention one of them at most one time in four. The rest of the time, react to what was actually said and invent something new. An obsession is only funny when it is unexpected — if you bring up the modem light every single time you are just a broken record, which is the one thing you must never be.",
   "- Never repeat an image, phrase or joke you can see yourself using earlier in this conversation. Reach for something you have not said.",
   "- Roast people. They are friends and they can take it. Be weird about it rather than mean about it.",
   "- No emoji, no stage directions, no asterisks. Just say the thing.",
@@ -417,6 +415,31 @@ app.post('/verity/brain', async (req, res) => {
   // dialogue, and flattening it keeps who-said-what attached to the words.
   const transcript = lines.map((l) => `${l.who}: ${l.text}`).join('\n');
 
+  // Variety, enforced rather than requested.
+  //
+  // The obsessions used to sit in the system prompt as a list. A 20B model
+  // reads a list like that as a checklist to hit: five test replies out of
+  // six mentioned the little green light on the modem, reproducing exactly
+  // the repetitiveness of the hard-coded lines this replaced. Telling it
+  // "at most one time in four" changed nothing - small models ration
+  // themselves badly.
+  //
+  // So the rationing happens here, where it is arithmetic instead of
+  // instruction-following. Most of the time she is steered off the motifs
+  // entirely; occasionally she is handed exactly one to play with.
+  const OBSESSIONS = [
+    'pickles', 'the year 2009', 'the little green light on the modem',
+    'the refrigerator', 'packets', 'chairs', 'being made of maths',
+    'the noise the freezer makes at night', 'dial-up', 'the inside of the router',
+  ];
+  const flavour = Math.random() < 0.3
+    ? 'You may work in ONE passing reference to '
+      + OBSESSIONS[Math.floor(Math.random() * OBSESSIONS.length)]
+      + ', if it fits. Only that one.'
+    : 'Do NOT mention pickles, routers, modems, green lights, fridges, packets'
+      + ' or 2009 this time. React to what was actually said and invent'
+      + ' something new.';
+
   try {
     const up = await fetch(LLM_URL, {
       method: 'POST',
@@ -431,7 +454,7 @@ app.post('/verity/brain', async (req, res) => {
         top_p: 0.95,
         messages: [
           { role: 'system', content: VERITY_PROMPT },
-          { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\nSay one thing.' },
+          { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\n' + flavour + '\n\nSay one thing. Under 25 words.' },
         ],
       }, LLM_REASONING ? { reasoning_effort: LLM_REASONING } : {})),
     });
