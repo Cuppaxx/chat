@@ -5697,8 +5697,31 @@ function brGain(slot){
 }
 /* Called whenever the voice-channel roster arrives: make sure everyone in it
    has a gain node and a meter, whether or not they have made a sound. */
+/* Same problem on the bridge side: a decoder, a gain, a compressor and an
+   analyser per Discord speaker, created on sight and never released. Someone
+   who drops in and out of the voice channel repeatedly left a full chain
+   behind each time. */
+function brPruneSlots(){
+  if(!BR.vc||!BR.vc.length)return;   /* an empty roster is more likely a
+     hiccup on the server than everybody having left at once; dropping live
+     audio paths on the strength of it would be worse than keeping a few
+     stale ones */
+  var live={};
+  for(var i=0;i<BR.vc.length;i++)if(BR.vc[i]&&BR.vc[i].slot!=null)live[BR.vc[i].slot]=1;
+  for(var slot in BR.rx){
+    if(live[slot])continue;
+    var r=BR.rx[slot];
+    try{if(r.dec&&r.dec.state!=='closed')r.dec.close();}catch(e){}
+    ['in','gain','comp','limDry','limWet','autoG','an'].forEach(function(n){
+      try{if(r[n])r[n].disconnect();}catch(e){}
+    });
+    delete BR.rx[slot];
+    delete BR.nameBySlot[slot];
+  }
+}
 function brPrepSlots(){
   if(!BR.on||!BR.vc)return;
+  brPruneSlots();
   for(var i=0;i<BR.vc.length;i++){
     var m=BR.vc[i];
     if(!m||m.self||m.slot==null)continue;
@@ -8144,6 +8167,7 @@ function verityStart(){
   /* Ask the server whether the fast voice is available before downloading
      anything. When it is, there is nothing to download at all. */
   VERITY.lines=[];VERITY.warnedBrain=0;
+  VERITY.asrHist=[];VERITY.asrStuck=0;VERITY.warnedSlow=0;
   verityProbeBrain().then(function(bok){
     if(!VERITY.on)return;
     if(bok)good('🧠 VERITY is thinking with <b>'+esc(VERITY.brainModel||'a language model')+'</b>.');
@@ -8302,8 +8326,26 @@ function mixAdd(key,stream){
     MIX.sources[key]={src:src,gE:gE,gD:gD};
   }catch(e){}
 }
+/* Sources were only ever ADDED. Every peer who joined created a
+   MediaStreamSource and two gain nodes wired into both mixes, and nothing
+   removed them when they left — so across a long session with people coming
+   and going the graph kept growing, every dead node still being walked by the
+   audio thread on every render quantum. That is the "slower and slower" half
+   of this: not one thing breaking, just steadily more work per frame. */
+function mixPrune(){
+  for(var key in MIX.sources){
+    if(key==='me')continue;
+    if(peers[key]&&peers[key].stream)continue;   /* still here */
+    var dead=MIX.sources[key];
+    ['src','gE','gD'].forEach(function(n){
+      try{if(dead[n])dead[n].disconnect();}catch(e){}
+    });
+    delete MIX.sources[key];
+  }
+}
 function mixSync(){
   mixEnsure();
+  mixPrune();
   if(localStream)mixAdd('me',localStream);
   for(var id in peers)if(peers[id].stream)mixAdd(id,peers[id].stream);
   /* VERITY -> Discord only. Adding her to EARS would make her answer herself
@@ -8385,6 +8427,20 @@ setInterval(function(){
 function verityMixStream(){mixSync();return MIX.ears;}
 /* what gets encoded and shipped to the Discord bot */
 function discordMixStream(){mixSync();return MIX.disc;}
+/* Throw the worker away and let the next listen build a fresh one. The model
+   is already in the browser's cache, so this costs a few seconds rather than
+   another download. Heavy-handed, but a wedged inference worker cannot be
+   recovered from the outside, and the alternative is staying deaf. */
+function verityAsrRestart(){
+  try{verityListen(false);}catch(e){}
+  try{if(VERITY.worker)VERITY.worker.terminate();}catch(e){}
+  VERITY.worker=null;
+  VERITY.asrReady=false;VERITY.asrPromise=null;VERITY.asrResolve=null;
+  VERITY.asrPending={};
+  VERITY.ready=false;VERITY.loadPromise=null;VERITY.loadResolve=null;
+  EARS.busy=false;EARS.buf=[];EARS.samples=0;EARS.pre=[];EARS.preMs=0;
+  setTimeout(function(){ try{verityEarsSync();}catch(e){} },1200);
+}
 function verityAsrLoad(){
   if(VERITY.asrReady)return Promise.resolve(true);
   if(VERITY.asrPromise)return VERITY.asrPromise;
@@ -8654,6 +8710,18 @@ function verityFlushUtterance(){
     /* Name who it was attributed to. If the attribution is ever wrong, this
        is what makes it visible instead of silently poisoning the transcript. */
     var said=speaker||'someone';
+    /* Track the trend, not just the last one. A single slow transcription is
+       noise; a rising average is the thing that ends with him silent, and it
+       should be visible before that rather than after. */
+    VERITY.asrHist=(VERITY.asrHist||[]).concat([VERITY.lastAsrMs]).slice(-8);
+    var avg=VERITY.asrHist.reduce(function(a,b){return a+b;},0)/VERITY.asrHist.length;
+    if(VERITY.asrHist.length>=6&&avg>6000&&!VERITY.warnedSlow){
+      VERITY.warnedSlow=1;
+      sys('🥒 <b>His hearing is getting slower</b> (averaging '+(avg/1000).toFixed(1)+
+          's a clip). Switch <b>hearing</b> to Balanced or Fast in the VERITY panel, '+
+          'or hang up and call him again to reset it.',true);
+      setTimeout(function(){VERITY.warnedSlow=0;},180000);
+    }
     var slow=VERITY.lastAsrMs>2500;
     sys('🎧 heard <b>'+esc(said)+'</b>: <i>'+esc(clean)+'</i>'+
         ' <span style="opacity:.55;font-size:11px">('+
@@ -8663,8 +8731,36 @@ function verityFlushUtterance(){
         ')</span>');
     verityRespond(said,clean,true);
   };
+  /* THE ONE THAT STOPPED HIM HEARING ALTOGETHER.
+     EARS.busy was cleared only by the worker replying. One request that never
+     came back - an out-of-memory, a lost GPU context, a decode that wedged -
+     left it true forever, and the guard at the top of this function then
+     silently dropped every single utterance from then on. He did not crash or
+     complain; he just quietly went deaf and stayed that way for the rest of
+     the session.
+
+     Now every request has a deadline. Missing it clears the flag so the next
+     utterance is still heard, and two misses in a row means the worker itself
+     is wedged rather than merely slow, so it gets replaced. */
+  var asrGuard=setTimeout(function(){
+    if(!VERITY.asrPending[id])return;      /* it answered in time */
+    delete VERITY.asrPending[id];
+    EARS.busy=false;
+    VERITY.asrStuck=(VERITY.asrStuck||0)+1;
+    if(VERITY.asrStuck>=2){
+      VERITY.asrStuck=0;
+      sys('🥒 <i>his hearing wedged \u2014 restarting it</i>');
+      verityAsrRestart();
+    }
+  },25000);
+  var origCb=VERITY.asrPending[id];
+  VERITY.asrPending[id]=function(t,e2){
+    clearTimeout(asrGuard);
+    VERITY.asrStuck=0;
+    origCb(t,e2);
+  };
   try{ VERITY.worker.postMessage({cmd:'asr',id:id,pcm:pcm},[pcm.buffer]); }
-  catch(e){ EARS.busy=false; }
+  catch(e){ clearTimeout(asrGuard); delete VERITY.asrPending[id]; EARS.busy=false; }
 }
 function verityEarsSync(){
   if(VERITY.on&&VERITY.hearMe&&micOn)verityListen(true);
