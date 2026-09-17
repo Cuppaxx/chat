@@ -248,9 +248,10 @@ app.post('/verity/tts', async (req, res) => {
       text,
       format: 'mp3',
       mp3_bitrate: 64,            // it is speech going down an Opus call anyway
-      // 'balanced' gets the first bytes out quickly without shredding prosody,
-      // which is the whole point of moving off the in-browser model.
-      latency: 'balanced',
+      // 'low' rather than 'balanced'. Fish offers both; low trades a little
+      // prosody smoothing for a noticeably earlier first byte, and in a live
+      // voice call the wait is far more noticeable than the polish.
+      latency: 'low',
       normalize: true,
       prosody: { speed: 1, volume: 0, normalize_loudness: true },
     };

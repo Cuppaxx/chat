@@ -7165,10 +7165,29 @@ function verityWorkerSrc(){
     "    try{",
     "      const t=await import(m.tfjs);",
     "      if(t.env&&t.env.backends&&t.env.backends.onnx&&t.env.backends.onnx.wasm){",
-    "        t.env.backends.onnx.wasm.numThreads=1;",   // keep it gentle; SAB may be absent
+    // Without cross-origin isolation there is no SharedArrayBuffer, so the
+    // WASM backend cannot use more than one thread however many we ask for.
+    // That single-threaded CPU decode is what made transcription take the
+    // better part of half a minute.
+    "        t.env.backends.onnx.wasm.numThreads=1;",
     "      }",
-    "      asr=await t.pipeline('automatic-speech-recognition',m.model,{dtype:'q8',device:'wasm'});",
-    "      self.postMessage({ev:'asr-loaded',ok:true});",
+    // WebGPU first: it is several times faster than single-threaded WASM on
+    // the same model, and unlike the TTS case (where WebGPU produced wrong
+    // phonemes) Whisper is well supported on it. If it is unavailable or the
+    // load throws, fall straight back to WASM rather than losing his ears.
+    "      let used='wasm';",
+    "      if(m.gpu&&typeof navigator!=='undefined'&&navigator.gpu){",
+    "        try{",
+    "          asr=await t.pipeline('automatic-speech-recognition',m.model,",
+    "            {dtype:{encoder_model:'fp32',decoder_model_merged:'q4'},device:'webgpu'});",
+    "          used='webgpu';",
+    "        }catch(gx){ asr=null; }",
+    "      }",
+    "      if(!asr){",
+    "        asr=await t.pipeline('automatic-speech-recognition',m.model,{dtype:'q8',device:'wasm'});",
+    "        used='wasm';",
+    "      }",
+    "      self.postMessage({ev:'asr-loaded',ok:true,backend:used});",
     "    }catch(err){ self.postMessage({ev:'asr-loaded',ok:false,error:String(err&&err.message||err)}); }",
     "    return;",
     "  }",
@@ -7221,7 +7240,11 @@ function verityWorkerStart(){
       if(VERITY.loadResolve){var f=VERITY.loadResolve;VERITY.loadResolve=null;f(!!d.ok);}
       return;
     }
-    if(d.ev==='asr-loaded'){ if(VERITY.asrResolve)VERITY.asrResolve(d.ok,d.error); return; }
+    if(d.ev==='asr-loaded'){
+      VERITY.asrBackend=d.backend||'';
+      if(VERITY.asrResolve)VERITY.asrResolve(d.ok,d.error);
+      return;
+    }
     if(d.ev==='asr'){
       var cb=VERITY.asrPending&&VERITY.asrPending[d.id];
       if(cb){ delete VERITY.asrPending[d.id]; cb(d.ok?d.text:'', d.ok?null:(d.error||'failed')); }
@@ -7372,7 +7395,9 @@ function verityFishFetch(text){
   });
 }
 function verityFishRender(text){
+  var t0=Date.now();
   return verityFishFetch(text).then(function(buf){
+    VERITY.lastTtsMs=Date.now()-t0;
     var c=ctx();
     var src=c.createBufferSource();
     src.buffer=buf;
@@ -8106,13 +8131,17 @@ function verityAsrLoad(){
     VERITY.asrResolve=function(ok,err){
       if(done)return; done=true;
       VERITY.asrReady=!!ok;
-      if(ok)good('🥒 VERITY can hear you now.');
+      if(ok)good('🥒 VERITY can hear you now'+
+        (VERITY.asrBackend==='webgpu'
+          ? ' \u2014 running on your <b>GPU</b>, so transcription is quick.'
+          : ' \u2014 running on the <b>CPU</b>, which is slow. A browser with WebGPU (recent Chrome or Edge) makes this several times faster.'));
       else sys('🥒 VERITY’s ears failed to load ('+esc(String(err||'').slice(0,60))+'). '+
                'She still reads the chat.',true);
       renderMembers();
       resolve(!!ok);
     };
-    VERITY.worker.postMessage({cmd:'asr-load',model:ASR_MODEL,tfjs:ASR_TFJS});
+    VERITY.worker.postMessage({cmd:'asr-load',model:ASR_MODEL,tfjs:ASR_TFJS,
+                              gpu:!!(navigator.gpu)});
     setTimeout(function(){ if(!done)VERITY.asrResolve(false,'timeout'); },240000);
   });
   return VERITY.asrPromise;
@@ -8239,13 +8268,15 @@ function verityListen(on){
         }else if(EARS.speaking){
           EARS.quiet+=chunkMs;
           EARS.buf.push(down); EARS.samples+=outLen;      /* keep the tail */
-          /* 1.1 s of quiet, not 0.65 — long enough to survive a mid-sentence
-             pause, short enough that a reply still feels like a reply */
-          if(EARS.quiet>1100)verityFlushUtterance();
+          /* 900 ms. 650 was short enough to cut sentences in half; 1100 was
+             comfortably past that but added most of a second to every single
+             reply. 900 still survives a normal mid-sentence pause. */
+          if(EARS.quiet>900)verityFlushUtterance();
         }
-        /* 20 s ceiling rather than 12: somebody telling a story should be
-           transcribed as a story, not chopped at the twelve-second mark */
-        if(EARS.samples>ASR_RATE*20)verityFlushUtterance();
+        /* Decode time scales with clip length, so a 20 s ceiling meant one
+           long ramble could block the recogniser for a very long time and
+           delay everything said after it. 11 s is still a whole thought. */
+        if(EARS.samples>ASR_RATE*11)verityFlushUtterance();
       };
       src.connect(node);
       /* ScriptProcessor only ticks when connected to a sink; a muted gain keeps
@@ -8281,21 +8312,35 @@ function earsWho(){
 function verityFlushUtterance(){
   var n=EARS.samples;
   var speaker=earsWho();
+  /* If he physically cannot answer right now, do not spend several seconds of
+     CPU transcribing something nobody will read. This is most of the queue
+     that was making the NEXT utterance slow: every one was transcribed even
+     though he only replies to roughly a third of them. */
+  var pointless=(typeof VERITY!=='undefined')&&
+                (!VERITY.brainOk||
+                 (VERITY.rateLimitedUntil&&Date.now()<VERITY.rateLimitedUntil));
   EARS.who={}; EARS.whoTicks=0;
   EARS.speaking=false; EARS.quiet=0;
   var parts=EARS.buf; EARS.buf=[]; EARS.samples=0;
   /* 1.2 s, up from 0.6 s. Anything shorter is "uh", "what?" or a cough, and
      transcribing it produces a fragment that is worse than silence because
      VERITY then feels obliged to answer it. */
+  if(pointless){EARS.buf=[];EARS.samples=0;return;}
   if(n<ASR_RATE*1.2)return;
   if(EARS.busy)return;                 /* one at a time; drop rather than queue */
   var pcm=new Float32Array(n), o=0;
   for(var i=0;i<parts.length;i++){ pcm.set(parts[i],o); o+=parts[i].length; }
   EARS.busy=true;
   var id=++EARS.reqId;
+  /* Time it. "VERITY takes thirty seconds" needs a breakdown before it can be
+     fixed, and the only way to know whether the recogniser or the voice is
+     the expensive part is to measure both where they happen. */
+  var asrT0=Date.now(), clipSec=n/ASR_RATE;
   VERITY.asrPending=VERITY.asrPending||{};
   VERITY.asrPending[id]=function(text,err){
     EARS.busy=false;
+    VERITY.lastAsrMs=Date.now()-asrT0;
+    VERITY.lastClipSec=clipSec;
     if(err||!text)return;
     var clean=String(text).replace(/\[.*?\]|\(.*?\)/g,'').trim();
     if(clean.length<2)return;
@@ -8309,7 +8354,13 @@ function verityFlushUtterance(){
     /* Name who it was attributed to. If the attribution is ever wrong, this
        is what makes it visible instead of silently poisoning the transcript. */
     var said=speaker||'someone';
-    sys('🎧 heard <b>'+esc(said)+'</b>: <i>'+esc(clean)+'</i>');
+    var slow=VERITY.lastAsrMs>2500;
+    sys('🎧 heard <b>'+esc(said)+'</b>: <i>'+esc(clean)+'</i>'+
+        ' <span style="opacity:.55;font-size:11px">('+
+        (VERITY.lastAsrMs/1000).toFixed(1)+'s to transcribe '+
+        clipSec.toFixed(1)+'s of audio'+
+        (slow&&VERITY.asrBackend!=='webgpu'?', CPU — a WebGPU browser is much faster':'')+
+        ')</span>');
     verityRespond(said,clean,true);
   };
   try{ VERITY.worker.postMessage({cmd:'asr',id:id,pcm:pcm},[pcm.buffer]); }
