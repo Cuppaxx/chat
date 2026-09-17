@@ -1813,7 +1813,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.1';
+var BUILD='8.2';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3693,12 +3693,53 @@ function disposeFx(){
   }
   fxChain=null;
 }
+/* ---------------------------------------------------------------------------
+   ONE source node for the microphone.
+
+   Chrome hands back SILENCE from a second MediaStreamAudioSourceNode built on
+   a MediaStream that already has one. This file was making four - the FX
+   chain, the level meter, the self-monitor's bare-mic tap, the channel
+   measurement - and wireFx() made a fresh one every time an effect changed.
+   Whichever got there first worked and the rest were silent, which is why
+   "None" was fine (it sends the bare track and never touches Web Audio) while
+   every actual effect was dead.
+
+   So: one node, built from its own MediaStream wrapping the same track, made
+   once and handed to everybody. Rebuilt only when the microphone itself
+   changes.
+   --------------------------------------------------------------------------- */
+var micSrcNode=null, micSrcFor=null, micSrcMs=null;
+function micSource(){
+  if(!localStream)return null;
+  var c;try{c=ctx();}catch(e){return null;}
+  var track=null;
+  try{track=localStream.getAudioTracks()[0]||null;}catch(e){}
+  if(!track)return null;
+  if(micSrcNode&&micSrcFor===track&&micSrcNode.context===c)return micSrcNode;
+  if(micSrcNode){try{micSrcNode.disconnect();}catch(e){}}
+  try{
+    /* its own MediaStream, so this is the only source node on that object */
+    micSrcMs=new MediaStream([track]);
+    micSrcNode=c.createMediaStreamSource(micSrcMs);
+    micSrcFor=track;
+  }catch(e){ micSrcNode=null;micSrcFor=null; }
+  return micSrcNode;
+}
+function micSourceDrop(){
+  if(micSrcNode){try{micSrcNode.disconnect();}catch(e){}}
+  micSrcNode=null;micSrcFor=null;micSrcMs=null;
+}
 function wireFx(){
   try{
     var c=ctx();
     ensureFxGraph();
     disposeFx();
-    if(fxSource){try{fxSource.disconnect();}catch(e){}fxSource=null;}
+    /* Disconnect only what THIS function wired up. The source is shared now,
+       so disconnecting it outright would also silence the level meter and the
+       self-monitor, which is a different bug of exactly the same shape. */
+    if(fxSource&&fxChain&&fxChain.input){try{fxSource.disconnect(fxChain.input);}catch(e){}}
+    if(fxSource&&DN.node){try{fxSource.disconnect(DN.node);}catch(e){}}
+    fxSource=null;
     if(!localStream)return false;
     /* VERITY injects into fxDest, so the bare-mic shortcut must be skipped
        while he is on or his voice would never reach the outgoing track */
@@ -3711,7 +3752,8 @@ function wireFx(){
       monTap(null);
       return true;
     }
-    fxSource=c.createMediaStreamSource(localStream);
+    fxSource=micSource();
+    if(!fxSource)return false;
     fxChain=makeFx(fxMode);
     /* Denoise first, before any voice FX. Autotune tracking pitch out of a fan
        is a worse problem than the fan, and the limiter would otherwise spend
@@ -3798,6 +3840,7 @@ function micConstraints(){
 function toggleMic(){ if(micOn)stopMic(); else startMic(); }
 function stopMic(){
   if(localStream)localStream.getTracks().forEach(function(t){t.stop();});
+  micSourceDrop();
   localStream=null;micOn=false;localAnalyser=null;
   disposeFx();
   if(fxSource){try{fxSource.disconnect();}catch(e){}fxSource=null;}
@@ -3815,6 +3858,7 @@ function startMic(announce){
   return navigator.mediaDevices.getUserMedia({audio:micConstraints(),video:false})
   .then(function(s){
     if(localStream)localStream.getTracks().forEach(function(t){t.stop();});
+    micSourceDrop();                 /* new microphone, new track, new node */
     localStream=s;micOn=true;$('#micState').textContent='On';
     s.getAudioTracks()[0].enabled=!muted&&(!ptt||pttDown);
     if(!wireFx())setOut('audio',s.getAudioTracks()[0]);
@@ -3824,8 +3868,9 @@ function startMic(announce){
       dnChip(); if(ok&&micOn)wireFx();
     });
     try{
-      var c=ctx(),src=c.createMediaStreamSource(s);
-      localAnalyser=c.createAnalyser();localAnalyser.fftSize=256;src.connect(localAnalyser);
+      var c=ctx(),src=micSource();
+      localAnalyser=c.createAnalyser();localAnalyser.fftSize=256;
+      if(src)src.connect(localAnalyser);
     }catch(e){}
     bc({t:'mute',on:muted});renderMembers();
     try{verityEarsSync();setTimeout(verityEarsReport,1200);}catch(e){}
@@ -10084,9 +10129,10 @@ function monTap(node){
     monGain.gain.value=monVol;
     var src=node;
     if(!src){
-      /* bare-mic path: nothing was handed to us, so make our own tap */
+      /* bare-mic path: nothing was handed to us, so tap the shared source */
       if(!localStream)return;
-      src=c.createMediaStreamSource(localStream);
+      src=micSource();
+      if(!src)return;
     }
     src.connect(monGain);
     monSrcNode=src;
@@ -10957,7 +11003,8 @@ function audioReport(){
 function measureChannels(){
   try{
     var c=ctx();
-    var src=c.createMediaStreamSource(localStream);
+    var src=micSource();
+    if(!src)return;
     var sp=c.createChannelSplitter(2);
     var aL=c.createAnalyser(), aR=c.createAnalyser();
     aL.fftSize=1024;aR.fftSize=1024;
@@ -12154,8 +12201,10 @@ function fxTestReport(taps){
   });
   lines.push('');
   if(!taps[0]||taps[0].peak<0.004){
-    lines.push('VERDICT: nothing is arriving from the microphone at all — the effects are not');
-    lines.push('the problem. Check the mic is unmuted and is the right device.');
+    lines.push('VERDICT: nothing is arriving at the head of the chain.');
+    lines.push('If the level meter next to your mic IS moving, the chain is being handed a');
+    lines.push('dead audio node rather than your microphone — which is a wiring fault here,');
+    lines.push('not a problem with your mic. Send this report.');
   }else if(culprit){
     lines.push('VERDICT: the signal falls off a cliff at "'+culprit+'".');
     lines.push('That stage is the one eating it.');
