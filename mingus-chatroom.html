@@ -202,10 +202,17 @@ body{font-family:var(--font);color:var(--txt);min-height:100vh;overflow-x:hidden
 .layout{display:grid;grid-template-columns:210px 1fr;position:relative;z-index:1;
   background-image:linear-gradient(90deg,rgba(90,50,200,.10) 0 210px,transparent 210px),
                    linear-gradient(90deg,transparent 0 209px,rgba(80,50,160,.2) 209px 210px,transparent 210px)}
-.side{align-self:start;position:sticky;top:8px;z-index:2}
+/* align-self:start is the fix for the column inflating to match the theatre's
+   height. position:sticky was an extra I added at the same time and it is
+   what "theatre still breaks formatting" actually was: sticky does exactly
+   what it says, so after scrolling down in the theatre and switching back the
+   channel list stayed pinned partway down the page, detached from the top of
+   the panel with a dead lilac column underneath it. Sizing it to its content
+   was the useful half; following the scroll was not. */
+.side{align-self:start}
 @media (max-width:820px){
   .layout{background-image:none}
-  .side{position:static;align-self:stretch;border-right:none}
+  .side{align-self:stretch;border-right:none}
 }
 h3{margin:0;padding:5px 12px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink2);font-weight:700;
   border-bottom:1px solid rgba(80,50,160,.15)}
