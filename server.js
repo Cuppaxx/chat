@@ -99,6 +99,43 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// ---- the denoiser's model ---------------------------------------------------
+// 112 KB of WebAssembly. Serving it from here rather than sending every
+// visitor's browser to a CDN means one download onto this box instead of one
+// per person, keeps it same-origin, and means no third party gets told who is
+// joining a room. Fetched once, on the first request, then held in memory.
+const RNNOISE_URL =
+  'https://cdn.jsdelivr.net/npm/@jitsi/rnnoise-wasm@0.2.1/dist/rnnoise.wasm';
+let rnnoiseBuf = null, rnnoisePending = null;
+function rnnoiseBytes() {
+  if (rnnoiseBuf) return Promise.resolve(rnnoiseBuf);
+  if (!rnnoisePending) {
+    rnnoisePending = (async () => {
+      const r = await fetch(RNNOISE_URL);
+      if (!r.ok) throw new Error('upstream ' + r.status);
+      const b = Buffer.from(await r.arrayBuffer());
+      if (b.length < 50000) throw new Error('short read (' + b.length + ' bytes)');
+      rnnoiseBuf = b;
+      console.log('rnnoise model cached, ' + b.length + ' bytes');
+      return b;
+    })();
+    // a failed attempt must not be remembered as the answer
+    rnnoisePending.catch(() => {}).then(() => { rnnoisePending = null; });
+  }
+  return rnnoisePending;
+}
+app.get('/rnnoise.wasm', (req, res) => {
+  rnnoiseBytes().then((b) => {
+    res.setHeader('Content-Type', 'application/wasm');
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    res.send(b);
+  }).catch((e) => {
+    console.log('rnnoise unavailable: ' + e.message);
+    // the page falls back to the CDN itself, so this is not fatal
+    res.status(502).json({ ok: false, error: 'rnnoise unavailable' });
+  });
+});
+
 app.get('/', (req, res) => res.send('mingus signaling server: up'));
 app.get('/health', (req, res) => res.json({ ok: true, up: process.uptime(), bans: bannedIps.size }));
 
