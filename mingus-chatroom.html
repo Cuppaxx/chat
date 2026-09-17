@@ -1575,6 +1575,15 @@ body.touch #qPtt{display:none}
                    border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d;
                    resize:vertical"></textarea>
           <div class="brline">
+            <span class="lab" style="font-size:12px;opacity:.75">hearing</span>
+            <div class="qstrip" id="vpEar">
+              <span class="q" data-ear="tiny.en">Fast</span>
+              <span class="q on" data-ear="base.en">Balanced</span>
+              <span class="q" data-ear="small.en">Accurate</span>
+            </div>
+            <span style="font-size:11.5px;opacity:.7" id="vpEarNote">~40 MB, once</span>
+          </div>
+          <div class="brline">
             <span class="lab" style="font-size:12px;opacity:.75">butts in</span>
             <input type="range" id="vpChatty" class="vol" min="0" max="100" step="5" value="32" style="width:150px">
             <span id="vpChattyVal" style="font-size:12px;min-width:120px">about 1 message in 3</span>
@@ -7513,13 +7522,14 @@ var VP_PRESETS={
     "Helpful first, funny second."
   ].join('\n')
 };
-var VP={text:'',preset:'default',chatty:32};
+var VP={text:'',preset:'default',chatty:32,ear:'base.en'};
 try{
   var _vp=JSON.parse(localStorage.getItem('mc_vp')||'null');
   if(_vp&&typeof _vp==='object'){
     if(typeof _vp.text==='string')VP.text=_vp.text;
     if(typeof _vp.preset==='string')VP.preset=_vp.preset;
     if(typeof _vp.chatty==='number')VP.chatty=_vp.chatty;
+    if(typeof _vp.ear==='string')VP.ear=_vp.ear;
   }
 }catch(e){}
 function vpSave(){try{localStorage.setItem('mc_vp',JSON.stringify(VP));}catch(e){}}
@@ -7538,6 +7548,13 @@ function vpSyncUI(){
   var ps=document.querySelectorAll('#vpPresets .q');
   for(var i=0;i<ps.length;i++)
     ps[i].classList.toggle('on',ps[i].getAttribute('data-vp')===VP.preset);
+  var es=document.querySelectorAll('#vpEar .q');
+  for(var j=0;j<es.length;j++)
+    es[j].classList.toggle('on',es[j].getAttribute('data-ear')===VP.ear);
+  var en=document.getElementById('vpEarNote');
+  if(en)en.textContent=({'tiny.en':'~25 MB, roughest',
+                         'base.en':'~40 MB, once',
+                         'small.en':'~120 MB, much better'})[VP.ear]||'';
 }
 (function(){
   var ps=document.querySelectorAll('#vpPresets .q');
@@ -7549,6 +7566,20 @@ function vpSyncUI(){
       toast('VERITY: '+p.textContent.trim());
     };
   })(ps[i]);
+  var es=document.querySelectorAll('#vpEar .q');
+  for(var ei=0;ei<es.length;ei++)(function(e){
+    e.onclick=function(){
+      VP.ear=e.getAttribute('data-ear');
+      ASR_MODEL='onnx-community/whisper-'+VP.ear;
+      vpSave();vpSyncUI();
+      /* the loaded model cannot be swapped in place, so drop it and let the
+         next listen pull the new one down */
+      VERITY.asrReady=false;VERITY.asrPromise=null;
+      try{verityListen(false);}catch(err){}
+      sys('🥒 Hearing set to <b>'+esc(e.textContent.trim())+'</b>. It downloads on his next '+
+          'listen \u2014 hang up and call him again to switch now.');
+    };
+  })(es[ei]);
   var c=document.getElementById('vpChatty');
   if(c)c.oninput=function(){
     VP.chatty=parseInt(this.value,10)||0;
@@ -7615,6 +7646,7 @@ function verityShouldRespond(text){
      look like he was talking to himself. */
   if(raw.split(/\s+/).filter(Boolean).length<4)return false;
   if(VP.chatty<=0)return false;          /* "only when named" */
+  if(VERITY.rateLimitedUntil&&Date.now()<VERITY.rateLimitedUntil)return false;
   var since=Date.now()-VERITY.lastThought;
   if(since<11000)return false;
   var p=Math.max(0,Math.min(1,VP.chatty/100));
@@ -7648,8 +7680,19 @@ function verityThink(nudge){
   if(nudge)lines=lines.concat([{who:'(the room)',text:nudge}]);
   if(!lines.length)return Promise.resolve(null);
   VERITY.brainBusy=true;
+  /* Hard timeout. Render's free tier can take the better part of a minute to
+     wake, and a fetch that never settles left brainBusy stuck true — after
+     which he never spoke again for the rest of the session and there was
+     nothing on screen to say why. */
+  var ctl=null, killed=false;
+  try{ctl=new AbortController();}catch(e){}
+  var giveUp=setTimeout(function(){
+    killed=true;
+    try{if(ctl)ctl.abort();}catch(e){}
+  },12000);
   return fetch(adminBase()+'/verity/brain',{
-    method:'POST',headers:{'Content-Type':'application/json'},
+    method:'POST',signal:ctl?ctl.signal:undefined,
+    headers:{'Content-Type':'application/json'},
     /* persona: whatever the room has tuned him to. heard: tells the model the
        transcript came off a speech recogniser and may be wrong, so it stops
        confidently building jokes on top of a mis-heard word. */
@@ -7660,17 +7703,34 @@ function verityThink(nudge){
     });
     return r.json();
   }).then(function(j){
+    clearTimeout(giveUp);
     VERITY.brainBusy=false;
     return (j&&j.ok&&j.text)?j.text:null;
   }).catch(function(e){
+    clearTimeout(giveUp);
     VERITY.brainBusy=false;
+    /* A rate limit is the normal, expected failure - 30 requests a minute is
+       not many in a busy room - so it gets a quiet note and a cooldown rather
+       than an alarming one. Hammering through a 429 only extends it. */
+    if(e&&e.status===429){
+      VERITY.rateLimitedUntil=Date.now()+20000;
+      if(!VERITY.warnedRate){
+        VERITY.warnedRate=1;
+        sys('🥒 <i>thinking too fast \u2014 backing off for a moment</i>');
+        setTimeout(function(){VERITY.warnedRate=0;},60000);
+      }
+      return null;
+    }
+    if(killed){
+      sys('🥒 <i>that thought took too long \u2014 skipping it</i>');
+      return null;
+    }
     if(!VERITY.warnedBrain){
       VERITY.warnedBrain=1;
-      sys('🥒 VERITY’s brain is unreachable ('+esc(String(e.message||e).slice(0,60))+
-          ') — she’s back on her old canned lines until it recovers.',true);
+      sys('🥒 VERITY\u2019s brain is unreachable ('+esc(String(e.message||e).slice(0,60))+
+          ') \u2014 he will stay quiet until it comes back.',true);
+      setTimeout(function(){VERITY.warnedBrain=0;},120000);
     }
-    /* a rate limit is temporary; let her try again in a minute */
-    if(e&&e.status===429)setTimeout(function(){VERITY.warnedBrain=0;},60000);
     return null;
   });
 }
@@ -7680,16 +7740,15 @@ function verityRespond(who,text,spoken){
   verityLog(who,text,spoken);
   if(!verityShouldRespond(text))return;
   VERITY.lastThought=Date.now();
-  if(!VERITY.brainOk){
-    var canned=verityBrain(text);
-    if(canned)setTimeout(function(){veritySay(canned);},700);
-    return;
-  }
+  /* No canned lines any more. They were written for a different character and
+     hearing them come out of this one is worse than hearing nothing — a bot
+     that occasionally says nothing reads as a bot that is thinking, whereas
+     one that says the wrong thing in the wrong voice reads as broken. If the
+     model cannot answer, he simply does not speak. */
+  if(!VERITY.brainOk)return;
   verityThink().then(function(line){
     if(!VERITY.on)return;
-    if(line){veritySay(line);return;}
-    var c2=verityBrain(text);
-    if(c2)veritySay(c2);
+    if(line)veritySay(line);
   });
 }
 
@@ -7769,16 +7828,21 @@ function veritySpeakable(text){
     .replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu,'')
     .replace(/\s+/g,' ')
     .trim();
-  if(t.length<=230)return t;
+  /* 230 characters was too tight. Anything over about two sentences got
+     silently shortened, so the chat showed a full reply and the voice stopped
+     partway through it — which reads as him cutting out mid-thought rather
+     than as a deliberate summary. 520 is roughly half a minute of speech and
+     covers everything except a genuine Serious Mode essay. */
+  if(t.length<=520)return t;
   var parts=t.split(/(?<=[.!?])\s+/).filter(Boolean);
   var out='';
   for(var i=0;i<parts.length;i++){
-    if(out&&(out+' '+parts[i]).length>230)break;
+    if(out&&(out+' '+parts[i]).length>520)break;
     out=out?out+' '+parts[i]:parts[i];
   }
   if(!out){                               /* one enormous sentence */
-    var cut=t.slice(0,230), sp=cut.lastIndexOf(' ');
-    out=(sp>120?cut.slice(0,sp):cut).replace(/[,;:\s]+$/,'')+'\u2026';
+    var cut=t.slice(0,520), sp=cut.lastIndexOf(' ');
+    out=(sp>300?cut.slice(0,sp):cut).replace(/[,;:\s]+$/,'')+'\u2026';
   }
   return out;
 }
@@ -7789,7 +7853,13 @@ function veritySay(text){
   VERITY.last=now;
   addMsg(VERITY_ME,text,false);        /* the FULL reply, readable and re-readable */
   bc({t:'verity',a:'say',text:text});  /* text only: audio rides the voice stream */
-  verityEnqueue(veritySpeakable(text));/* a shorter, emoji-free copy for the voice */
+  var spoken=veritySpeakable(text);
+  /* If the voice really is going to stop short of what is written, say so.
+     Silently speaking less than the chat shows is indistinguishable from him
+     glitching out, which is what it looked like. */
+  if(spoken.length<text.replace(/\s+/g,' ').trim().length-20)
+    sys('🥒 <i>(rest of that one is in the chat above \u2014 too long to read out)</i>');
+  verityEnqueue(spoken);
 }
 function verityStart(){
   if(VERITY.on){verityStop();return;}
@@ -7832,11 +7902,11 @@ function verityStart(){
     if(Math.random()>=0.45)return;
     if(Date.now()-VERITY.lastThought<20000)return;   /* she only just spoke */
     VERITY.lastThought=Date.now();
-    if(!VERITY.brainOk)return veritySay(verityPick('idle'));
+    if(!VERITY.brainOk)return;        /* no brain, no idle chatter */
     /* riffing on what the room was actually talking about beats a fixed list */
     verityThink('(nobody has said anything for a while. Say something unprompted.)')
       .then(function(line){
-        if(VERITY.on)veritySay(line||verityPick('idle'));
+        if(VERITY.on&&line)veritySay(line);
       });
   },42000);
   verityEarsSync();
@@ -7880,6 +7950,10 @@ function verityStop(){
    afford the CPU. */
 var ASR_MODEL='onnx-community/whisper-base.en';
 try{
+  /* the saved preference from the VERITY panel, then a ?asr= override */
+  var _sv=JSON.parse(localStorage.getItem('mc_vp')||'null');
+  if(_sv&&typeof _sv.ear==='string'&&/^[a-z0-9.\-]+$/i.test(_sv.ear))
+    ASR_MODEL='onnx-community/whisper-'+_sv.ear;
   var _am=new URLSearchParams(location.search).get('asr');
   if(_am&&/^[a-z0-9.\-]+$/i.test(_am))ASR_MODEL='onnx-community/whisper-'+_am;
 }catch(e){}
@@ -7910,7 +7984,8 @@ function verityCanHear(){ return true; }   /* Whisper works everywhere */
 
    Everyone in the chatroom hears both already, because VERITY and the Discord
    return both feed fxDest, which is the outgoing voice track. */
-var MIX={sources:{},ears:null,disc:null,vHooked:false,dHooked:false};
+var MIX={sources:{},ears:null,disc:null,vHooked:false,dHooked:false,
+         dcGate:null,dcAn:null,focus:null,focusAt:0};
 function mixEnsure(){
   var c=ctx();
   if(!MIX.ears)MIX.ears=c.createMediaStreamDestination();
@@ -7922,11 +7997,16 @@ function mixAdd(key,stream){
   var c=mixEnsure();
   try{
     var src=c.createMediaStreamSource(stream);
-    var g=c.createGain();g.gain.value=1;
-    src.connect(g);
-    g.connect(MIX.ears);
-    g.connect(MIX.disc);
-    MIX.sources[key]={src:src,g:g};
+    /* Two independent gains, not one. The ears feed is GATED down to the
+       person currently talking (see earsFocus below); the Discord feed must
+       never be, because Discord should hear the whole room. Sharing a single
+       gain node would have meant muting people in Discord every time somebody
+       else spoke. */
+    var gE=c.createGain();gE.gain.value=1;
+    var gD=c.createGain();gD.gain.value=1;
+    src.connect(gE);gE.connect(MIX.ears);
+    src.connect(gD);gD.connect(MIX.disc);
+    MIX.sources[key]={src:src,gE:gE,gD:gD};
   }catch(e){}
 }
 function mixSync(){
@@ -7941,9 +8021,73 @@ function mixSync(){
   /* Discord -> VERITY's ears only. Adding it to the Discord bus would send
      Discord its own audio back with a round-trip of delay. */
   if(!MIX.dHooked&&typeof BR!=='undefined'&&BR.dsrc){
-    try{BR.dsrc.connect(MIX.ears);MIX.dHooked=true;}catch(e){}
+    try{
+      var c2=mixEnsure();
+      MIX.dcGate=c2.createGain();MIX.dcGate.gain.value=1;
+      MIX.dcAn=c2.createAnalyser();MIX.dcAn.fftSize=256;
+      BR.dsrc.connect(MIX.dcGate);
+      BR.dsrc.connect(MIX.dcAn);
+      MIX.dcGate.connect(MIX.ears);
+      MIX.dHooked=true;
+    }catch(e){}
   }
 }
+/* ---------------------------------------------------------------------------
+   DOMINANT-SPEAKER GATING
+
+   Whisper was being handed the whole room summed into one signal: your mic,
+   every peer and the entire Discord channel, all on top of each other. Speech
+   recognition on a blend of several simultaneous voices is close to hopeless,
+   and that is most of why the transcription was so bad — not the model size.
+
+   So the ears feed is gated. Every source already has a level meter (added for
+   speaker attribution); the loudest one is turned up and the rest are turned
+   down, so the recogniser gets one clean voice at a time instead of a chorus.
+
+   Two details that matter:
+   - the switch is ramped, not instant, or every handover clicks;
+   - the current speaker is held for a moment before the gate is allowed to
+     move again, or two people at similar volume make it flap several times a
+     second and chop both of them to pieces.
+
+   None of this touches what anybody HEARS. The gate is only on the copy that
+   goes to the recogniser — the Discord feed and everyone's speakers are on
+   separate paths. */
+var EARS_HOLD=700;      /* ms a speaker keeps the gate once they have it */
+function earsFocus(){
+  if(!MIX.ears)return;
+  var c;
+  try{c=ctx();}catch(e){return;}
+  /* who is loudest right now */
+  var best=null,bestV=0;
+  function consider(key,an){
+    if(!an)return;
+    var v=lvl(an);
+    if(v>bestV){bestV=v;best=key;}
+  }
+  if(micOn&&!muted&&(!ptt||pttDown))consider('me',localAnalyser);
+  for(var id in peers)if(peers[id]&&peers[id].analyser)consider(id,peers[id].analyser);
+  if(typeof BR!=='undefined'&&BR.on&&MIX.dcAn)consider('discord',MIX.dcAn);
+
+  var now=Date.now();
+  if(bestV<0.012)return;                       /* nobody is talking; leave it */
+  if(best!==MIX.focus&&now-MIX.focusAt<EARS_HOLD)return;   /* too soon to switch */
+  if(best===MIX.focus)  {MIX.focusAt=now;return;}
+  MIX.focus=best;MIX.focusAt=now;
+
+  var T=c.currentTime;
+  function ramp(g,to){
+    if(!g)return;
+    try{g.gain.setTargetAtTime(to,T,0.035);}catch(e){try{g.gain.value=to;}catch(e2){}}
+  }
+  for(var k in MIX.sources)ramp(MIX.sources[k].gE,k===best?1:0);
+  ramp(MIX.dcGate,best==='discord'?1:0);
+}
+setInterval(function(){
+  /* only worth running while somebody is actually listening through it */
+  if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.listening)earsFocus();
+},110);
+
 /* what VERITY listens to */
 function verityMixStream(){mixSync();return MIX.ears;}
 /* what gets encoded and shipped to the Discord bot */
@@ -7978,6 +8122,19 @@ function verityListen(on){
   if(!on){
     try{ if(EARS.node){EARS.node.disconnect();EARS.node.onaudioprocess=null;} }catch(e){}
     EARS.node=null; EARS.buf=[]; EARS.samples=0; EARS.speaking=false;
+    EARS.pre=[]; EARS.preMs=0; EARS.who={};
+    /* Open every gate back up. They are only on the recogniser's copy, so a
+       stuck-closed gate is inaudible - but the focus ticker bails out when
+       the room is quiet, so without this a source muted at the moment
+       listening stopped would still be muted when it started again. */
+    try{
+      for(var gk in MIX.sources){
+        var gs=MIX.sources[gk];
+        if(gs&&gs.gE)gs.gE.gain.value=1;
+      }
+      if(MIX.dcGate)MIX.dcGate.gain.value=1;
+      MIX.focus=null;MIX.focusAt=0;
+    }catch(e){}
     VERITY.listening=false;
     return;
   }
@@ -8059,7 +8216,12 @@ function verityListen(on){
                 if(!wr||!wr.an)continue;
                 var wn=(BR.nameBySlot[ws]||BR.names[ws]);
                 if(!wn)continue;
-                EARS.who[wn+' (Discord)']=(EARS.who[wn+' (Discord)']||0)+lvl(wr.an);
+                /* Just the name. This used to append ' (Discord)', which
+                   became the speaker's name as far as the model was
+                   concerned — so it addressed people as "Discord". Where
+                   somebody is sitting is not part of who they are, and it
+                   does not change how he should talk to them. */
+                EARS.who[wn]=(EARS.who[wn]||0)+lvl(wr.an);
               }
             }
           }catch(e){}
