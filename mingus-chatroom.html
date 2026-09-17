@@ -4171,6 +4171,21 @@ function renderMembers(){
           };
         })(d.name,dnum);
         st.appendChild(dsl);st.appendChild(dnum);
+        /* the same Off → Auto-level → Limiter → Brick wall cycle everyone
+           else in the room has */
+        var dRx=(d.slot!=null)?BR.rx[d.slot]:null;
+        var dlb=document.createElement('button');
+        dlb.className='duelbtn lim';
+        var dmode=(dRx&&dRx.srvLimited)?'hard':((dRx&&dRx.limMode)||recallDcLim(d.name));
+        var dspec=LIMS[dmode]||LIMS.off;
+        dlb.textContent=dspec.icon;
+        dlb.classList.toggle('on',dmode!=='off');
+        dlb.disabled=!dRx||!dRx.comp;
+        dlb.title=dRx&&dRx.comp
+          ? (dspec.l+' — click to cycle. Local to you; they are never told.')
+          : ('loud-mic reducer for '+d.name+' — available once their audio path is up');
+        (function(sl){dlb.onclick=function(e){e.stopPropagation();cycleDcLim(sl);};})(d.slot);
+        st.appendChild(dlb);
         st.appendChild(el('span','pip'+(d.muted?' off':'')));
         r.appendChild(st);
         box.appendChild(r);
@@ -5436,6 +5451,34 @@ function dcVolOf(name){
   var v=dcVolMem[dcKey(name)];
   return (typeof v==='number'&&v>=0&&v<=2)?v:1;
 }
+/* Loud-mic reducer settings for Discord people, kept separate from limMem
+   for the same reason dcVolMem is kept separate from volMem: a chatroom
+   "Sam" and a Discord "Sam" are two different people and should not end up
+   sharing a setting. */
+var dcLimMem={};
+try{dcLimMem=JSON.parse(localStorage.getItem('mc_dclim')||'{}')||{};}catch(e){dcLimMem={};}
+function recallDcLim(name){
+  var m=dcLimMem[dcKey(name)];
+  return LIMS[m]?m:'off';
+}
+function rememberDcLim(name,mode){
+  var k=dcKey(name);if(!k)return;
+  if(mode==='off')delete dcLimMem[k]; else dcLimMem[k]=mode;
+  try{localStorage.setItem('mc_dclim',JSON.stringify(dcLimMem));}catch(e){}
+}
+function cycleDcLim(slot){
+  var r=BR.rx[slot];
+  if(!r||!r.comp){toast('no audio path for them yet');return;}
+  if(r.srvLimited){toast('an admin has them on a limiter');return;}
+  var nm=BR.nameBySlot[slot]||BR.names[slot]||'them';
+  var i=LIM_ORDER.indexOf(r.limMode||'off');
+  r.limMode=LIM_ORDER[(i+1)%LIM_ORDER.length];
+  rememberDcLim(nm,r.limMode);
+  applyLimiter(r);
+  toast(nm+': '+LIMS[r.limMode].l);
+  renderMembers();
+}
+
 /* Push a stored level onto a live decoder slot. */
 function dcApplyVol(slot){
   var r=BR.rx[slot];
@@ -5505,7 +5548,12 @@ function brBus(){
   return BR.bus;
 }
 function brRxReset(){
-  for(var k in BR.rx){ try{BR.rx[k].dec.close();}catch(e){} try{BR.rx[k].gain.disconnect();}catch(e){} }
+  for(var k in BR.rx){
+    try{BR.rx[k].dec.close();}catch(e){}
+    ['in','gain','comp','limDry','limWet','autoG','an'].forEach(function(n){
+      try{if(BR.rx[k][n])BR.rx[k][n].disconnect();}catch(e){}
+    });
+  }
   BR.rx={}; BR.names={}; BR.slotById={}; BR.nameBySlot={};
   if(BR.bus){ try{BR.bus.disconnect();}catch(e){} BR.bus=null; }
   if(BR.dsrc){ try{BR.dsrc.disconnect();}catch(e){} BR.dsrc=null; }
@@ -5530,15 +5578,50 @@ function brGain(slot){
   var bus;
   try{bus=brBus();}catch(e){return null;}
   var pc=BR.dctx||ctx();
-  var g=pc.createGain(); g.gain.value=1; g.connect(BR.dctx?BR.dout:bus);
+  /* The same chain a chatroom peer gets, in the same order:
+
+       in ──┬─► analyser              (their raw level, before your volume)
+            └─► gain (your volume) ──► limiter ──► auto-level ──► out
+
+     Discord people only had the volume node before, so the loud-mic reducer
+     — the thing that stops one person blowing everyone's ears out — applied
+     to everybody in the room EXCEPT the ones coming in over the bridge, which
+     is exactly the people you have least control over.
+
+     The analyser sits before the volume gain on purpose. Auto-level needs to
+     know how loud they actually are, not how loud they are after you have
+     already turned them down, or the two fight each other. */
+  var inNode=pc.createGain(); inNode.gain.value=1;
+  var g=pc.createGain(); g.gain.value=1;
   var an=null;
-  try{ an=pc.createAnalyser(); an.fftSize=256; g.connect(an); }catch(e){}
+  try{ an=pc.createAnalyser(); an.fftSize=256; inNode.connect(an); }catch(e){}
+  inNode.connect(g);
+
+  var limIn=pc.createGain(), limOut=pc.createGain(), autoG=pc.createGain();
+  var comp=pc.createDynamicsCompressor();
+  var limDry=pc.createGain(), limWet=pc.createGain();
+  g.connect(limIn);
+  limIn.connect(limDry); limDry.connect(limOut);
+  limIn.connect(comp);   comp.connect(limWet); limWet.connect(limOut);
+  limOut.connect(autoG);
+  autoG.connect(BR.dctx?BR.dout:bus);
+
   r=r||{};
-  r.gain=g; r.an=an; r.pc=pc; r.slot=slot;
+  r.in=inNode; r.gain=g; r.pc=pc; r.slot=slot;
+  /* both names: earsFocus and the VU loop read .an, applyLimiter and the
+     auto-level loop read .analyser */
+  r.an=an; r.analyser=an;
+  r.comp=comp; r.limDry=limDry; r.limWet=limWet; r.autoG=autoG;
   if(r.next==null)r.next=0;
   if(r.ts==null)r.ts=0;
   BR.rx[slot]=r;
   dcApplyVol(slot);
+  var dnm=BR.nameBySlot[slot]||BR.names[slot];
+  r.limMode=recallDcLim(dnm);
+  /* an admin's forced limiter is keyed on the name, so it reaches Discord
+     people too if they happen to share a gamertag with somebody moderated */
+  if(dnm&&isNameLimited(dnm))r.srvLimited=true;
+  applyLimiter(r);
   return r;
 }
 /* Called whenever the voice-channel roster arrives: make sure everyone in it
@@ -5612,7 +5695,7 @@ function brPlay(r,ad){
   var c=r.pc||ctx(), n=ad.numberOfFrames, sr=ad.sampleRate||48000;
   var buf=c.createBuffer(planes.length,n,sr);
   for(var i=0;i<planes.length;i++)buf.copyToChannel(planes[i],i);
-  var src=c.createBufferSource(); src.buffer=buf; src.connect(r.gain);
+  var src=c.createBufferSource(); src.buffer=buf; src.connect(r.in||r.gain);
   var now=c.currentTime;
   /* Jitter buffer. Packets arrive in bursts from a busy free-tier server, so we
      play them a little behind real time and only re-prime on a real gap. Each
@@ -8943,27 +9026,32 @@ function cycleLim(id){
   renderMembers();
 }
 /* The auto-level loop. Deliberately slow and deliberately gated on speech. */
-setInterval(function(){
-  for(var id in peers){
-    var p=peers[id];
-    if(!p||!p.autoG||!p.analyser)continue;
-    var mode=p.srvLimited?'hard':(p.limMode||'off');
-    var spec=LIMS[mode]||LIMS.off;
-    var cur=p.autoG.gain.value;
-    if(!spec.auto){
-      if(Math.abs(cur-1)>0.01)p.autoG.gain.value=cur+(1-cur)*0.2;
-      continue;
-    }
-    var v=lvl(p.analyser);
-    if(v>0.02){                      /* only learn from actual speech */
-      var want=AUTO_TARGET/Math.max(v,0.005);
-      want=Math.max(0.3,Math.min(3.5,want));
-      p.autoTarget=want;
-    }
-    var t=(p.autoTarget==null?1:p.autoTarget);
-    /* 4% of the way there every 150 ms ≈ a couple of seconds to settle */
-    p.autoG.gain.value=cur+(t-cur)*0.04;
+/* One tick of auto-level for anything shaped like a voice: a chatroom peer
+   or a Discord speaker. They were built to the same shape precisely so this
+   does not need two copies. */
+function autoLevelTick(p){
+  if(!p||!p.autoG||!p.analyser)return;
+  var mode=p.srvLimited?'hard':(p.limMode||'off');
+  var spec=LIMS[mode]||LIMS.off;
+  var cur=p.autoG.gain.value;
+  if(!spec.auto){
+    if(Math.abs(cur-1)>0.01)p.autoG.gain.value=cur+(1-cur)*0.2;
+    return;
   }
+  var v=lvl(p.analyser);
+  if(v>0.02){                      /* only learn from actual speech */
+    var want=AUTO_TARGET/Math.max(v,0.005);
+    want=Math.max(0.3,Math.min(3.5,want));
+    p.autoTarget=want;
+  }
+  var t=(p.autoTarget==null?1:p.autoTarget);
+  /* 4% of the way there every 150 ms ≈ a couple of seconds to settle */
+  p.autoG.gain.value=cur+(t-cur)*0.04;
+}
+setInterval(function(){
+  for(var id in peers)autoLevelTick(peers[id]);
+  /* and everyone arriving over the bridge, who used to be left out entirely */
+  try{ if(typeof BR!=='undefined'&&BR.on)for(var sl in BR.rx)autoLevelTick(BR.rx[sl]); }catch(e){}
 },150);
 
 /* ---------------------------------------------------------- self-monitor ---
