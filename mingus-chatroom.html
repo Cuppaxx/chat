@@ -1538,8 +1538,8 @@ body.touch #qPtt{display:none}
       </div>
       <div class="brline" data-role="admin">
         <span class="lab" style="font-size:12px;opacity:.75">voice channel</span>
-        <select id="brVoice" class="sel" style="max-width:280px"><option value="">— load channels —</option></select>
-        <span class="q" id="brLoad" title="ask the bot which servers and channels it can reach">↻ Load channels</span>
+        <select id="brVoice" class="sel" style="max-width:280px"><option value="">loading channels…</option></select>
+        <span class="q" id="brLoad" title="ask the bot again which servers and channels it can reach">↻ Refresh</span>
       </div>
       <div class="hint2" data-role="admin">Sends this room's voice into your Discord voice channel while you hold it open.
         Your browser encodes the mix once and the server passes it straight through — it never decodes
@@ -1551,7 +1551,7 @@ body.touch #qPtt{display:none}
       <div data-role="admin">
         <div class="brline">
           <span class="lab" style="font-size:12px;opacity:.75">channel</span>
-          <select id="brText" class="sel" style="max-width:280px"><option value="">— load channels —</option></select>
+          <select id="brText" class="sel" style="max-width:280px"><option value="">loading channels…</option></select>
           <span class="q" id="brRelay" title="show that channel's messages in this room">📥 Relay in</span>
           <span class="q" id="brMirror" title="post this room's chat into that channel">📤 Mirror out</span>
         </div>
@@ -2781,9 +2781,7 @@ function onData(id,d){
     if(d.a==='say'){addMsg(VERITY_ME,String(d.text||'').slice(0,300),false);return;}
     if(d.a==='heard'){
       if(!VERITY.host)return;              /* only the caller runs her brain */
-      var heard=String(d.text||'').slice(0,200);
-      var rep=verityBrain(heard);
-      if(rep)setTimeout(function(){veritySay(rep);},500);
+      verityRespond(p.name||'someone',String(d.text||'').slice(0,200));
       return;
     }
     return;
@@ -2916,7 +2914,8 @@ function onData(id,d){
   else if(d.t==='chat'){
     addMsg(p,String(d.text).slice(0,500),false);blip(520,.04);
     dcMirror(p.name||'someone',String(d.text));
-    if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host){var r=verityBrain(String(d.text));if(r)setTimeout(function(){veritySay(r);},700);}
+    if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host)
+      verityRespond(p.name||'someone',String(d.text));
   }
   else if(d.t==='img'){
     if(typeof d.data==='string'&&d.data.indexOf('data:image/')===0&&d.data.length<900000)addMsg(p,null,false,d.data);
@@ -4012,7 +4011,9 @@ function renderMembers(){
     mr.appendChild(mkAva('🥒'));
     mr.appendChild(el('div','nm','VERITY'+(VERITY.host?' (your call)':'')));
     var ms=el('div','st');
-    ms.appendChild(el('span','',VERITY.host?verityEngineLabel():'on the call'));
+    ms.appendChild(el('span','',VERITY.host
+      ?(verityEngineLabel()+(VERITY.brainOk?' · thinking':' · canned lines'))
+      :'on the call'));
     ms.appendChild(el('span','pip'));
     mr.appendChild(ms);
     box.appendChild(mr);
@@ -4036,6 +4037,29 @@ function renderMembers(){
         r.appendChild(nm);
         var st=el('div','st');
         st.appendChild(el('span','',d.bot?'bot':(d.deaf?'deafened':(d.muted?'muted':'in voice'))));
+        /* Same per-person volume as a real peer. It acts on that speaker's own
+           decoder gain, so it only turns THEM down — not the rest of Discord.
+           Remembered by name, because Discord slot numbers are handed out in
+           the order people happen to speak and change every session.
+
+           It is disabled until they have actually said something once: the
+           decoder slot, and therefore the gain node, does not exist until the
+           first packet arrives. The level is stored either way and applied the
+           moment they speak. */
+        var dv=dcVolOf(d.name);
+        var dsl=document.createElement('input');
+        dsl.type='range';dsl.className='vol';dsl.min=0;dsl.max=2;dsl.step=.05;dsl.value=dv;
+        dsl.title='volume for '+d.name+' (Discord)';
+        dsl.disabled=(BR.slotById[d.id]==null);
+        var dnum=el('span','volnum',Math.round(dv*100)+'%');
+        (function(nm,numEl){
+          dsl.oninput=function(){
+            var v=parseFloat(this.value);
+            dcSetVol(nm,v);
+            numEl.textContent=Math.round(v*100)+'%';
+          };
+        })(d.name,dnum);
+        st.appendChild(dsl);st.appendChild(dnum);
         st.appendChild(el('span','pip'+(d.muted?' off':'')));
         r.appendChild(st);
         box.appendChild(r);
@@ -4262,6 +4286,7 @@ function send(){
   }
   addMsg(me,t,true);bc({t:'chat',text:t});blip(600,.03);
   dcMirror(me.name||'you',t);
+  if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host)verityRespond(me.name||'you',t);
 }
 /* ---------------------------------------------------------------- whispers ---
    A whisper goes down ONE peer's data channel and nowhere else. It is never
@@ -5173,7 +5198,16 @@ function renderPrankWho(){
   for(var j=0;j<sel.options.length;j++)if(sel.options[j].value===keep)ok=true;
   sel.value=ok?keep:'';
 }
-$('#btnAdmin').onclick=function(){renderPrankWho();admOpen();};
+$('#btnAdmin').onclick=function(){
+  renderPrankWho();
+  admOpen();
+  /* Fetch the Discord channel lists as soon as an admin opens the panel.
+     They used to sit on "— load channels —" until you found a separate
+     button, which reads as "this is broken" rather than "press this" — and
+     there is no reason to make somebody ask for a list we can just go and
+     get. The Refresh chip is still there for when the server list changes. */
+  try{ if(isAdmin()&&!BRCH.loaded&&!BRCH.loading)brLoadChannels(); }catch(e){}
+};
 $('#admBansRefresh').onclick=function(){loadServerBans();toast('refreshing ban list…');};
 
 /* ===================== DISCORD BRIDGE (client half) =====================
@@ -5264,6 +5298,38 @@ async function brLink(){
   BR.ws.onerror=function(){ sys('🔗 The Discord feed errored.',true); };
 }
 
+/* ---------- per-Discord-person volume ----------
+   Kept separate from volMem (which is keyed on chatroom gamertags) so a
+   Discord user called "Sam" and a chatroom user called "Sam" cannot end up
+   sharing a level. */
+var dcVolMem={};
+try{dcVolMem=JSON.parse(localStorage.getItem('mc_dcvol')||'{}')||{};}catch(e){dcVolMem={};}
+function dcKey(n){return String(n||'').toLowerCase().trim().slice(0,32);}
+function dcVolOf(name){
+  var v=dcVolMem[dcKey(name)];
+  return (typeof v==='number'&&v>=0&&v<=2)?v:1;
+}
+/* Push a stored level onto a live decoder slot. */
+function dcApplyVol(slot){
+  var r=BR.rx[slot];
+  if(!r||!r.gain)return;
+  var nm=BR.nameBySlot[slot]||BR.names[slot];
+  try{r.gain.gain.value=dcVolOf(nm);}catch(e){}
+}
+function dcSetVol(name,v){
+  var k=dcKey(name);
+  if(!k)return;
+  if(v===1)delete dcVolMem[k]; else dcVolMem[k]=v;
+  try{localStorage.setItem('mc_dcvol',JSON.stringify(dcVolMem));}catch(e){}
+  /* one Discord person can only hold one slot at a time, but they get a fresh
+     slot each time they rejoin, so match on name rather than on the mapping */
+  for(var slot in BR.rx){
+    var nm=BR.nameBySlot[slot]||BR.names[slot];
+    if(dcKey(nm)!==k)continue;
+    try{BR.rx[slot].gain.gain.value=v;}catch(e){}
+  }
+}
+
 /* ---------- Discord -> room (return audio) ----------
    The server forwards each Discord speaker's raw Opus packets untouched:
    binary frame = [0xD1][slot u16][opus packet], plus a JSON text frame naming
@@ -5276,6 +5342,10 @@ async function brLink(){
    hear itself echoed back. */
 BR.rx={}; BR.bus=null; BR.names={}; BR.warnedDec=false; BR.dctx=null; BR.dsrc=null;
 BR.vc=[]; BR.channel=''; BR.textId=''; BR.mirror=false; BR.relayOn=false;
+/* Discord audio arrives on numbered slots, but the member list is built from
+   user ids, so we need the mapping to connect a row's slider to the right gain
+   node. The server tells us both in the 'speaker' frame. */
+BR.slotById={}; BR.nameBySlot={};
 BR.st={got:0,played:0,under:0,decErr:0,bad:0};
 function brBus(){
   var c=ctx(); ensureFxGraph();
@@ -5308,7 +5378,7 @@ function brBus(){
 }
 function brRxReset(){
   for(var k in BR.rx){ try{BR.rx[k].dec.close();}catch(e){} try{BR.rx[k].gain.disconnect();}catch(e){} }
-  BR.rx={}; BR.names={};
+  BR.rx={}; BR.names={}; BR.slotById={}; BR.nameBySlot={};
   if(BR.bus){ try{BR.bus.disconnect();}catch(e){} BR.bus=null; }
   if(BR.dsrc){ try{BR.dsrc.disconnect();}catch(e){} BR.dsrc=null; }
   if(BR.dctx){ try{BR.dctx.close();}catch(e){} BR.dctx=null; BR.dout=null; }
@@ -5331,6 +5401,8 @@ function brSlot(slot){
   var pc=BR.dctx||ctx();                 /* playback context */
   var g=pc.createGain(); g.gain.value=1; g.connect(BR.dctx?BR.dout:bus);
   r={gain:g,next:0,ts:0,dec:null,slot:slot,pc:pc};
+  BR.rx[slot]=r;                       /* set before applying, so the lookup finds it */
+  dcApplyVol(slot);
   brNewDecoder(r);
   BR.rx[slot]=r; return r;
 }
@@ -5400,7 +5472,16 @@ function brOnMessage(ev){
   if(typeof ev.data==='string'){
     var m=null; try{m=JSON.parse(ev.data);}catch(e){return;}
     if(!m)return;
-    if(m.t==='speaker'){ BR.names[m.slot]=m.name; if(brSlot(m.slot))brStat('linked · hearing '+m.name); }
+    if(m.t==='speaker'){
+      BR.names[m.slot]=m.name;
+      if(m.id)BR.slotById[m.id]=m.slot;
+      BR.nameBySlot[m.slot]=m.name;
+      if(brSlot(m.slot)){
+        dcApplyVol(m.slot);            /* restore whatever level they were on */
+        brStat('linked · hearing '+m.name);
+      }
+      renderMembers();
+    }
     else if(m.t==='quiet'){ brStat('linked · '+Math.round(BR.sent/1024)+' KB sent'); }
     else if(m.t==='vc'){
       /* the whole voice channel, not just whoever happens to be talking */
@@ -5414,6 +5495,9 @@ function brOnMessage(ev){
       if(!body)return;
       addMsg({name:String(m.author||'someone').slice(0,24),icon:'💬'},body,false,null,null,{discord:true});
       blip(560,.04);
+      /* she should be able to react to Discord too, now that she can hear it */
+      if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host)
+        verityRespond(String(m.author||'someone').slice(0,24)+' (Discord)',body);
     }
     return;
   }
@@ -6833,6 +6917,9 @@ var VERITY={
   /* which engine is actually producing the voice right now */
   engine:'none',        /* 'fish' | 'kokoro' | 'browser' | 'none' */
   fishOk:false, fishWhy:'', fishVoice:'', fishVoices:[],
+  /* the thinking half, separate from the speaking half */
+  brainOk:false, brainWhy:'', brainModel:'', brainBusy:false, lastThought:0,
+  lines:[],            /* rolling transcript of the room */
   loadResolve:null,
   cache:{}, cacheKeys:[]   /* decoded AudioBuffers, keyed voice|text */
 };
@@ -7240,7 +7327,110 @@ function verityFallbackSpeak(text){
     speechSynthesis.cancel();speechSynthesis.speak(u);
   }catch(e){}
 }
-/* ---------- the character ---------- */
+/* ============================ VERITY'S BRAIN ============================
+   What used to be here was a regex. verityBrain() matched about a dozen
+   keywords against forty hard-coded lines — say "pickle", get a pickle joke.
+   It could not follow a conversation, could not be surprised, and repeated
+   itself within about ten minutes. That is what "not actually an AI" meant.
+
+   Now there is a model behind /verity/brain, given the last fourteen lines of
+   the room, and the canned lines are demoted to what they should always have
+   been: the thing that happens when the model is unreachable.
+
+   Two problems worth solving rather than ignoring:
+
+   * She must not answer EVERY message. A bot that replies to all traffic is
+     exhausting within a minute, and it would burn a free tier in an evening.
+     verityShouldRespond() gives her a cooldown and makes her mostly quiet —
+     unless somebody says her name, which always gets an answer.
+
+   * She must not talk over herself. The model call takes a moment, then the
+     voice takes a few seconds; without a busy flag three overlapping requests
+     produce three overlapping sentences. */
+function verityLog(who,text){
+  var t=String(text||'').trim();
+  if(!t)return;
+  VERITY.lines.push({who:String(who||'?').slice(0,24),text:t.slice(0,300)});
+  if(VERITY.lines.length>24)VERITY.lines.shift();
+}
+function verityShouldRespond(text){
+  if(!VERITY.on||!VERITY.host)return false;
+  if(VERITY.brainBusy)return false;
+  var t=' '+String(text||'').toLowerCase()+' ';
+  /* being addressed by name always earns an answer, cooldown or not */
+  if(/\bverity\b/.test(t))return true;
+  var since=Date.now()-VERITY.lastThought;
+  if(since<11000)return false;
+  /* a direct question in the room is worth interrupting for more often */
+  if(/\?\s*$/.test(t.trim()))return Math.random()<0.55;
+  return Math.random()<0.32;
+}
+function verityProbeBrain(){
+  return fetch(adminBase()+'/verity/brain/status',{cache:'no-store'})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      VERITY.brainOk=!!(j&&j.ok);
+      VERITY.brainWhy=(j&&j.reason)||'';
+      VERITY.brainModel=(j&&j.model)||'';
+      return VERITY.brainOk;
+    })
+    .catch(function(e){
+      VERITY.brainOk=false;
+      VERITY.brainWhy='could not reach the server ('+String(e.message||e).slice(0,40)+')';
+      return false;
+    });
+}
+/* Ask the model for one line. Resolves to null rather than rejecting, because
+   every caller's fallback is "use a canned line", not "handle an error". */
+function verityThink(nudge){
+  if(!VERITY.brainOk)return Promise.resolve(null);
+  var lines=VERITY.lines.slice(-14);
+  if(nudge)lines=lines.concat([{who:'(the room)',text:nudge}]);
+  if(!lines.length)return Promise.resolve(null);
+  VERITY.brainBusy=true;
+  return fetch(adminBase()+'/verity/brain',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({lines:lines})
+  }).then(function(r){
+    if(!r.ok)return r.json().catch(function(){return {};}).then(function(j){
+      var e=new Error((j&&j.error)||('server said '+r.status));e.status=r.status;throw e;
+    });
+    return r.json();
+  }).then(function(j){
+    VERITY.brainBusy=false;
+    return (j&&j.ok&&j.text)?j.text:null;
+  }).catch(function(e){
+    VERITY.brainBusy=false;
+    if(!VERITY.warnedBrain){
+      VERITY.warnedBrain=1;
+      sys('🥒 VERITY’s brain is unreachable ('+esc(String(e.message||e).slice(0,60))+
+          ') — she’s back on her old canned lines until it recovers.',true);
+    }
+    /* a rate limit is temporary; let her try again in a minute */
+    if(e&&e.status===429)setTimeout(function(){VERITY.warnedBrain=0;},60000);
+    return null;
+  });
+}
+/* The single entry point: something was said, decide whether to answer and
+   how. Falls back to the keyword matcher whenever the model is not there. */
+function verityRespond(who,text){
+  verityLog(who,text);
+  if(!verityShouldRespond(text))return;
+  VERITY.lastThought=Date.now();
+  if(!VERITY.brainOk){
+    var canned=verityBrain(text);
+    if(canned)setTimeout(function(){veritySay(canned);},700);
+    return;
+  }
+  verityThink().then(function(line){
+    if(!VERITY.on)return;
+    if(line){veritySay(line);return;}
+    var c2=verityBrain(text);
+    if(c2)veritySay(c2);
+  });
+}
+
+/* ---------- the character (fallback lines) ---------- */
 var VERITY_LINES={
   hello:[
     "VERITY online. I was inside the router. It's warm in there.",
@@ -7323,6 +7513,13 @@ function verityStart(){
   try{verityBus();}catch(e){}
   /* Ask the server whether the fast voice is available before downloading
      anything. When it is, there is nothing to download at all. */
+  VERITY.lines=[];VERITY.warnedBrain=0;
+  verityProbeBrain().then(function(bok){
+    if(!VERITY.on)return;
+    if(bok)good('🧠 VERITY is thinking with <b>'+esc(VERITY.brainModel||'a language model')+'</b>.');
+    else sys('🧠 VERITY has no brain configured'+(VERITY.brainWhy?' ('+esc(VERITY.brainWhy)+')':'')+
+             ' — she’ll use her old canned lines.');
+  });
   verityProbeFish().then(function(ok){
     if(!VERITY.on)return;
     if(ok){
@@ -7343,7 +7540,16 @@ function verityStart(){
   });
   clearInterval(VERITY.idle);
   VERITY.idle=setInterval(function(){
-    if(VERITY.on&&VERITY.host&&Math.random()<0.45)veritySay(verityPick('idle'));
+    if(!VERITY.on||!VERITY.host||VERITY.brainBusy)return;
+    if(Math.random()>=0.45)return;
+    if(Date.now()-VERITY.lastThought<20000)return;   /* she only just spoke */
+    VERITY.lastThought=Date.now();
+    if(!VERITY.brainOk)return veritySay(verityPick('idle'));
+    /* riffing on what the room was actually talking about beats a fixed list */
+    verityThink('(nobody has said anything for a while. Say something unprompted.)')
+      .then(function(line){
+        if(VERITY.on)veritySay(line||verityPick('idle'));
+      });
   },42000);
   verityEarsSync();
   setTimeout(verityEarsReport,1500);
@@ -7533,8 +7739,7 @@ function verityFlushUtterance(){
     if(clean.length<2)return;
     if(/^(you|thanks for watching|thank you|bye)\.?$/i.test(clean))return;  /* whisper's silence tics */
     sys('🎧 heard: <i>'+esc(clean)+'</i>');
-    var reply=verityBrain(clean);
-    if(reply)veritySay(reply);
+    verityRespond(me.name||'someone',clean);
   };
   try{ VERITY.worker.postMessage({cmd:'asr',id:id,pcm:pcm},[pcm.buffer]); }
   catch(e){ EARS.busy=false; }
@@ -8736,30 +8941,37 @@ function compressVideo(file,spec){
    Now it lists everything it has been invited to and the admin picks, which
    also means changing channel no longer means a redeploy.
    ============================================================================ */
-var BRCH={guilds:[],loaded:false};
+var BRCH={guilds:[],loaded:false,loading:false};
 
 function brLoadChannels(){
   var vs=document.getElementById('brVoice'), ts=document.getElementById('brText');
-  if(vs)vs.innerHTML='<option value="">loading…</option>';
-  if(ts)ts.innerHTML='<option value="">loading…</option>';
+  if(BRCH.loading)return Promise.resolve();
+  BRCH.loading=true;
+  if(vs)vs.innerHTML='<option value="">loading channels…</option>';
+  if(ts)ts.innerHTML='<option value="">loading channels…</option>';
   return fetch(adminBase()+'/bridge/channels?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(j){
+      BRCH.loading=false;
       if(!j||!j.ok){
         var why=(j&&j.error)||'the server refused';
-        if(vs)vs.innerHTML='<option value="">'+esc(why)+'</option>';
-        if(ts)ts.innerHTML='<option value="">'+esc(why)+'</option>';
+        if(vs)vs.innerHTML='<option value="">'+esc(why).slice(0,60)+'</option>';
+        if(ts)ts.innerHTML='<option value="">'+esc(why).slice(0,60)+'</option>';
         sys('🔗 Could not list Discord channels: '+esc(why)+
             '. Check DISCORD_TOKEN is set on Render and that the bot is actually in a server.',true);
         return;
       }
       BRCH.guilds=j.guilds||[];BRCH.loaded=true;
+      BRCH.current=j.current||null;
       brFillPickers();
       var nV=0,nT=0;
       BRCH.guilds.forEach(function(g){nV+=g.voice.length;nT+=g.text.length;});
       good('🔗 Found '+BRCH.guilds.length+' server(s): '+nV+' voice channel(s), '+nT+' text channel(s).');
     })
     .catch(function(e){
+      BRCH.loading=false;
+      if(vs)vs.innerHTML='<option value="">could not reach the server</option>';
+      if(ts)ts.innerHTML='<option value="">could not reach the server</option>';
       sys('🔗 Could not reach the server to list channels: '+esc(String(e.message||e)),true);
     });
 }
@@ -8798,12 +9010,25 @@ function brFillPickers(){
       ts.appendChild(og2);
     }
   });
-  /* remember the previous selections across a reload of the list */
+  /* Remember the previous selections across a reload of the list, and if the
+     bot is already sitting in a channel, show THAT as selected — otherwise the
+     picker says "pick a voice channel" while the bot is plainly already in
+     one, which is just confusing. */
   try{
     var sv=JSON.parse(localStorage.getItem('mc_dc')||'null');
     if(sv){
       if(vs&&sv.v)vs.value=sv.v;
       if(ts&&sv.t)ts.value=sv.t;
+    }
+  }catch(e){}
+  try{
+    if(vs&&BRCH.current&&BRCH.current.channelId){
+      for(var i=0;i<vs.options.length;i++){
+        var ov=vs.options[i].value;
+        if(!ov)continue;
+        var p=JSON.parse(ov);
+        if(p&&p.c===BRCH.current.channelId){vs.selectedIndex=i;break;}
+      }
     }
   }catch(e){}
 }
