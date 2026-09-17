@@ -7635,6 +7635,7 @@ function verityFishFetch(text){
       return r.json().catch(function(){return {};}).then(function(j){
         var e=new Error((j&&j.error)||('server said '+r.status));
         e.status=r.status;
+        e.retryAfter=(j&&j.retryAfter)||0;
         throw e;
       });
     }
@@ -8094,11 +8095,23 @@ function verityThink(nudge){
        not many in a busy room - so it gets a quiet note and a cooldown rather
        than an alarming one. Hammering through a 429 only extends it. */
     if(e&&e.status===429){
-      VERITY.rateLimitedUntil=Date.now()+20000;
+      /* Back off for as long as the provider ACTUALLY said, not a flat 20s.
+         Guessing twenty seconds against a twenty-two minute limit meant
+         retrying into the same refusal about sixty times over - he went quiet
+         for a very long stretch and never said why. */
+      var wait=Math.max(20,Math.min(3600,Number(e.retryAfter)||20));
+      VERITY.rateLimitedUntil=Date.now()+wait*1000;
       if(!VERITY.warnedRate){
         VERITY.warnedRate=1;
-        sys('🥒 <i>thinking too fast \u2014 backing off for a moment</i>');
-        setTimeout(function(){VERITY.warnedRate=0;},60000);
+        if(wait>120){
+          sys('🥒 <b>VERITY has used up today\u2019s free thinking.</b> The free tier is '+
+              'per-model and he has worked through all of them \u2014 he is back in about '+
+              Math.ceil(wait/60)+' minutes. Turning <b>butts in</b> down in the VERITY panel '+
+              'makes the daily allowance last a great deal longer.',true);
+        }else{
+          sys('🥒 <i>thinking too fast \u2014 back in '+wait+'s</i>');
+        }
+        setTimeout(function(){VERITY.warnedRate=0;},Math.min(wait,300)*1000);
       }
       return null;
     }
