@@ -5494,7 +5494,13 @@ function brSlot(slot){
   var bus=brBus();
   var pc=BR.dctx||ctx();                 /* playback context */
   var g=pc.createGain(); g.gain.value=1; g.connect(BR.dctx?BR.dout:bus);
-  r={gain:g,next:0,ts:0,dec:null,slot:slot,pc:pc};
+  /* A meter per Discord speaker. Their audio is already separated by slot at
+     this point — it only gets summed further downstream — so this is the last
+     place their level can be measured on its own. That measurement is what
+     lets VERITY work out which of them was talking. */
+  var an=null;
+  try{ an=pc.createAnalyser(); an.fftSize=256; g.connect(an); }catch(e){}
+  r={gain:g,an:an,next:0,ts:0,dec:null,slot:slot,pc:pc};
   BR.rx[slot]=r;                       /* set before applying, so the lookup finds it */
   dcApplyVol(slot);
   brNewDecoder(r);
@@ -7825,7 +7831,9 @@ try{
 }catch(e){}
 var ASR_TFJS='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
 var EARS={ node:null, mix:null, buf:[], samples:0, speaking:false, quiet:0, busy:false, reqId:0,
-           pre:[], preMs:0 };
+           pre:[], preMs:0,
+           /* who was making noise while this utterance was being recorded */
+           who:{}, whoTicks:0 };
 var ASR_RATE=16000;
 
 function verityCanHear(){ return true; }   /* Whisper works everywhere */
@@ -7968,6 +7976,40 @@ function verityListen(on){
           var dropped=EARS.pre.shift();
           EARS.preMs-=(dropped.length/ASR_RATE)*1000;
         }
+        /* ---- speaker attribution --------------------------------------
+           Whisper is handed ONE mixed stream — your mic, every peer and the
+           Discord return, summed. It cannot tell voices apart, and the old
+           code simply assumed every word was yours. Sat alone in the room
+           with people talking in Discord, that meant VERITY thought you had
+           said all of it.
+
+           There is no diarisation here and there does not need to be: at the
+           point each source is still separate we have a meter on it. So while
+           an utterance is being captured, sample every source's level and
+           keep a running total. Whoever accumulated the most energy is who
+           was talking. Crude, and right nearly all of the time, because two
+           people rarely talk over each other for a whole utterance. */
+        if(rms>LOUD||EARS.speaking){
+          EARS.whoTicks++;
+          try{
+            if(micOn&&!muted&&(!ptt||pttDown))
+              EARS.who[me.name||'you']=(EARS.who[me.name||'you']||0)+lvl(localAnalyser);
+            for(var wid in peers){
+              var wp=peers[wid];
+              if(!wp||!wp.analyser||!wp.name)continue;
+              EARS.who[wp.name]=(EARS.who[wp.name]||0)+lvl(wp.analyser);
+            }
+            if(typeof BR!=='undefined'&&BR.on){
+              for(var ws in BR.rx){
+                var wr=BR.rx[ws];
+                if(!wr||!wr.an)continue;
+                var wn=(BR.nameBySlot[ws]||BR.names[ws]);
+                if(!wn)continue;
+                EARS.who[wn+' (Discord)']=(EARS.who[wn+' (Discord)']||0)+lvl(wr.an);
+              }
+            }
+          }catch(e){}
+        }
         if(rms>LOUD){
           if(!EARS.speaking){
             /* speech just started — seed the buffer with the pre-roll */
@@ -8002,8 +8044,28 @@ function verityListen(on){
     }
   });
 }
+/* Whoever put the most energy into the mix during this utterance. Returns
+   null when it is genuinely too close to call, because guessing a name is
+   worse than admitting we do not know — a wrong name in VERITY's transcript
+   makes him answer the wrong person, which is exactly the bug this fixes. */
+function earsWho(){
+  var best=null, bestV=0, total=0, second=0;
+  for(var k in EARS.who){
+    var v=EARS.who[k];
+    total+=v;
+    if(v>bestV){second=bestV;bestV=v;best=k;}
+    else if(v>second)second=v;
+  }
+  if(!best||bestV<=0)return null;
+  /* a clear winner needs to be meaningfully ahead of the runner-up, otherwise
+     it was probably people talking over each other */
+  if(second>0&&bestV<second*1.6)return null;
+  return best;
+}
 function verityFlushUtterance(){
   var n=EARS.samples;
+  var speaker=earsWho();
+  EARS.who={}; EARS.whoTicks=0;
   EARS.speaking=false; EARS.quiet=0;
   var parts=EARS.buf; EARS.buf=[]; EARS.samples=0;
   /* 1.2 s, up from 0.6 s. Anything shorter is "uh", "what?" or a cough, and
@@ -8028,8 +8090,11 @@ function verityFlushUtterance(){
     if(/^(subtitles by|transcription by|amara\.org|www\.|\[.*\]|\(.*\))/i.test(clean))return;
     /* fewer than three words is a fragment, not a thought */
     if(clean.split(/\s+/).filter(Boolean).length<3)return;
-    sys('🎧 heard: <i>'+esc(clean)+'</i>');
-    verityRespond(me.name||'someone',clean,true);
+    /* Name who it was attributed to. If the attribution is ever wrong, this
+       is what makes it visible instead of silently poisoning the transcript. */
+    var said=speaker||'someone';
+    sys('🎧 heard <b>'+esc(said)+'</b>: <i>'+esc(clean)+'</i>');
+    verityRespond(said,clean,true);
   };
   try{ VERITY.worker.postMessage({cmd:'asr',id:id,pcm:pcm},[pcm.buffer]); }
   catch(e){ EARS.busy=false; }
