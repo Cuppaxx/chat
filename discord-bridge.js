@@ -40,6 +40,12 @@ const state = {
   feed: null,       // PassThrough carrying WebM/Opus from the browser
   socket: null,     // the browser holding the bridge open
   rx: {},           // discord userId -> { slot, stream }
+  // Slots used to be handed out at the moment somebody first spoke, which
+  // meant the chatroom had no handle on a person until they made a noise —
+  // nothing to hang a level meter on, and nothing for a volume slider to act
+  // on. They are now allocated when somebody is seen in the channel, so every
+  // member has a stable slot from the moment they appear in the roster.
+  slotByUser: {},   // discord userId -> slot, stable for the session
   nextSlot: 1,
   rxPackets: 0,
   txPackets: 0,     // 20 ms packets handed to the Discord player
@@ -118,6 +124,10 @@ async function ensureClient() {
 /* Who is sitting in the voice channel right now. This is what lets the
    chatroom list Discord people in the member list instead of only showing
    somebody at the moment they happen to make a noise. */
+function slotFor(userId) {
+  if (!state.slotByUser[userId]) state.slotByUser[userId] = state.nextSlot++;
+  return state.slotByUser[userId];
+}
 function readVoiceMembers() {
   const out = [];
   try {
@@ -125,8 +135,11 @@ function readVoiceMembers() {
     const ch = g && state.channelId && g.channels.cache.get(state.channelId);
     if (ch && ch.members) {
       ch.members.forEach((m) => {
+        // the bot itself never needs a slot; everyone else gets one now
+        const isSelf = !!(state.client.user && m.id === state.client.user.id);
         out.push({
           id: m.id,
+          slot: isSelf ? null : slotFor(m.id),
           name: m.nickname || (m.user && (m.user.globalName || m.user.username)) || m.id,
           bot: !!(m.user && m.user.bot),
           self: !!(state.client.user && m.id === state.client.user.id),
@@ -271,7 +284,10 @@ function wireReceiver(connection, selfId) {
   const receiver = connection.receiver;
   receiver.speaking.on('start', (userId) => {
     if (userId === selfId || state.rx[userId]) return;
-    const slot = state.nextSlot++;
+    // Reuse the slot this person was already given in the roster, so the
+    // chatroom's meter and volume slider for them keep pointing at the same
+    // audio path once they actually start talking.
+    const slot = slotFor(userId);
     let name = userId;
     try {
       // prefer the per-server nickname, which is what everyone in that server
@@ -305,6 +321,7 @@ function leaveDiscord(reason) {
   log('tearing down:', reason || 'requested');
   for (const id in state.rx) { try { state.rx[id].stream.destroy(); } catch (e) {} }
   state.rx = {}; state.rxPackets = 0; state.rxBytes = 0; state.txPackets = 0; state.clientStats = null; state.clientStatsAt = 0;
+  state.slotByUser = {}; state.nextSlot = 1;
   try { if (state.player) state.player.stop(true); } catch (e) {}
   try { if (state.feed) state.feed.end(); } catch (e) {}
   try { if (state.connection) state.connection.destroy(); } catch (e) {}

@@ -3932,6 +3932,21 @@ setInterval(function(){
       segs[j].className=j<n?('on'+(j>=SEG-2?' hi':(j>=SEG-4?' mid':''))):'';
     }
   }
+  /* Discord rows are keyed by user id rather than peer id, so they were
+     skipped entirely by the loop above and never showed any activity. Their
+     level comes off the per-speaker analyser added for attribution. */
+  var drows=document.querySelectorAll('.mem[data-slot]');
+  for(var k=0;k<drows.length;k++){
+    var dr=drows[k], dslot=dr.getAttribute('data-slot');
+    var dRx=(typeof BR!=='undefined'&&BR.rx)?BR.rx[dslot]:null;
+    var dv=(dRx&&dRx.an&&!deaf)?lvl(dRx.an):0;
+    dr.classList.toggle('talk',dv>.02);
+    var dsegs=dr.querySelectorAll('.vu b');
+    var dn=Math.min(SEG,Math.round(dv*SEG*4.2));
+    for(var m2=0;m2<dsegs.length;m2++){
+      dsegs[m2].className=m2<dn?('on'+(m2>=SEG-2?' hi':(m2>=SEG-4?' mid':''))):'';
+    }
+  }
 },80);
 
 /* Ghost sweep.
@@ -4104,6 +4119,7 @@ function renderMembers(){
         if(d.self)return;                 /* the bot itself is not a person */
         var r=el('div','mem dc');
         r.setAttribute('data-dc',d.id);
+        if(d.slot!=null)r.setAttribute('data-slot',d.slot);
         r.appendChild(el('div','spk',d.muted?'🔇':'🔊'));
         r.appendChild(mkAva('💬'));
         var nm=el('div','nm');
@@ -4111,6 +4127,12 @@ function renderMembers(){
         nm.appendChild(el('span','dcbadge','DISCORD'));
         r.appendChild(nm);
         var st=el('div','st');
+        /* the same VU strip everyone else gets, driven by this person's own
+           analyser — Discord rows had no meter at all before, so there was no
+           way to see who was talking */
+        var dvu=el('div','vu');
+        for(var vi=0;vi<SEG;vi++)dvu.appendChild(document.createElement('b'));
+        st.appendChild(dvu);
         st.appendChild(el('span','',d.bot?'bot':(d.deaf?'deafened':(d.muted?'muted':'in voice'))));
         /* Same per-person volume as a real peer. It acts on that speaker's own
            decoder gain, so it only turns THEM down — not the rest of Discord.
@@ -4124,7 +4146,9 @@ function renderMembers(){
         var dv=dcVolOf(d.name);
         var dsl=document.createElement('input');
         dsl.type='range';dsl.className='vol';dsl.min=0;dsl.max=2;dsl.step=.05;dsl.value=dv;
-        var dcLive=(BR.slotById[d.id]!=null);
+        /* live as soon as the gain node exists, which is now on roster
+           arrival rather than on first speech */
+        var dcLive=(d.slot!=null&&BR.rx[d.slot]&&BR.rx[d.slot].gain);
         dsl.title=dcLive
           ? ('volume for '+d.name+' (Discord)')
           : ('volume for '+d.name+' — set it now, it applies the moment they speak');
@@ -5415,12 +5439,13 @@ function dcSetVol(name,v){
   if(!k)return;
   if(v===1)delete dcVolMem[k]; else dcVolMem[k]=v;
   try{localStorage.setItem('mc_dcvol',JSON.stringify(dcVolMem));}catch(e){}
-  /* one Discord person can only hold one slot at a time, but they get a fresh
-     slot each time they rejoin, so match on name rather than on the mapping */
+  /* Match on name: a Discord person gets a fresh slot each time they rejoin,
+     so the slot number is not a durable identity but their name is. */
   for(var slot in BR.rx){
     var nm=BR.nameBySlot[slot]||BR.names[slot];
     if(dcKey(nm)!==k)continue;
-    try{BR.rx[slot].gain.gain.value=v;}catch(e){}
+    var rr=BR.rx[slot];
+    if(rr&&rr.gain){try{rr.gain.gain.value=v;}catch(e){}}
   }
 }
 
@@ -5483,28 +5508,56 @@ function brRxReset(){
     else if(!scrAudioNode)setOut('audio',phAudio);
   }catch(e){}
 }
+/* The gain node and its meter, built WITHOUT a decoder.
+   A decoder is only worth creating once packets are actually arriving, but
+   the gain node and the analyser are what the volume slider and the level
+   meter attach to — and those need to exist from the moment we know a person
+   is in the channel, otherwise their slider has nothing to move and their
+   meter has nothing to read. That was the bug: both only appeared after
+   someone had already spoken. */
+function brGain(slot){
+  var r=BR.rx[slot];
+  if(r&&r.gain)return r;
+  var bus;
+  try{bus=brBus();}catch(e){return null;}
+  var pc=BR.dctx||ctx();
+  var g=pc.createGain(); g.gain.value=1; g.connect(BR.dctx?BR.dout:bus);
+  var an=null;
+  try{ an=pc.createAnalyser(); an.fftSize=256; g.connect(an); }catch(e){}
+  r=r||{};
+  r.gain=g; r.an=an; r.pc=pc; r.slot=slot;
+  if(r.next==null)r.next=0;
+  if(r.ts==null)r.ts=0;
+  BR.rx[slot]=r;
+  dcApplyVol(slot);
+  return r;
+}
+/* Called whenever the voice-channel roster arrives: make sure everyone in it
+   has a gain node and a meter, whether or not they have made a sound. */
+function brPrepSlots(){
+  if(!BR.on||!BR.vc)return;
+  for(var i=0;i<BR.vc.length;i++){
+    var m=BR.vc[i];
+    if(!m||m.self||m.slot==null)continue;
+    BR.slotById[m.id]=m.slot;
+    BR.nameBySlot[m.slot]=m.name;
+    brGain(m.slot);
+  }
+}
 function brSlot(slot){
-  var r=BR.rx[slot]; if(r)return r;
+  var r=BR.rx[slot]; if(r&&r.dec)return r;
   if(!window.AudioDecoder||!window.EncodedAudioChunk){
     if(!BR.warnedDec){BR.warnedDec=true;
       sys('🔗 This browser cannot decode Discord audio (no WebCodecs), so the room will not hear Discord. '+
           'Chrome or Edge can; the other direction still works.',true);}
     return null;
   }
-  var bus=brBus();
-  var pc=BR.dctx||ctx();                 /* playback context */
-  var g=pc.createGain(); g.gain.value=1; g.connect(BR.dctx?BR.dout:bus);
-  /* A meter per Discord speaker. Their audio is already separated by slot at
-     this point — it only gets summed further downstream — so this is the last
-     place their level can be measured on its own. That measurement is what
-     lets VERITY work out which of them was talking. */
-  var an=null;
-  try{ an=pc.createAnalyser(); an.fftSize=256; g.connect(an); }catch(e){}
-  r={gain:g,an:an,next:0,ts:0,dec:null,slot:slot,pc:pc};
-  BR.rx[slot]=r;                       /* set before applying, so the lookup finds it */
-  dcApplyVol(slot);
-  brNewDecoder(r);
-  BR.rx[slot]=r; return r;
+  /* the gain + meter may already exist from the roster; this only adds the
+     decoder, which is the expensive part and is not needed until audio flows */
+  r=brGain(slot);
+  if(!r)return null;
+  if(!r.dec)brNewDecoder(r);
+  return r;
 }
 function brNewDecoder(r){
   try{ if(r.dec&&r.dec.state!=='closed')r.dec.close(); }catch(e){}
@@ -5587,6 +5640,7 @@ function brOnMessage(ev){
       /* the whole voice channel, not just whoever happens to be talking */
       BR.vc=Array.isArray(m.members)?m.members:[];
       BR.channel=String(m.channel||'');
+      try{brPrepSlots();}catch(e){}
       renderMembers();
     }
     else if(m.t==='dtext'){
