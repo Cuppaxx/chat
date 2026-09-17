@@ -917,6 +917,34 @@ body.compact .tab{padding:4px 11px;font-size:13.5px}
 .censorbar{position:absolute;left:8%;right:8%;height:17%;top:26%;background:#000;z-index:6;
   box-shadow:0 0 0 2px rgba(255,255,255,.25)}
 
+/* ===== admin panel sizing =====
+   The panel grew a lot in 7.0 — twenty-seven troll chips, two Discord channel
+   pickers, a text-channel composer, a ban list and the member roster. On a
+   laptop that is several screens of scrolling with no way to find anything.
+
+   Two fixes: the card is capped to the viewport and scrolls inside itself
+   rather than growing the page, and the big sections are collapsed behind
+   summaries so what you see is a short list of headings. The sections you use
+   constantly — announcements and the member list — stay open. */
+#admModal .card{max-height:92vh;overflow-y:auto;overflow-x:hidden;
+  overscroll-behavior:contain}
+#admModal .card::before{position:sticky}   /* keep the gloss from scrolling away oddly */
+.fold{border:1px solid rgba(80,50,160,.28);border-radius:8px;margin:10px 0;
+  background:rgba(255,255,255,.35);overflow:hidden}
+.fold>summary{cursor:pointer;padding:7px 11px;font-size:11px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink2);font-weight:700;list-style:none;
+  display:flex;align-items:center;gap:8px;user-select:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:"▸";font-size:12px;letter-spacing:0;transition:transform .15s}
+.fold[open]>summary::before{transform:rotate(90deg)}
+.fold>summary:hover{background:rgba(120,80,255,.10)}
+.fold>summary .cnt2{margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none;
+  font-size:10.5px;opacity:.7}
+.foldbody{padding:4px 11px 11px}
+/* the troll shelf is the worst offender — shrink its chips */
+#admFx .q{font-size:11.5px;padding:2px 7px}
+.prankgrid{max-height:190px;overflow-y:auto}
+
 /* ----- the admin panel's role badge ----- */
 .rolebadge{display:inline-block;font-size:10px;letter-spacing:2px;font-weight:900;
   padding:2px 9px;border-radius:10px;color:#fff;vertical-align:2px;margin-left:6px}
@@ -1485,8 +1513,9 @@ body.touch #qPtt{display:none}
         <button class="btn" id="admMega" data-role="admin" title="slam it across everyone's screen, then drop it">💥 MEGA</button>
       </div>
 
-      <div data-role="admin">
-        <label>Trolls — aim them at the room, or at one person</label>
+      <details class="fold" data-role="admin">
+        <summary>🎭 Trolls <span class="cnt2">aim at the room, or at one person</span></summary>
+        <div class="foldbody">
         <div class="prankgrid">
           <div class="qstrip" style="margin-bottom:2px">
             <span class="lab" style="font-size:12px;opacity:.75">target</span>
@@ -1528,27 +1557,30 @@ body.touch #qPtt{display:none}
           whoever it landed on. Anyone with reduced-motion turned on gets the chat line without
           the spinning. <b>Spotlight</b> and <b>Snipe</b> deliberately show up on everybody's
           screen; the rest, when aimed at one person, are seen only by them.</div>
-      </div>
+        </div>
+      </details>
 
-      <label data-role="admin">Discord bridge</label>
-      <div class="qstrip" data-role="admin">
+      <details class="fold" data-role="admin">
+        <summary>🔗 Discord bridge <span class="cnt2">voice + text channels</span></summary>
+        <div class="foldbody">
+      <div class="qstrip">
         <span class="q" id="brLink">🔗 Link voice</span>
         <span class="q" id="brUnlink">⛔ Unlink</span>
         <span class="q" id="brStat" style="pointer-events:none;opacity:.85">not linked</span>
       </div>
-      <div class="brline" data-role="admin">
+      <div class="brline">
         <span class="lab" style="font-size:12px;opacity:.75">voice channel</span>
         <select id="brVoice" class="sel" style="max-width:280px"><option value="">loading channels…</option></select>
         <span class="q" id="brLoad" title="ask the bot again which servers and channels it can reach">↻ Refresh</span>
       </div>
-      <div class="hint2" data-role="admin">Sends this room's voice into your Discord voice channel while you hold it open.
+      <div class="hint2">Sends this room's voice into your Discord voice channel while you hold it open.
         Your browser encodes the mix once and the server passes it straight through — it never decodes
         anything, which is what keeps it inside Render's free tier. Closing the tab or hitting Unlink
         drops the bot out. Discord voices come back into the room too: they play on your speakers and
         travel to everyone else over your voice stream. Wear headphones so they do not loop back through your mic.</div>
 
-      <label data-role="admin">Speak in a Discord text channel</label>
-      <div data-role="admin">
+      <label>Speak in a Discord text channel</label>
+      <div>
         <div class="brline">
           <span class="lab" style="font-size:12px;opacity:.75">channel</span>
           <select id="brText" class="sel" style="max-width:280px"><option value="">loading channels…</option></select>
@@ -1567,14 +1599,21 @@ body.touch #qPtt{display:none}
           only whoever is holding the bridge does the posting and nothing gets doubled up.</div>
       </div>
 
-      <label data-role="admin">Ban list <span style="text-transform:none;letter-spacing:0;font-weight:400" id="admBanCount"></span></label>
-      <div id="admBans" data-role="admin" style="max-height:170px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
-      <div class="qstrip" data-role="admin" style="margin-top:6px">
+        </div>
+      </details>
+
+      <details class="fold" data-role="admin">
+        <summary>⛔ Ban list <span class="cnt2" id="admBanCount"></span></summary>
+        <div class="foldbody">
+      <div id="admBans" style="max-height:170px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
+      <div class="qstrip" style="margin-top:6px">
         <span class="q" id="admBansRefresh">↻ Refresh from server</span>
       </div>
-      <div class="hint2" data-role="admin">Name bans live in your browser. <b>IP bans live on the signalling server</b>, so
+      <div class="hint2">Name bans live in your browser. <b>IP bans live on the signalling server</b>, so
         they cannot be dodged by rejoining, renaming or clearing storage — but they are held in memory,
         so they clear if the server restarts (Render's free tier sleeps when idle).</div>
+        </div>
+      </details>
 
       <label>Members</label>
       <div id="admList" style="max-height:230px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
@@ -3960,8 +3999,16 @@ function renderMembers(){
     if(!m.self&&!m.ghost){
       var sl=document.createElement('input');
       sl.type='range';sl.className='vol';sl.min=0;sl.max=2;sl.step=.05;sl.value=m.vol;
-      sl.title='volume for '+m.name;
-      sl.disabled=!m.voice;
+      /* This used to be disabled until their audio stream existed, which is
+         why only whoever happened to be transmitting had a working slider —
+         everyone else got a dead control that looked broken. There is no need
+         for the gate: setVol() stores the level against their gamertag, and
+         playRemote() reads p.vol when it builds their audio graph, so a level
+         set before they ever speak is simply waiting for them when they do. */
+      sl.title=m.voice
+        ? ('volume for '+m.name)
+        : ('volume for '+m.name+' — set it now, it applies as soon as they come through');
+      if(!m.voice)sl.style.opacity='.6';
       var num=el('span','volnum',Math.round(m.vol*100)+'%');
       (function(pid,numEl){
         sl.oninput=function(){
@@ -4042,15 +4089,18 @@ function renderMembers(){
            Remembered by name, because Discord slot numbers are handed out in
            the order people happen to speak and change every session.
 
-           It is disabled until they have actually said something once: the
+           Their decoder slot does not exist until their first packet arrives,
            decoder slot, and therefore the gain node, does not exist until the
            first packet arrives. The level is stored either way and applied the
            moment they speak. */
         var dv=dcVolOf(d.name);
         var dsl=document.createElement('input');
         dsl.type='range';dsl.className='vol';dsl.min=0;dsl.max=2;dsl.step=.05;dsl.value=dv;
-        dsl.title='volume for '+d.name+' (Discord)';
-        dsl.disabled=(BR.slotById[d.id]==null);
+        var dcLive=(BR.slotById[d.id]!=null);
+        dsl.title=dcLive
+          ? ('volume for '+d.name+' (Discord)')
+          : ('volume for '+d.name+' — set it now, it applies the moment they speak');
+        if(!dcLive)dsl.style.opacity='.6';
         var dnum=el('span','volnum',Math.round(dv*100)+'%');
         (function(nm,numEl){
           dsl.oninput=function(){
@@ -5208,6 +5258,22 @@ $('#btnAdmin').onclick=function(){
      get. The Refresh chip is still there for when the server list changes. */
   try{ if(isAdmin()&&!BRCH.loaded&&!BRCH.loading)brLoadChannels(); }catch(e){}
 };
+/* The Discord fold starts closed, so also fetch when it is first opened —
+   somebody who collapsed the panel and came back should not find a stale
+   "loading channels…" sitting there. */
+(function(){
+  var folds=document.querySelectorAll('#admBody details.fold');
+  for(var i=0;i<folds.length;i++)(function(f){
+    f.addEventListener('toggle',function(){
+      if(!f.open)return;
+      var isDiscord=/Discord bridge/.test(f.querySelector('summary').textContent||'');
+      if(isDiscord){try{ if(isAdmin()&&!BRCH.loaded&&!BRCH.loading)brLoadChannels(); }catch(e){}}
+      if(/Ban list/.test(f.querySelector('summary').textContent||'')){
+        try{ if(isAdmin())loadServerBans(); }catch(e){}
+      }
+    });
+  })(folds[i]);
+})();
 $('#admBansRefresh').onclick=function(){loadServerBans();toast('refreshing ban list…');};
 
 /* ===================== DISCORD BRIDGE (client half) =====================
