@@ -34,6 +34,21 @@ const peerIps = new Map();     // peerId -> ip, so the admin can ban by person
 
 app.use(express.json({ limit: '16kb' }));
 
+// The chatroom page is ~430 KB of HTML, CSS and JavaScript in one file, and it
+// is served with no-cache so that a deploy reaches everybody on their next load
+// (see the /chat handler). Those two facts together mean it is re-sent in full
+// every time the ETag misses, which on a phone is a slow, expensive way to open
+// a chatroom. gzip takes it to roughly a fifth of that.
+//
+// Guarded require on purpose: if the package is not installed the server still
+// boots and serves the page uncompressed, rather than crash-looping on Render
+// over a performance nicety.
+try {
+  app.use(require('compression')());
+} catch (e) {
+  console.log('compression middleware not installed — serving uncompressed');
+}
+
 // Neocities pages are a different origin, so they need CORS to reach us.
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -102,6 +117,177 @@ app.post('/admin/unban', requireAdmin, (req, res) => {
   const had = bannedIps.delete(ip);
   console.log('UNBAN ' + ip + (had ? '' : ' (was not banned)'));
   res.json({ ok: had, ip, count: bannedIps.size });
+});
+
+// ============================================================================
+// VERITY'S VOICE — a proxy in front of Fish Audio
+//
+// Why this is on the server rather than in the page:
+//
+//   1. api.fish.audio sends no Access-Control-Allow-Origin, and the request
+//      needs an Authorization header, which forces a CORS preflight. A browser
+//      fetch to it therefore cannot work at all. Verified against the live
+//      endpoint: OPTIONS returns 404 with no CORS headers.
+//   2. The API key would otherwise be in the page source, where every visitor
+//      can read it and spend it.
+//
+// The model is s2.1-pro-free, which Fish publish at $0.00 per million UTF-8
+// bytes (free through 30 November 2026, fair-use, no uptime guarantee). If the
+// key is missing, the credit runs out, or Fish is down, this route says so
+// plainly and the chatroom falls back to the in-browser Kokoro model — so
+// VERITY never goes mute, she just gets slower.
+//
+// Render -> Environment:
+//   FISH_API_KEY   required for this to do anything
+//   FISH_MODEL     optional, default s2.1-pro-free
+//   FISH_VOICE     optional, default reference_id (a voice from fish.audio)
+// ============================================================================
+const FISH_KEY = process.env.FISH_API_KEY || '';
+const FISH_MODEL = process.env.FISH_MODEL || 's2.1-pro-free';
+// Fish Audio publishes a public voice model actually called "Verity" — an
+// English character voice, 1.9k likes and 1.5M renders at the time of writing,
+// described by its author as "Ask me anything I know everything". That is a
+// better fit for this character than any generic narrator, so it is the
+// default. FISH_VOICE overrides it, and the chatroom's voice picker overrides
+// that per-listener.
+const VERITY_VOICE_ID = '8d21b053e2804e2a890e1cf62f267b6f';
+const FISH_VOICE = process.env.FISH_VOICE || VERITY_VOICE_ID;
+const FISH_MAX_CHARS = 320;
+
+// VERITY says the same two dozen canned lines over and over, so caching is
+// most of the speed win and most of the politeness. Bounded by both entry
+// count and total bytes so a long session cannot grow it without limit.
+const ttsCache = new Map();          // key -> Buffer
+let ttsCacheBytes = 0;
+const TTS_CACHE_MAX_ENTRIES = 240;
+const TTS_CACHE_MAX_BYTES = 24 * 1024 * 1024;
+function ttsCacheGet(k) {
+  const v = ttsCache.get(k);
+  if (!v) return null;
+  ttsCache.delete(k); ttsCache.set(k, v);   // refresh LRU position
+  return v;
+}
+function ttsCachePut(k, buf) {
+  if (buf.length > 4 * 1024 * 1024) return;
+  ttsCache.set(k, buf); ttsCacheBytes += buf.length;
+  while (ttsCache.size > TTS_CACHE_MAX_ENTRIES || ttsCacheBytes > TTS_CACHE_MAX_BYTES) {
+    const oldest = ttsCache.keys().next().value;
+    if (oldest === undefined) break;
+    ttsCacheBytes -= (ttsCache.get(oldest) || []).length || 0;
+    ttsCache.delete(oldest);
+  }
+}
+
+// This route is open to everyone in the room, not just admins — anybody can
+// call VERITY. So it needs its own brakes: a short text cap, and a per-address
+// budget so one tab in a loop cannot spend the whole fair-use allowance.
+const ttsHits = new Map();           // ip -> { n, resetAt }
+const TTS_PER_MIN = 40;
+function ttsAllowed(ip) {
+  const now = Date.now();
+  let r = ttsHits.get(ip);
+  if (!r || now > r.resetAt) { r = { n: 0, resetAt: now + 60000 }; ttsHits.set(ip, r); }
+  if (ttsHits.size > 500) {          // keep the map from growing forever
+    for (const [k, v] of ttsHits) if (now > v.resetAt) ttsHits.delete(k);
+  }
+  r.n++;
+  return r.n <= TTS_PER_MIN;
+}
+
+app.get('/verity/tts/status', (req, res) => {
+  res.json({
+    ok: !!FISH_KEY,
+    model: FISH_MODEL,
+    voice: FISH_VOICE || null,
+    cached: ttsCache.size,
+    cachedKB: Math.round(ttsCacheBytes / 1024),
+    reason: FISH_KEY ? null : 'FISH_API_KEY is not set on the server',
+  });
+});
+
+// Voices the account can use, straight from Fish. Note the models endpoint has
+// no /v1 prefix — that is not a typo.
+app.get('/verity/voices', async (req, res) => {
+  if (!FISH_KEY) return res.json({ ok: false, error: 'FISH_API_KEY is not set on the server' });
+  try {
+    const r = await fetch('https://api.fish.audio/model?page_size=60&sort_by=score', {
+      headers: { Authorization: 'Bearer ' + FISH_KEY },
+    });
+    if (!r.ok) return res.json({ ok: false, error: 'fish returned ' + r.status });
+    const j = await r.json();
+    const items = (j.items || []).map((m) => ({
+      id: m._id || m.id,
+      title: m.title,
+      languages: m.languages || [],
+      likes: m.like_count,
+    })).filter((m) => m.id);
+    res.json({ ok: true, items });
+  } catch (e) {
+    res.json({ ok: false, error: String((e && e.message) || e) });
+  }
+});
+
+app.post('/verity/tts', async (req, res) => {
+  if (!FISH_KEY) return res.status(503).json({ ok: false, error: 'FISH_API_KEY is not set on the server' });
+  const text = String((req.body && req.body.text) || '').trim().slice(0, FISH_MAX_CHARS);
+  if (!text) return res.status(400).json({ ok: false, error: 'no text' });
+  const voice = String((req.body && req.body.voice) || FISH_VOICE || '');
+  const ip = clientIp(req);
+  if (!ttsAllowed(ip)) return res.status(429).json({ ok: false, error: 'slow down — too many lines in one minute' });
+
+  const key = FISH_MODEL + '|' + voice + '|' + text;
+  const hit = ttsCacheGet(key);
+  if (hit) {
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('X-Verity-Cache', 'hit');
+    return res.send(hit);
+  }
+
+  try {
+    const body = {
+      text,
+      format: 'mp3',
+      mp3_bitrate: 64,            // it is speech going down an Opus call anyway
+      // 'balanced' gets the first bytes out quickly without shredding prosody,
+      // which is the whole point of moving off the in-browser model.
+      latency: 'balanced',
+      normalize: true,
+      prosody: { speed: 1, volume: 0, normalize_loudness: true },
+    };
+    if (voice) body.reference_id = voice;
+
+    const up = await fetch('https://api.fish.audio/v1/tts', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + FISH_KEY,
+        'Content-Type': 'application/json',
+        model: FISH_MODEL,        // a real lowercase header, not a body field
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!up.ok) {
+      const errText = await up.text().catch(() => '');
+      // 402 is the documented "out of credit" answer and is worth naming, so
+      // the chatroom can say why it fell back instead of shrugging.
+      const why = up.status === 402
+        ? 'Fish Audio says the account is out of credit'
+        : ('Fish Audio returned ' + up.status + ' ' + errText.slice(0, 200));
+      console.log('[verity] tts failed:', why);
+      return res.status(up.status === 402 ? 402 : 502).json({ ok: false, error: why });
+    }
+
+    const buf = Buffer.from(await up.arrayBuffer());
+    if (!buf.length) return res.status(502).json({ ok: false, error: 'Fish Audio returned no audio' });
+    ttsCachePut(key, buf);
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('X-Verity-Cache', 'miss');
+    res.send(buf);
+  } catch (e) {
+    const why = String((e && e.message) || e);
+    console.log('[verity] tts error:', why);
+    res.status(502).json({ ok: false, error: why });
+  }
 });
 
 // ---- Discord bridge HTTP routes (must sit above the PeerJS catch-all mount) ----
