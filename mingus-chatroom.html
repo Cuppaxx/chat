@@ -1767,6 +1767,8 @@ body.touch #qPtt{display:none}
       </details>
 
       <label>Members</label>
+      <div id="rawPanel" style="display:none;margin-bottom:8px;padding:9px 11px;border-radius:9px;
+        border:1px solid rgba(224,138,25,.55);background:linear-gradient(rgba(255,240,220,.9),rgba(255,226,196,.9))"></div>
       <div id="admList" style="max-height:230px;overflow:auto;border:1px solid rgba(80,50,160,.3);border-radius:8px;background:rgba(255,255,255,.45)"></div>
 
       <div class="actions">
@@ -1788,7 +1790,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.4';
+var BUILD='7.5';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -1976,6 +1978,16 @@ function spk(){
 }
 /* moderation: gamertags an admin has put a hard limiter on */
 var limitNames={}, forceLimS=0;
+/* set by an admin's "force clean mic" — while true this client refuses to
+   switch its own voice FX or denoise back on, so the admin actually hears the
+   microphone rather than whatever it was being run through */
+var forceClean=false, cleanNames={};
+/* Declared up here with the other globals, not down with the raw-listen code
+   that owns it, because applyVol() reads RAW.id and applyVol runs long before
+   the bottom of the file does. A var hoists as undefined; its assignment does
+   not. Getting this wrong once already took the whole room down. */
+var RAW={id:null,src:null,gain:null,an:null,buf:null,timer:null,
+         peak:0,hold:0,holdAt:0,clips:0,started:0};
 function isNameLimited(n){var k=nameKey(n);return !!k&&!!limitNames[k];}
 /* limitNames holds the admin's strength for that gamertag, so a peer who
    joins after the limiter was set still arrives with it applied */
@@ -2910,7 +2922,7 @@ function setupConn(conn,dialer){
     peers[id].conn=conn;
     peers[id].t0=Date.now();
     peers[id].dialer=!!dialer;
-    conn.send({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD});
+    conn.send({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD,mic:micInfo()});
     /* 'hello' used to be fired exactly once and never chased up. If it was sent
        while the far side was still wiring its handlers, that peer stayed
        nameless — and renderMembers() only lists peers that have a name, so they
@@ -3036,7 +3048,7 @@ function onData(id,d){
   }
   if(d.t==='who'){
     /* someone still doesn't know who we are — re-introduce ourselves */
-    try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',name:me.name,icon:me.icon,
+    try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',mic:micInfo(),name:me.name,icon:me.icon,
       muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD});}catch(e){}
     try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true});}catch(e){}
     return;
@@ -3121,6 +3133,7 @@ function onData(id,d){
   }
   if(d.t==='treq'){if(canDrive())try{p.conn.send(tState());}catch(e){} return;}
   if(d.t==='hello'){
+    if(d.mic&&typeof d.mic==='object')p.mic=d.mic;
     var isNew=!p.name;p.name=d.name;p.icon=d.icon;p.muted=d.muted;p.camOn=!!d.cam;p.media=d.media!==false;
     /* THIS is where a rejoin gets caught. Bans and server mutes are keyed on
        gamertag, and the gamertag only arrives here — by the time we know who
@@ -3682,6 +3695,7 @@ function wireFx(){
   }catch(e){return false;}
 }
 function setFx(mode){
+  if(mode!=='none'&&forceClean){toast('an admin has your mic set to clean');return;}
   fxMode=mode;
   var chips=document.querySelectorAll('.q[data-fx]');
   for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-fx')===mode);
@@ -3695,6 +3709,30 @@ function setFx(mode){
   savePrefs();
   if(mode==='pitch')toast(pitchSemis?('pitch: '+pitchLabel()):'pitch on — drag the Pitch slider');
   else toast(mode==='none'?'voice FX off':'voice FX: '+mode);
+}
+/* What this microphone is doing to the signal before it leaves. An admin
+   listening raw needs this: it is the difference between "their mic is awful"
+   and "their autotune is on", and from the far end those sound identical. */
+function micInfo(){
+  try{
+    return {fx:fxMode,pitch:pitchSemis,dn:DN.level,
+            ns:micNS,ec:micEC,agc:micAGC,st:stereo?1:0,clean:forceClean?1:0};
+  }catch(e){return null;}
+}
+function micDesc(m){
+  if(!m)return 'not reported (older build)';
+  var bits=[];
+  bits.push('denoise '+(m.dn===2?'max':(m.dn===1?'on':'off')));
+  if(m.fx&&m.fx!=='none')bits.push('FX: '+m.fx+(m.fx==='pitch'&&m.pitch?(' '+(m.pitch>0?'+':'')+m.pitch):''));
+  else bits.push('no voice FX');
+  var br=[];
+  if(m.ns)br.push('NS');
+  if(m.ec)br.push('echo cancel');
+  if(m.agc)br.push('AGC');
+  bits.push(br.length?('browser: '+br.join('+')):'browser processing off');
+  if(m.st)bits.push('stereo');
+  if(m.clean)bits.push('FORCED CLEAN');
+  return bits.join(' · ');
 }
 function micConstraints(){
   return {channelCount:stereo?2:1,
@@ -3742,6 +3780,12 @@ function startMic(announce){
   });
 }
 function reMic(){ if(micOn)startMic(false).then(function(){toast('mic reopened with new settings');}); }
+/* push the mic description out again after anything that changes it, so an
+   admin's raw-listen panel is not reading a stale answer */
+function bcMicInfo(){
+  try{ bc({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,
+           media:MEDIA_OK,build:BUILD,mic:micInfo()}); }catch(e){}
+}
 function setProc(which,on){
   if(which==='ns')micNS=on;
   if(which==='ec')micEC=on;
@@ -3751,6 +3795,7 @@ function setProc(which,on){
   $('#qAGC').classList.toggle('on',micAGC);
   $('#qRaw').classList.toggle('on',!micNS&&!micEC&&!micAGC&&DN.level===0);
   savePrefs();
+  bcMicInfo();
   reMic();
 }
 
@@ -3980,6 +4025,9 @@ function stopRemote(id){
     if(p[k]){try{p[k].disconnect();}catch(e){}p[k]=null;}
   });
   p.audioEl=null;p.analyser=null;p.gain=null;p.stream=null;p.elAudio=false;
+  /* if the person being raw-listened to drops, tear the tap down rather than
+     leaving the whole room muted behind a panel pointing at nobody */
+  try{ for(var rid in peers)if(peers[rid]===p&&RAW.id===rid)rawStop(true); }catch(e){}
 }
 function crunch(k){
   var n=256,c=new Float32Array(n);
@@ -4009,7 +4057,9 @@ function applyVol(p){
      what makes a server mute actually take effect: even if the muted person's
      browser ignores the instruction and keeps sending audio, nobody's speakers
      play it. */
-  var v=(deaf||monOn||p.srvMuted)?0:(p.vol==null?1:p.vol);
+  /* rawOn solos one person for an admin; monOn solos you. Both mean "mute
+     everybody, I am listening to one thing on purpose". */
+  var v=(deaf||monOn||RAW.id||p.srvMuted)?0:(p.vol==null?1:p.vol);
   if(p.gain)p.gain.gain.value=v;
   else if(p.audioEl)p.audioEl.volume=Math.min(1,v);
 }
@@ -4057,6 +4107,34 @@ function applyMod(m,local){
      on their own outgoing chain, so it still bites even for anyone who joins
      afterwards. Unlike a server mute it does not silence them; it just stops
      them being able to peak. */
+  /* --- force a clean microphone ----------------------------------------
+     Raw listen strips everything on the LISTENER's side, but a sender's own
+     denoise and voice FX are already in the samples by the time they arrive.
+     This is the other half: switch them off at the source. */
+  if(m.action==='clean'||m.action==='unclean'){
+    var con=(m.action==='clean');
+    if(k){ if(con)cleanNames[k]=1; else delete cleanNames[k]; }
+    if(mine){
+      forceClean=con;
+      if(con){
+        if(typeof setFx==='function')setFx('none');
+        if(typeof setDenoise==='function')setDenoise(0);
+        sys('🛡 <b>An admin switched your voice FX and denoise off</b> so they can hear your '+
+            'actual microphone. You are not muted. They will switch it back.',true);
+        toast('an admin set your mic to clean');
+      }else{
+        sys('🛡 You can use voice FX and denoise again.');
+        toast('clean-mic lock lifted');
+      }
+      try{ if(micOn)wireFx(); }catch(e){}
+      try{ bcMicInfo(); }catch(e){}
+    }else if(!local){
+      sys('🛡 <b>'+esc(m.name||'someone')+'</b> was '+(con?'set to a clean microphone':'released')+' by an admin');
+    }
+    renderMembers();
+    return;
+  }
+
   if(m.action==='limit'||m.action==='unlimit'){
     /* m.val is the strength. An older build sends none, so treat a bare
        'limit' as the brick wall it used to mean. */
@@ -5425,7 +5503,8 @@ function admSig(){
   return Object.keys(peers).sort().map(function(id){
     var p=peers[id];
     return id+':'+(p.name||'')+':'+(p.srvMuted?1:0)+':'+(p.srvLimPct||0)+':'+
-           (isNameNoFiles(p.name)?1:0)+':'+(p.vol===0?1:0)+':'+(p.ice||'');
+           (isNameNoFiles(p.name)?1:0)+':'+(p.vol===0?1:0)+':'+(p.ice||'')+':'+
+           (RAW.id===id?1:0)+':'+((p.mic&&p.mic.clean)?1:0);
   }).join('|')+'|'+(roomLocked?1:0);
 }
 var admLastSig=null;
@@ -5508,6 +5587,27 @@ function renderAdmin(force){
         toast(v?('server limiter on '+(p.name||id)+' — '+limLabel(v)):('server limiter off '+(p.name||id)));
       }
     }));
+    /* Local-only, and the reason it is local is the point: an admin judging
+       whether somebody is too loud should not be judging through their own
+       limiter and auto-level. */
+    r.appendChild(admBtn(RAW.id===id?'■ Stop raw listen':'🎧 Raw listen',
+      'hear only this person, with none of YOUR processing in the way — no radio FX, '+
+      'no volume, no limiter, no auto-level. Local to you; they are not told.',function(){
+      rawListen(id);
+    },RAW.id===id?'linear-gradient(#ffd9a8,#e08a19 55%,#a35c06)'
+                 :'linear-gradient(#cfe4ff,#3f7fd6 55%,#1b4c8c)'));
+    (function(){
+      var on=!!(p.mic&&p.mic.clean)||!!cleanNames[nameKey(p.name)];
+      if(isAdmin())r.appendChild(admBtn(on?'🎛 Give FX back':'🚫 Force clean mic',
+        on?'let them use voice FX and denoise again'
+          :'switch their voice FX and denoise OFF at their end, so what reaches you is the '+
+           'actual microphone — the one thing raw listen cannot do from here',function(){
+        warnIfStale(p);
+        modBroadcast(on?'unclean':'clean',p.name,id);
+        toast(on?('FX returned to '+(p.name||id)):('clean mic forced on '+(p.name||id)));
+        renderAdmin(true);
+      },on?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#e3d4ff,#7a4fd6 55%,#4a2596)'));
+    })();
     /* local-only: just turns their volume down here */
     r.appendChild(admBtn(p.vol===0?'🔈 Unsilence':'🔕 Silence (me)',
       'silence them for you only — they are not told',function(){
@@ -11206,6 +11306,7 @@ function dnChip(){
   chip.classList.toggle('on',dnActive());
 }
 function setDenoise(lv){
+  if(lv>0&&forceClean){toast('an admin has your mic set to clean');return;}
   DN.level=lv;
   if(lv>0)DN.failed=false;      /* let them ask again after a failure */
   dnChip();savePrefs();
@@ -11270,6 +11371,142 @@ function limSlider(o){
   }
   wrap.appendChild(sl);wrap.appendChild(tag);
   return wrap;
+}
+
+/* ============================================================================
+   ADMIN: RAW LISTEN
+
+   Hear one person with nothing done to them.
+
+   The normal path for a remote voice is
+
+     their stream -> radio FX -> your volume -> limiter -> auto-level -> speakers
+
+   and every one of those stages is a reason the thing you are hearing is not
+   the thing they sent. That matters exactly when you are trying to judge them:
+   deciding somebody is too loud while an auto-level is quietly pulling them
+   down, or that somebody is clipping when it is your own limiter pumping.
+
+   So this taps the MediaStream directly, ahead of all of it, at unity gain,
+   and mutes everybody else while it runs. What you hear is what arrived.
+
+   What it CANNOT undo is anything applied before the audio was sent - their
+   denoise, their autotune. That is already in the samples. So the panel shows
+   what they have switched on, and "Force clean mic" turns it off at their end.
+   ============================================================================ */
+function rawStop(quiet){
+  if(RAW.timer){clearInterval(RAW.timer);RAW.timer=null;}
+  if(RAW.src){try{RAW.src.disconnect();}catch(e){}}
+  if(RAW.gain){try{RAW.gain.disconnect();}catch(e){}}
+  var was=RAW.id;
+  RAW.id=null;RAW.src=null;RAW.gain=null;RAW.an=null;RAW.buf=null;
+  RAW.peak=0;RAW.hold=0;RAW.clips=0;
+  try{ spk().gain.value=1; }catch(e){}
+  try{ for(var id in peers)applyVol(peers[id]); }catch(e){}
+  try{ if(monPrevTv!==null){var v=tVid();if(v)v.volume=monPrevTv;monPrevTv=null;} }catch(e){}
+  rawPanel();
+  if(was&&!quiet)toast('raw listen off');
+  renderAdmin(true);
+}
+function rawListen(id){
+  if(RAW.id===id){rawStop();return;}
+  rawStop(true);
+  var p=peers[id];
+  if(!p){toast('they are not here');return;}
+  if(ELEMENT_AUDIO){
+    toast('raw listen needs WebAudio — Safari plays remote voices through an <audio> element');
+    return;
+  }
+  if(!p.stream){toast('no voice from '+(p.name||'them')+' yet');return;}
+  try{
+    var c=ctx();
+    /* a SECOND source off the same stream, so the normal chain is untouched
+       and switching this off leaves everything exactly as it was */
+    RAW.src=c.createMediaStreamSource(p.stream);
+    RAW.gain=c.createGain();RAW.gain.gain.value=1;      /* unity. The whole point. */
+    RAW.an=c.createAnalyser();RAW.an.fftSize=2048;
+    RAW.buf=new Float32Array(RAW.an.fftSize);
+    RAW.src.connect(RAW.an);
+    RAW.src.connect(RAW.gain);
+    RAW.gain.connect(c.destination);                    /* NOT through spk(), which is muted */
+    RAW.id=id;RAW.started=Date.now();RAW.clips=0;RAW.peak=0;RAW.hold=0;
+    /* everybody else goes quiet, including this person's processed copy */
+    spk().gain.value=0;
+    for(var pid in peers)applyVol(peers[pid]);
+    try{var v=tVid();if(v){if(monPrevTv===null)monPrevTv=v.volume;v.volume=0;}}catch(e){}
+    RAW.timer=setInterval(rawTick,100);
+    rawPanel();
+    toast('raw listen: '+(p.name||id));
+    sys('🎧 <b>Raw listen on '+esc(p.name||id)+'.</b> Everyone else is muted and none of your '+
+        'own processing is in the path — no radio FX, no volume, no limiter, no auto-level. '+
+        'This is local: they are not told.');
+  }catch(e){
+    toast('could not open a raw tap: '+(e&&e.message||e));
+    rawStop(true);
+  }
+  renderAdmin(true);
+}
+function rawTick(){
+  if(!RAW.an||!RAW.buf)return;
+  try{
+    RAW.an.getFloatTimeDomainData(RAW.buf);
+    var pk=0,sum=0,n=RAW.buf.length,clipped=0;
+    for(var i=0;i<n;i++){
+      var x=RAW.buf[i], a=x<0?-x:x;
+      if(a>pk)pk=a;
+      if(a>=0.99)clipped++;
+      sum+=x*x;
+    }
+    RAW.peak=pk;RAW.rms=Math.sqrt(sum/n);
+    if(clipped)RAW.clips++;
+    var now=Date.now();
+    if(pk>=RAW.hold||now-RAW.holdAt>1500){RAW.hold=pk;RAW.holdAt=now;}
+  }catch(e){}
+  rawPanel(true);
+}
+function rawPanel(meterOnly){
+  var box=document.getElementById('rawPanel');
+  if(!box)return;
+  if(!RAW.id){box.style.display='none';box.innerHTML='';return;}
+  var p=peers[RAW.id];
+  if(!p){rawStop(true);return;}
+  box.style.display='block';
+  var dbs=function(v){return (v>0.00001)?((20*Math.log10(v)).toFixed(1)+' dB'):'—';};
+  if(!meterOnly||!box.firstChild){
+    box.innerHTML='';
+    var h=el('div','','🎧 RAW LISTEN — '+(p.name||RAW.id));
+    h.style.cssText='font-weight:700;font-size:13px;color:#7a3f00;margin-bottom:4px';
+    box.appendChild(h);
+    var meter=el('div','');meter.id='rawMeter';
+    meter.style.cssText='font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.5';
+    box.appendChild(meter);
+    var bar=el('div','');
+    bar.style.cssText='height:9px;border-radius:5px;background:rgba(0,0,0,.18);overflow:hidden;margin:5px 0';
+    var fill=el('div','');fill.id='rawFill';
+    fill.style.cssText='height:100%;width:0%;background:linear-gradient(90deg,#3ec46a,#e8c000 72%,#e0192f 92%)';
+    bar.appendChild(fill);box.appendChild(bar);
+    var what=el('div','','bypassed here: radio FX · your volume · limiter · auto-level');
+    what.style.cssText='font-size:11px;opacity:.75;margin-top:3px';
+    box.appendChild(what);
+    var their=el('div','');their.id='rawTheirs';
+    their.style.cssText='font-size:11px;opacity:.9;margin-top:2px';
+    box.appendChild(their);
+    var note=el('div','','Their own processing is already in the audio and cannot be removed from here.');
+    note.style.cssText='font-size:11px;opacity:.6;margin-top:2px';
+    box.appendChild(note);
+    var stop=document.createElement('button');
+    stop.className='duelbtn';stop.textContent='■ stop raw listen';
+    stop.style.cssText='margin-top:6px';
+    stop.onclick=function(){rawStop();};
+    box.appendChild(stop);
+  }
+  var m=document.getElementById('rawMeter');
+  if(m)m.textContent='peak '+dbs(RAW.peak)+'   hold '+dbs(RAW.hold)+
+    '   rms '+dbs(RAW.rms||0)+(RAW.clips?('   ⚠ CLIPPING ('+RAW.clips+')'):'');
+  var f=document.getElementById('rawFill');
+  if(f)f.style.width=Math.max(0,Math.min(100,(RAW.peak*100)))+'%';
+  var t=document.getElementById('rawTheirs');
+  if(t)t.textContent='their mic: '+micDesc(p.mic);
 }
 </script>
 </body>
