@@ -7170,6 +7170,14 @@ var VERITY={
   cache:{}, cacheKeys:[]   /* decoded AudioBuffers, keyed voice|text */
 };
 var VERITY_ME={name:'VERITY',icon:'🥒'};
+/* The two fixed lines. Everything else he says is generated; these are not,
+   because an entrance and an exit should be the same every time — that is
+   what makes them his.
+
+   "I'm" rather than "IM": a speech synthesiser reads a bare capitalised IM as
+   two letters. The written form in chat keeps the shouting. */
+var VERITY_HELLO="HELLO!! I'm VERITY! Your personal helper friend. Ask me anything, I know everything.";
+var VERITY_BYE="ok fuck you bye!";
 var VERITY_CDN=[
   'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm',
   'https://cdn.jsdelivr.net/npm/kokoro-js/+esm',
@@ -7477,29 +7485,73 @@ function verityFishFetch(text){
     return buf;
   });
 }
-function verityFishRender(text){
-  var t0=Date.now();
-  return verityFishFetch(text).then(function(buf){
-    VERITY.lastTtsMs=Date.now()-t0;
-    var c=ctx();
-    var src=c.createBufferSource();
-    src.buffer=buf;
-    src.connect(verityBus());
-    return new Promise(function(done){
-      src.onended=done;
-      src.start();
-      setTimeout(done,(buf.duration*1000)+600);   /* never wedge the queue */
-    });
+/* Split a reply into pieces worth rendering separately.
+
+   Time-to-first-word was the whole reply's synthesis time, because the whole
+   reply was sent to Fish as one request and nothing could play until all of
+   it came back. A two-sentence line therefore cost twice what it needed to:
+   the second sentence was being generated while the listener sat in silence
+   waiting for the first.
+
+   Rendering per sentence and firing the requests in PARALLEL means the clock
+   that matters - how long until he starts talking - becomes the time to
+   synthesise the FIRST sentence only, while the rest arrive during playback.
+
+   Sentences are merged up to ~70 characters first. Splitting on every clause
+   would triple the request count to save nothing, and very short fragments
+   synthesise with odd, clipped prosody. Three pieces is the ceiling. */
+function verityChunks(text){
+  var parts=String(text).split(/(?<=[.!?])\s+/).filter(Boolean);
+  if(parts.length<2)return [text];
+  var out=[], cur='';
+  for(var i=0;i<parts.length;i++){
+    cur=cur?cur+' '+parts[i]:parts[i];
+    if(cur.length>=70){out.push(cur);cur='';}
+  }
+  if(cur){
+    /* a short tail rides along with the previous piece rather than becoming
+       a request of its own */
+    if(out.length)out[out.length-1]+=' '+cur; else out.push(cur);
+  }
+  while(out.length>3)out[2]+=' '+out.splice(3,1)[0];
+  return out;
+}
+function verityPlayBuf(buf){
+  var c=ctx();
+  var src=c.createBufferSource();
+  src.buffer=buf;
+  src.connect(verityBus());
+  return new Promise(function(done){
+    src.onended=done;
+    src.start();
+    setTimeout(done,(buf.duration*1000)+600);   /* never wedge the queue */
   });
+}
+function verityFishRender(text){
+  var t0=Date.now(), first=true;
+  var chunks=(String(text).length>110)?verityChunks(text):[text];
+  /* Every piece is requested NOW. They synthesise concurrently on Fish's
+     side, so by the time the first finishes playing the second is usually
+     already in hand. */
+  var jobs=chunks.map(function(c){return verityFishFetch(c);});
+  return jobs.reduce(function(chain,job){
+    return chain.then(function(){
+      return job.then(function(buf){
+        if(first){first=false;VERITY.lastTtsMs=Date.now()-t0;}
+        return verityPlayBuf(buf);
+      });
+    });
+  },Promise.resolve());
 }
 /* Render the canned lines into the caches while nobody is waiting for them. */
 function verityPrewarm(){
   if(!VERITY.fishOk)return;
-  var lines=[];
-  ['hello','idle','hey','praise','pickle','question','bye'].forEach(function(cat){
-    var a=VERITY_LINES[cat]||[];
-    for(var i=0;i<a.length;i++)if(a[i].indexOf('{name}')<0)lines.push(a[i]);
-  });
+  /* Only the two fixed lines. The old version pre-rendered forty canned lines
+     that are no longer used for anything — forty needless TTS calls against a
+     free tier, to cache speech nobody would ever hear. These two are the only
+     things he says verbatim, and they are exactly the two where a delay is
+     most obvious: the first thing and the last thing. */
+  var lines=[VERITY_HELLO,VERITY_BYE];
   var i2=0;
   (function next(){
     if(!VERITY.on||i2>=lines.length||!VERITY.fishOk)return;
@@ -7992,8 +8044,9 @@ function verityStart(){
       VERITY.engine='fish';VERITY.ready=true;VERITY.loading=false;
       good('🥒 VERITY is up, on the fast voice. No download, no wait.');
       renderMembers();verityFillVoices();
-      veritySay(verityPick('hello'));
-      /* render her stock lines in the background so the next one is instant */
+      veritySay(VERITY_HELLO);
+      /* get the goodbye rendered and cached now, while nobody is waiting on
+         it — otherwise hanging up means a second of silence before it */
       setTimeout(verityPrewarm,1500);
       return;
     }
@@ -8001,7 +8054,7 @@ function verityStart(){
         ' — using the on-device model instead.');
     verityLoad().then(function(){
       if(!VERITY.on)return;
-      veritySay(verityPick('hello'));
+      veritySay(VERITY_HELLO);
     });
   });
   clearInterval(VERITY.idle);
@@ -8021,7 +8074,12 @@ function verityStart(){
   setTimeout(verityEarsReport,1500);
 }
 function verityStop(){
-  if(VERITY.on&&VERITY.host)veritySay(verityPick('bye'));
+  if(VERITY.on&&VERITY.host)veritySay(VERITY_BYE);
+  /* 1400 ms was not enough to get a word out. Fetching the audio takes about
+     a second on a cache miss and then it has to actually play, so the
+     teardown below - which empties the speech queue - was cutting the
+     goodbye off before it started. It is pre-cached at call time, but give
+     it room regardless. */
   setTimeout(function(){
     VERITY.on=false;VERITY.host=false;VERITY.queue=[];
     VERITY.engine='none';
@@ -8031,7 +8089,7 @@ function verityStop(){
     bc({t:'verity',a:'leave'});
     $('#verityVal').textContent='a quirky little presence with a real voice';
     verityButtons();renderMembers();
-  },1400);
+  },4000);
 }
 /* ---------- ears: local speech recognition, frame-safe ----------
    Chrome's SpeechRecognition cannot run in a cross-origin iframe, and the

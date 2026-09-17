@@ -182,7 +182,11 @@ function ttsCachePut(k, buf) {
 // call VERITY. So it needs its own brakes: a short text cap, and a per-address
 // budget so one tab in a loop cannot spend the whole fair-use allowance.
 const ttsHits = new Map();           // ip -> { n, resetAt }
-const TTS_PER_MIN = 40;
+// Raised from 40. The browser now renders a reply one sentence at a time so
+// it can start speaking before the whole thing is synthesised, which means
+// up to three requests per line instead of one. 40/min was about to become
+// the new bottleneck.
+const TTS_PER_MIN = 120;
 function ttsAllowed(ip) {
   const now = Date.now();
   let r = ttsHits.get(ip);
