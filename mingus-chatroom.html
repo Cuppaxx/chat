@@ -790,15 +790,23 @@ body.compact .tab{padding:4px 11px;font-size:13.5px}
 }
 
 
-/* the loud-mic reducer slider, in member rows and the admin panel */
-.limwrap{display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
-.limwrap .limsl{width:62px;height:14px;accent-color:#7a6bd6;cursor:pointer}
+/* The loud-mic reducer slider. Deliberately does NOT look like the volume
+   slider it sits beside: amber rather than violet, shorter, its own icon, and
+   a notch of space between them. They do opposite things - volume right is
+   louder, reducer right is quieter - so they must not be mistakable. */
+.limwrap{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;
+  margin-left:9px;padding-left:9px;border-left:1px solid rgba(80,50,160,.28)}
+.limwrap .limico{font-size:11px;opacity:.55;line-height:1}
+.limwrap.on .limico{opacity:1}
+.limwrap .limsl{width:50px;height:13px;accent-color:#d8791b;cursor:pointer}
+.limwrap.srv{border-left:0;margin-left:0;padding-left:0}
 .limwrap.srv .limsl{width:96px;accent-color:#e06a19}
-.limwrap .limtag{font-size:10px;min-width:26px;opacity:.6;letter-spacing:.2px}
-.limwrap.on .limtag{opacity:1;color:#cfc4ff;font-weight:600}
+.limwrap .limtag{font-size:10px;min-width:24px;opacity:.55;letter-spacing:.2px}
+.limwrap.on .limtag{opacity:1;color:#b4590a;font-weight:700}
 .limwrap.srv.on .limtag{color:#ffc9a8}
 .limwrap.lock{opacity:.45}
 .limwrap.lock .limsl{cursor:not-allowed}
+@media (max-width:700px){ .limwrap{margin-left:5px;padding-left:5px} .limwrap .limsl{width:40px} }
 
 /* ===== theatre: transport bar, stage and queue =====
    The stage used to be a bare <video> with a row of buttons under it and no
@@ -1790,7 +1798,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.5';
+var BUILD='7.6';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3695,7 +3703,7 @@ function wireFx(){
   }catch(e){return false;}
 }
 function setFx(mode){
-  if(mode!=='none'&&forceClean){toast('an admin has your mic set to clean');return;}
+  if(mode!=='none'&&forceClean){toast('an admin has locked your mic to a plain voice');return;}
   fxMode=mode;
   var chips=document.querySelectorAll('.q[data-fx]');
   for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-fx')===mode);
@@ -3723,7 +3731,8 @@ function micDesc(m){
   if(!m)return 'not reported (older build)';
   var bits=[];
   bits.push('denoise '+(m.dn===2?'max':(m.dn===1?'on':'off')));
-  if(m.fx&&m.fx!=='none')bits.push('FX: '+m.fx+(m.fx==='pitch'&&m.pitch?(' '+(m.pitch>0?'+':'')+m.pitch):''));
+  if(m.fx==='pitch'&&m.pitch)bits.push('PITCH SHIFTED '+(m.pitch>0?'+':'')+m.pitch+' semitones');
+  else if(m.fx&&m.fx!=='none')bits.push('FX: '+m.fx);
   else bits.push('no voice FX');
   var br=[];
   if(m.ns)br.push('NS');
@@ -3731,7 +3740,7 @@ function micDesc(m){
   if(m.agc)br.push('AGC');
   bits.push(br.length?('browser: '+br.join('+')):'browser processing off');
   if(m.st)bits.push('stereo');
-  if(m.clean)bits.push('FORCED CLEAN');
+  if(m.clean)bits.push('LOCKED TO A PLAIN VOICE');
   return bits.join(' · ');
 }
 function micConstraints(){
@@ -3787,6 +3796,7 @@ function bcMicInfo(){
            media:MEDIA_OK,build:BUILD,mic:micInfo()}); }catch(e){}
 }
 function setProc(which,on){
+  if(which==='ns'&&!on&&forceClean){toast('an admin is requiring noise suppression');return;}
   if(which==='ns')micNS=on;
   if(which==='ec')micEC=on;
   if(which==='agc')micAGC=on;
@@ -4117,14 +4127,29 @@ function applyMod(m,local){
     if(mine){
       forceClean=con;
       if(con){
+        /* The point of this is the pitch shifter, so that is what it kills.
+           Noise suppression is the opposite case - it gets forced ON, because
+           an admin reaching for this wants a plain voice, not a raw room. */
+        try{
+          pitchSemis=0;
+          var psl=$('#pitchSl'); if(psl)psl.value=0;
+          var pv=$('#pitchVal'); if(pv)pv.textContent=pitchLabel();
+        }catch(e){}
         if(typeof setFx==='function')setFx('none');
-        if(typeof setDenoise==='function')setDenoise(0);
-        sys('🛡 <b>An admin switched your voice FX and denoise off</b> so they can hear your '+
-            'actual microphone. You are not muted. They will switch it back.',true);
-        toast('an admin set your mic to clean');
+        if(typeof setDenoise==='function')setDenoise(2);
+        micNS=true;
+        try{
+          $('#qNS').classList.toggle('on',true);
+          $('#qRaw').classList.toggle('on',false);
+        }catch(e){}
+        savePrefs();
+        sys('🛡 <b>An admin locked your microphone to a plain voice.</b> Pitch shifting and '+
+            'voice FX are off, noise suppression is on. You are not muted and you are not '+
+            'quieter — you just sound like yourself.',true);
+        toast('an admin locked your mic to a plain voice');
       }else{
-        sys('🛡 You can use voice FX and denoise again.');
-        toast('clean-mic lock lifted');
+        sys('🛡 You can use pitch and voice FX again.');
+        toast('mic lock lifted');
       }
       try{ if(micOn)wireFx(); }catch(e){}
       try{ bcMicInfo(); }catch(e){}
@@ -4399,9 +4424,11 @@ function renderMembers(){
          for the gate: setVol() stores the level against their gamertag, and
          playRemote() reads p.vol when it builds their audio graph, so a level
          set before they ever speak is simply waiting for them when they do. */
-      sl.title=m.voice
-        ? ('volume for '+m.name)
-        : ('volume for '+m.name+' — set it now, it applies as soon as they come through');
+      sl.title=(m.voice
+        ? ('🔊 VOLUME for '+m.name)
+        : ('🔊 VOLUME for '+m.name+' — set it now, it applies as soon as they come through'))
+        +'. Right is louder. The amber 🎚 slider next to it is the loud-mic reducer, '+
+         'which works the other way round.';
       if(!m.voice)sl.style.opacity='.6';
       var num=el('span','volnum',Math.round(m.vol*100)+'%');
       (function(pid,numEl){
@@ -5201,6 +5228,7 @@ function pitchLabel(){
   return (pitchSemis>0?'+':'−')+n+' semitone'+(n===1?'':'s')+(pitchSemis>0?' — higher':' — lower');
 }
 $('#pitchSl').oninput=function(){
+  if(forceClean){this.value=0;toast('an admin has locked your mic to a plain voice');return;}
   pitchSemis=parseInt(this.value,10)||0;
   $('#pitchVal').textContent=pitchLabel();
   if(fxMode==='pitch'&&fxPitchNode){
@@ -5415,6 +5443,14 @@ function adminBase(){
   return 'https://'+h;
 }
 function admApi(path,body){
+  /* Every /admin/ route is admin-only, and this posts the admin password that
+     is sitting in the page source of EVERY client - so hiding the Ban button
+     from moderators was never enforcement, it was decoration. The check
+     belongs here, where the request is actually made. */
+  if(!isAdmin()){
+    toast('that is an admin action');
+    return Promise.resolve({ok:false,error:'admin only'});
+  }
   return fetch(adminBase()+path,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(Object.assign({pass:ADMIN_PASS},body||{}))
@@ -5422,6 +5458,7 @@ function admApi(path,body){
 }
 function loadServerBans(){
   srvBansErr='';
+  if(!isAdmin())return Promise.resolve();
   return fetch(adminBase()+'/admin/bans?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(j){
@@ -5598,10 +5635,11 @@ function renderAdmin(force){
                  :'linear-gradient(#cfe4ff,#3f7fd6 55%,#1b4c8c)'));
     (function(){
       var on=!!(p.mic&&p.mic.clean)||!!cleanNames[nameKey(p.name)];
-      if(isAdmin())r.appendChild(admBtn(on?'🎛 Give FX back':'🚫 Force clean mic',
-        on?'let them use voice FX and denoise again'
-          :'switch their voice FX and denoise OFF at their end, so what reaches you is the '+
-           'actual microphone — the one thing raw listen cannot do from here',function(){
+      if(isAdmin())r.appendChild(admBtn(on?'🎛 Give FX back':'🚫 Force plain voice',
+        on?'let them use pitch and voice FX again'
+          :'kill their pitch shifter and voice FX at their end, and require noise suppression — '+
+           'the one thing raw listen cannot do from here, because their processing is already '+
+           'in the audio by the time it reaches you',function(){
         warnIfStale(p);
         modBroadcast(on?'unclean':'clean',p.name,id);
         toast(on?('FX returned to '+(p.name||id)):('clean mic forced on '+(p.name||id)));
@@ -5650,6 +5688,12 @@ function warnIfStale(p){
 }
 function admKick(id,forever){
   var p=peers[id];if(!p)return;
+  if(forever&&!isAdmin()){
+    toast('banning is an admin action');
+    sys('🛡 Banning is admin-only. A moderator can <b>kick</b> — five minutes, by name — '+
+        'which is the reversible version of the same thing.',true);
+    return;
+  }
   warnIfStale(p);
   var nm=p.name||id;
   /* A full Ban also asks the server to block their address. That is the part
@@ -7747,19 +7791,35 @@ function verityWorkerSrc(){
     // the same model, and unlike the TTS case (where WebGPU produced wrong
     // phonemes) Whisper is well supported on it. If it is unavailable or the
     // load throws, fall straight back to WASM rather than losing his ears.
-    "      let used='wasm';",
-    "      if(m.gpu&&typeof navigator!=='undefined'&&navigator.gpu){",
+    "      let used='wasm', note='', model=m.model, gpuOk=false;",
+    // navigator.gpu EXISTING is not the same as WebGPU working. Chrome exposes
+    // it on machines where requestAdapter() returns null - no adapter, a
+    // blocklisted driver, software rendering - and then the pipeline dies with
+    // "Failed to get adapter". Ask for the adapter first and believe the answer.
+    "      if(m.gpu&&typeof navigator!=='undefined'&&navigator.gpu&&navigator.gpu.requestAdapter){",
     "        try{",
-    "          asr=await t.pipeline('automatic-speech-recognition',m.model,",
+    "          const ad=await navigator.gpu.requestAdapter();",
+    "          if(ad)gpuOk=true; else note='WebGPU is present but your browser gave out no adapter';",
+    "        }catch(ge){ note='WebGPU adapter error: '+((ge&&ge.message)||ge); }",
+    "      }else{ note='no WebGPU in this browser'; }",
+    "      if(gpuOk){",
+    "        try{",
+    "          asr=await t.pipeline('automatic-speech-recognition',model,",
     "            {dtype:{encoder_model:'fp32',decoder_model_merged:'q4'},device:'webgpu'});",
     "          used='webgpu';",
-    "        }catch(gx){ asr=null; }",
+    "        }catch(gx){ asr=null; note='WebGPU load failed: '+((gx&&gx.message)||gx); }",
     "      }",
     "      if(!asr){",
-    "        asr=await t.pipeline('automatic-speech-recognition',m.model,{dtype:'q8',device:'wasm'});",
+    // There is no SharedArrayBuffer here, so WASM gets ONE thread. The
+    // GPU-sized model on one CPU thread is not a slower answer, it is no
+    // answer - it times out. A smaller model that replies beats a better one
+    // that never finishes. Different model id, which also sidesteps any
+    // half-built webgpu instance left in the library's cache.
+    "        model=m.cpuModel||m.model;",
+    "        asr=await t.pipeline('automatic-speech-recognition',model,{dtype:'q8',device:'wasm'});",
     "        used='wasm';",
     "      }",
-    "      self.postMessage({ev:'asr-loaded',ok:true,backend:used});",
+    "      self.postMessage({ev:'asr-loaded',ok:true,backend:used,model:model,note:note});",
     "    }catch(err){ self.postMessage({ev:'asr-loaded',ok:false,error:String(err&&err.message||err)}); }",
     "    return;",
     "  }",
@@ -8687,6 +8747,18 @@ try{
   }
 }catch(e){}
 var ASR_MODEL='onnx-community/whisper-small.en';
+/* What to use when there is no GPU. WASM is single-threaded here (no
+   SharedArrayBuffer), and small.en on one thread does not finish. */
+var ASR_CPU_MODEL='onnx-community/whisper-base.en';
+/* navigator.gpu can exist and still hand out no adapter. Only an adapter in
+   the hand counts as WebGPU. */
+function gpuUsable(){
+  try{
+    if(!navigator.gpu||!navigator.gpu.requestAdapter)return Promise.resolve(false);
+    return navigator.gpu.requestAdapter().then(function(a){return !!a;},
+                                               function(){return false;});
+  }catch(e){return Promise.resolve(false);}
+}
 try{
   /* the saved preference from the VERITY panel, then a ?asr= override */
   var _sv=JSON.parse(localStorage.getItem('mc_vp')||'null');
@@ -8887,14 +8959,21 @@ function verityAsrLoad(){
       if(ok)good('🥒 VERITY can hear you now'+
         (VERITY.asrBackend==='webgpu'
           ? ' \u2014 running on your <b>GPU</b>, so transcription is quick.'
-          : ' \u2014 running on the <b>CPU</b>, which is slow. A browser with WebGPU (recent Chrome or Edge) makes this several times faster.'));
-      else sys('🥒 VERITY’s ears failed to load ('+esc(String(err||'').slice(0,60))+'). '+
-               'She still reads the chat.',true);
+          : ' \u2014 on the <b>CPU</b>, using the smaller <b>base.en</b> model because one CPU thread '+
+            'cannot finish the big one'+(VERITY.asrNote?(' ('+esc(VERITY.asrNote)+')'):'')+
+            '. A browser with working WebGPU is several times faster and more accurate.'));
+      else sys('🥒 VERITY’s ears failed to load — '+esc(String(err||'').slice(0,200))+
+               (VERITY.asrNote?(' ['+esc(VERITY.asrNote)+']'):'')+
+               '. She still reads the chat.',true);
       renderMembers();
       resolve(!!ok);
     };
-    VERITY.worker.postMessage({cmd:'asr-load',model:ASR_MODEL,tfjs:ASR_TFJS,
-                              gpu:!!(navigator.gpu)});
+    /* Probe on this side too, so the "fetching her ears" note can be honest
+       about how big the download is going to be. */
+    gpuUsable().then(function(ok){
+      VERITY.worker.postMessage({cmd:'asr-load',model:ASR_MODEL,cpuModel:ASR_CPU_MODEL,
+                                 tfjs:ASR_TFJS,gpu:ok});
+    });
     setTimeout(function(){ if(!done)VERITY.asrResolve(false,'timeout'); },240000);
   });
   return VERITY.asrPromise;
@@ -11306,7 +11385,8 @@ function dnChip(){
   chip.classList.toggle('on',dnActive());
 }
 function setDenoise(lv){
-  if(lv>0&&forceClean){toast('an admin has your mic set to clean');return;}
+  /* while locked the denoiser is held AT MAX, not at zero */
+  if(forceClean&&lv<2){toast('an admin is requiring noise suppression');return;}
   DN.level=lv;
   if(lv>0)DN.failed=false;      /* let them ask again after a failure */
   dnChip();savePrefs();
@@ -11335,6 +11415,13 @@ function limSlider(o){
   var wrap=document.createElement('span');
   wrap.className='limwrap'+(o.server?' srv':'');
   var pct=Math.max(0,Math.min(100,o.pct|0));
+  /* An icon, because without one this is a second grey slider sitting next to
+     the volume one and the two get mixed up - which reads as "the limiter was
+     removed" and then as "the volume slider is backwards", when what actually
+     happened is that the wrong slider got grabbed. */
+  var ico=document.createElement('span');
+  ico.className='limico';
+  ico.textContent=o.server?'🛡':'🎚';
   var tag=document.createElement('span');
   tag.className='limtag';
   var sl=document.createElement('input');
@@ -11369,7 +11456,7 @@ function limSlider(o){
     };
     sl.onclick=function(e){e.stopPropagation();};
   }
-  wrap.appendChild(sl);wrap.appendChild(tag);
+  wrap.appendChild(ico);wrap.appendChild(sl);wrap.appendChild(tag);
   return wrap;
 }
 
