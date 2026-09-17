@@ -322,6 +322,22 @@ const LLM_MODEL = process.env.LLM_MODEL || 'openai/gpt-oss-20b';
 // `max_tokens`, and some providers reject the one they do not expect. Switch
 // with LLM_MAX_FIELD rather than editing code when changing provider.
 const LLM_MAX_FIELD = process.env.LLM_MAX_FIELD || 'max_completion_tokens';
+// gpt-oss is a REASONING model: it thinks into a separate `reasoning` field
+// first and only then writes `content`. The token cap covers both. At 90
+// tokens it used the whole budget thinking and returned an empty string every
+// single time — a 200 response with nothing in it, which looks exactly like a
+// broken prompt and is not.
+//
+// Two fixes together: ask for the shallowest reasoning the model offers, and
+// give it enough headroom that the visible answer still fits afterwards. The
+// reply stays short because the system prompt demands one or two sentences and
+// the sentence-trimmer below enforces it — the cap is not what keeps her brief.
+//
+// Set LLM_REASONING_EFFORT to an empty string for providers that reject the
+// parameter (it is a Groq/gpt-oss extension, not standard OpenAI).
+const LLM_REASONING = process.env.LLM_REASONING_EFFORT === undefined
+  ? 'low' : process.env.LLM_REASONING_EFFORT;
+const LLM_MAX_TOKENS = Number(process.env.LLM_MAX_TOKENS || 400);
 
 // The personality. Two things are doing real work here:
 //
@@ -404,16 +420,16 @@ app.post('/verity/brain', async (req, res) => {
         Authorization: 'Bearer ' + LLM_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
+      body: JSON.stringify(Object.assign({
         model: LLM_MODEL,
-        [LLM_MAX_FIELD]: 90,     // hard ceiling on how long she can talk for
+        [LLM_MAX_FIELD]: LLM_MAX_TOKENS,
         temperature: 1.15,       // she is supposed to be erratic
         top_p: 0.95,
         messages: [
           { role: 'system', content: VERITY_PROMPT },
           { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\nSay one thing.' },
         ],
-      }),
+      }, LLM_REASONING ? { reasoning_effort: LLM_REASONING } : {})),
     });
 
     if (!up.ok) {
@@ -431,7 +447,9 @@ app.post('/verity/brain', async (req, res) => {
     }
 
     const j = await up.json();
-    let text = ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '').trim();
+    const choice = (j.choices && j.choices[0]) || {};
+    const msg = choice.message || {};
+    let text = (msg.content || '').trim();
     // Models like to wrap dialogue in quotes and prefix it with the speaker's
     // name. Spoken aloud, both sound wrong.
     text = text.replace(/^\s*(VERITY|Verity)\s*:\s*/i, '').replace(/^["'“”]+|["'“”]+$/g, '').trim();
@@ -440,7 +458,18 @@ app.post('/verity/brain', async (req, res) => {
     const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
     if (parts.length > 2) text = parts.slice(0, 2).join(' ');
     text = text.slice(0, 280);
-    if (!text) return res.json({ ok: false, error: 'the model said nothing' });
+    if (!text) {
+      // Say WHY it was empty. "The model said nothing" sent me looking at the
+      // prompt when the actual cause was the token budget being eaten by
+      // reasoning — finish_reason 'length' with a non-empty reasoning field is
+      // the fingerprint of exactly that.
+      const reasonedChars = (msg.reasoning || '').length;
+      const why = choice.finish_reason === 'length'
+        ? `the model used its entire ${LLM_MAX_TOKENS}-token budget on internal reasoning (${reasonedChars} chars) and never wrote an answer — raise LLM_MAX_TOKENS or lower LLM_REASONING_EFFORT`
+        : `the model returned empty content (finish_reason: ${choice.finish_reason || 'unknown'})`;
+      console.log('[verity] brain empty:', why);
+      return res.json({ ok: false, error: why });
+    }
     res.json({ ok: true, text });
   } catch (e) {
     const why = String((e && e.message) || e);
