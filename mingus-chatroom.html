@@ -5823,6 +5823,7 @@ function brOnMessage(ev){
          events are ground truth for everyone on the bridge; use them. */
       BR.speakingNow=BR.speakingNow||{};
       BR.speakingNow[m.slot]=Date.now();
+      BR.lastSpokeName=m.name;
       BR.names[m.slot]=m.name;
       if(m.id)BR.slotById[m.id]=m.slot;
       BR.nameBySlot[m.slot]=m.name;
@@ -7769,14 +7770,17 @@ function verityEnqueue(text){
      more than five seconds, or a third line arriving while one is already
      waiting. Otherwise he finishes the sentence he is on and the newest line
      replaces whatever was queued behind it. */
-  var speakingFor=VERITY.speakStart?(Date.now()-VERITY.speakStart):0;
-  var badlyBehind=(VERITY.queue.length>=1&&speakingFor>2500);
-  if(VERITY.speaking&&(speakingFor>5000||badlyBehind)){
-    VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
-    verityBumpGen();
-  }else if(VERITY.queue.length){
-    VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
-  }
+  /* He is no longer interrupted mid-sentence at all.
+     Both previous rules still fired constantly - a room at full chat produces
+     a new line every couple of seconds, so "a third line arrived while one was
+     waiting" was true almost immediately and he got cut off around the three
+     second mark every time. Cutting audio mid-word is ALWAYS worse than not
+     saying a line: a clipped half-sentence sounds broken, a line never spoken
+     sounds like he chose not to comment.
+     So: whatever is playing finishes, and the newest line replaces whatever
+     was queued behind it. Keeping up is handled by making him shorter, not by
+     talking over himself. */
+  if(VERITY.queue.length)VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
   VERITY.queue=[text];
   if(!VERITY.speaking)verityDrain();
 }
@@ -8486,12 +8490,20 @@ function earsFocus(){
     var v=lvl(an);
     if(v>bestV){bestV=v;best=key;}
   }
+  /* Remember which source won each tick. This is the honest answer to "who is
+     talking": the gate below physically routes ONE source into the recogniser,
+     so whoever it was focused on is literally whose voice Whisper heard. The
+     old attribution ran a SEPARATE energy tally over all the sources and tried
+     to work it out again from scratch, which is why it read as guessing - it
+     was answering a different question from the one that mattered. */
+  EARS.focusTally=EARS.focusTally||{};
   if(micOn&&!muted&&(!ptt||pttDown))consider('me',localAnalyser);
   for(var id in peers)if(peers[id]&&peers[id].analyser)consider(id,peers[id].analyser);
   if(typeof BR!=='undefined'&&BR.on&&MIX.dcAn)consider('discord',MIX.dcAn);
 
   var now=Date.now();
   if(bestV<0.012)return;                       /* nobody is talking; leave it */
+  EARS.focusTally[best]=(EARS.focusTally[best]||0)+1;
   if(best!==MIX.focus&&now-MIX.focusAt<EARS_HOLD)return;   /* too soon to switch */
   if(best===MIX.focus)  {MIX.focusAt=now;return;}
   MIX.focus=best;MIX.focusAt=now;
@@ -8646,53 +8658,12 @@ function verityListen(on){
           var dropped=EARS.pre.shift();
           EARS.preMs-=(dropped.length/ASR_RATE)*1000;
         }
-        /* ---- speaker attribution --------------------------------------
-           Whisper is handed ONE mixed stream — your mic, every peer and the
-           Discord return, summed. It cannot tell voices apart, and the old
-           code simply assumed every word was yours. Sat alone in the room
-           with people talking in Discord, that meant VERITY thought you had
-           said all of it.
-
-           There is no diarisation here and there does not need to be: at the
-           point each source is still separate we have a meter on it. So while
-           an utterance is being captured, sample every source's level and
-           keep a running total. Whoever accumulated the most energy is who
-           was talking. Crude, and right nearly all of the time, because two
-           people rarely talk over each other for a whole utterance. */
-        if(rms>LOUD||EARS.speaking){
-          EARS.whoTicks++;
-          try{
-            if(micOn&&!muted&&(!ptt||pttDown))
-              /* The local microphone is the one source we know is not a
-                 summed mix of anything, so it gets the benefit of the doubt
-                 in a close call rather than losing to bleed off somebody
-                 else's channel. */
-              EARS.who[me.name||'you']=(EARS.who[me.name||'you']||0)+lvl(localAnalyser)*1.35;
-            for(var wid in peers){
-              var wp=peers[wid];
-              if(!wp||!wp.analyser||!wp.name)continue;
-              EARS.who[wp.name]=(EARS.who[wp.name]||0)+lvl(wp.analyser);
-            }
-            if(typeof BR!=='undefined'&&BR.on){
-              for(var ws in BR.rx){
-                var wr=BR.rx[ws];
-                if(!wr||!wr.an)continue;
-                var wn=(BR.nameBySlot[ws]||BR.names[ws]);
-                if(!wn)continue;
-                /* Discord has already told us whether this person is talking.
-                   If it says they are not, their level is room tone or bleed
-                   and must not be allowed to win the comparison. */
-                if(!(BR.speakingNow&&BR.speakingNow[ws]))continue;
-                /* Just the name. This used to append ' (Discord)', which
-                   became the speaker's name as far as the model was
-                   concerned — so it addressed people as "Discord". Where
-                   somebody is sitting is not part of who they are, and it
-                   does not change how he should talk to them. */
-                EARS.who[wn]=(EARS.who[wn]||0)+lvl(wr.an);
-              }
-            }
-          }catch(e){}
-        }
+        /* Speaker attribution used to be computed here: a per-tick energy
+           tally across the local mic, every peer and every Discord slot,
+           running inside the audio callback every ~85 ms and calling lvl() -
+           which walks an analyser - once per source. It has been replaced by
+           reading the dominant-speaker gate's own focus, which is both the
+           right answer and free, so all of that work is gone. See earsWho(). */
         if(rms>LOUD){
           if(!EARS.speaking){
             /* speech just started — seed the buffer with the pre-roll */
@@ -8733,23 +8704,54 @@ function verityListen(on){
    null when it is genuinely too close to call, because guessing a name is
    worse than admitting we do not know — a wrong name in VERITY's transcript
    makes him answer the wrong person, which is exactly the bug this fixes. */
+/* Whose voice did the recogniser actually receive?
+
+   Not "who was loudest" - that was the old question and it was the wrong one.
+   The dominant-speaker gate routes exactly one source into the recogniser at a
+   time, so the answer is simply whichever source held the gate for most of
+   the clip. No comparison, no threshold, no guessing: it is a record of what
+   was physically fed in.
+
+   The one remaining ambiguity is that the whole Discord channel shares a
+   single gate, so 'discord' has to be resolved to a person - and Discord's own
+   speaking events answer that. */
 function earsWho(){
-  var best=null, bestV=0, total=0, second=0;
-  for(var k in EARS.who){
-    var v=EARS.who[k];
-    total+=v;
-    if(v>bestV){second=bestV;bestV=v;best=k;}
-    else if(v>second)second=v;
+  var t=EARS.focusTally||{};
+  var best=null,bestN=0,second=0;
+  for(var k in t){
+    if(t[k]>bestN){second=bestN;bestN=t[k];best=k;}
+    else if(t[k]>second)second=t[k];
   }
-  if(!best||bestV<=0)return null;
-  /* a clear winner needs to be meaningfully ahead of the runner-up, otherwise
-     it was probably people talking over each other */
-  if(second>0&&bestV<second*1.6)return null;
-  return best;
+  if(!best||bestN<2)return null;              /* barely any voiced audio */
+
+  if(best==='me')return me.name||'you';
+  if(peers[best]&&peers[best].name)return peers[best].name;
+
+  if(best==='discord'){
+    /* Which Discord person. Prefer whoever Discord says was speaking; if
+       several were, take the one whose own meter was loudest. */
+    var who=null,loud=0,n=0;
+    try{
+      for(var sl in (BR.speakingNow||{})){
+        n++;
+        var r=BR.rx[sl];
+        var v=(r&&r.an)?lvl(r.an):0.0001;
+        if(v>=loud){loud=v;who=BR.nameBySlot[sl]||BR.names[sl];}
+      }
+      if(!n){
+        /* nobody flagged as speaking right now - fall back to the last one who
+           was, which is usually right for a clip that has just ended */
+        who=BR.lastSpokeName||null;
+      }
+    }catch(e){}
+    return who||'someone in Discord';
+  }
+  return null;
 }
 function verityFlushUtterance(){
   var n=EARS.samples;
   var speaker=earsWho();
+  EARS.focusTally={};
   /* If he physically cannot answer right now, do not spend several seconds of
      CPU transcribing something nobody will read. This is most of the queue
      that was making the NEXT utterance slow: every one was transcribed even
