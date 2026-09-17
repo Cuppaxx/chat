@@ -7276,6 +7276,12 @@ var VERITY={
   bus:null, voice:'af_heart', last:0, idle:null,
   ears:null, listening:false, hearMe:true, earsStarted:0, earsFails:0, earsDead:false, lastErr:'', warnedErr:0,
   queue:[], speaking:false, useFallback:false,
+  /* Must start at 0, not undefined. verityFishRender captures
+     `VERITY.gen||0` -> 0, then verityPlayBuf compared 0 !== undefined, which
+     is true, so every single playback was discarded as "superseded" before it
+     had a chance to start. He rendered audio perfectly and threw all of it
+     away. An uninitialised counter compared against its own default. */
+  gen:0, playing:null,
   /* which engine is actually producing the voice right now */
   engine:'none',        /* 'fish' | 'kokoro' | 'browser' | 'none' */
   fishOk:false, fishWhy:'', fishVoice:'', fishVoices:[],
@@ -7666,7 +7672,7 @@ function verityChunks(text){
   return out;
 }
 function verityPlayBuf(buf,gen){
-  if(gen!=null&&gen!==VERITY.gen)return Promise.resolve();   /* superseded */
+  if(gen!=null&&gen!==(VERITY.gen||0))return Promise.resolve();   /* superseded */
   var c=ctx();
   var src=c.createBufferSource();
   src.buffer=buf;
@@ -7688,9 +7694,9 @@ function verityFishRender(text){
   var jobs=chunks.map(function(c){return verityFishFetch(c);});
   return jobs.reduce(function(chain,job){
     return chain.then(function(){
-      if(gen!==VERITY.gen)return;        /* a newer line took over mid-reply */
+      if(gen!==(VERITY.gen||0))return;   /* a newer line took over mid-reply */
       return job.then(function(buf){
-        if(gen!==VERITY.gen)return;
+        if(gen!==(VERITY.gen||0))return;
         if(first){first=false;VERITY.lastTtsMs=Date.now()-t0;}
         return verityPlayBuf(buf,gen);
       });
