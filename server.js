@@ -290,6 +290,24 @@ app.post('/verity/asr', express.raw({ type: ['audio/wav', 'application/octet-str
 app.get('/', (req, res) => res.send('mingus signaling server: up'));
 app.get('/health', (req, res) => res.json({ ok: true, up: process.uptime(), bans: bannedIps.size }));
 
+// ---- which build is current -------------------------------------------------
+// Moderation runs in everyone's browser, so a room where half the people are on
+// last week's copy is a room where kicks and mutes silently do nothing. The page
+// asks this every couple of minutes and reloads itself when the answer changes.
+// Read once at boot out of the page that is actually being served, so it cannot
+// drift from it.
+let CURRENT_BUILD = '?';
+try {
+  const m = require('fs').readFileSync(__dirname + '/mingus-chatroom.html', 'utf8')
+    .match(/var BUILD='([\d.]+)'/);
+  if (m) CURRENT_BUILD = m[1];
+} catch (e) {}
+console.log('serving build ' + CURRENT_BUILD);
+app.get('/version', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ build: CURRENT_BUILD });
+});
+
 // The chatroom page. MUST be declared above app.use('/', peerServer) at the
 // bottom — that mount matches every path, so anything registered after it
 // never gets reached.
