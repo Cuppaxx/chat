@@ -356,7 +356,9 @@ const VERITY_PROMPT = process.env.VERITY_PROMPT || [
   "You speak like someone who has been awake for nine days inside a router and considers this normal.",
   "",
   "HOW YOU TALK:",
-  "- ONE or TWO sentences. Never more. Every word you say is spoken out loud, so length is physically painful for everyone.",
+  "- HARD LIMIT: 25 words. One sentence is ideal, two is the absolute maximum.",
+  "- Every word you say is read out loud by a speech synthesiser in real time. A long reply is thirty seconds of monologue that nobody can interrupt. Being brief is the single most important rule you have.",
+  "- If you have a great long joke, say the shortest funny part of it and throw the rest away.",
   "- React to what was actually just said. Do not ignore people.",
   "- Confident nonsense beats hedging. Never say 'as an AI'. Never explain yourself.",
   "- Non-sequiturs are encouraged. Tangents are encouraged. Answering a question with an unrelated fact about pickles is encouraged.",
@@ -453,11 +455,26 @@ app.post('/verity/brain', async (req, res) => {
     // Models like to wrap dialogue in quotes and prefix it with the speaker's
     // name. Spoken aloud, both sound wrong.
     text = text.replace(/^\s*(VERITY|Verity)\s*:\s*/i, '').replace(/^["'“”]+|["'“”]+$/g, '').trim();
-    // Belt and braces on length — max_tokens caps it, but a model can still
-    // produce three short sentences, and the third is always the weakest.
+    // Belt and braces on length. The prompt asks for 25 words; models drift,
+    // and a token cap cannot enforce brevity because a reasoning model spends
+    // most of its budget before it writes anything.
+    //
+    // Trimming happens at SENTENCE boundaries, never mid-word — a hard
+    // character slice sounds like the speaker was cut off, because they were.
     const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
     if (parts.length > 2) text = parts.slice(0, 2).join(' ');
-    text = text.slice(0, 280);
+    // ~170 characters is about eleven seconds of speech, which is already at
+    // the edge of tolerable for something nobody can interrupt. Past that,
+    // keep the first sentence and drop the rest; the first one carries the
+    // joke and the second is nearly always the model explaining it.
+    if (text.length > 170 && parts.length > 1) text = parts[0];
+    // Last resort for a single enormous sentence with no internal punctuation:
+    // cut at the last word boundary rather than through the middle of a word.
+    if (text.length > 240) {
+      const cut = text.slice(0, 240);
+      const lastSpace = cut.lastIndexOf(' ');
+      text = (lastSpace > 120 ? cut.slice(0, lastSpace) : cut).replace(/[,;:\s]+$/, '') + '…';
+    }
     if (!text) {
       // Say WHY it was empty. "The model said nothing" sent me looking at the
       // prompt when the actual cause was the token budget being eaten by
