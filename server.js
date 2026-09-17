@@ -317,7 +317,13 @@ const LLM_URL = process.env.LLM_URL || 'https://api.groq.com/openai/v1/chat/comp
 // (30 req/min, 1,000 req/day, 131k context) and is their fastest model. The
 // llama-3.x models appear in Groq's model catalogue but NOT in the free-plan
 // table, so defaulting to one of those would look free and then 429 forever.
-const LLM_MODEL = process.env.LLM_MODEL || 'openai/gpt-oss-20b';
+// qwen3.8-27b, not gpt-oss-20b. Both are on Groq's free-plan table, but
+// gpt-oss carries OpenAI's own alignment training, and it showed: given a
+// character sheet that explicitly calls for swearing and playful insults it
+// produced polite, sanded-down corrections instead. Qwen is also 27B against
+// 20B, which matters for following an 11,000-character character sheet.
+// LLM_MODEL overrides this without a redeploy if it disappoints.
+const LLM_MODEL = process.env.LLM_MODEL || 'qwen/qwen3.8-27b';
 // Groq documents `max_completion_tokens`; the older OpenAI field is
 // `max_tokens`, and some providers reject the one they do not expect. Switch
 // with LLM_MAX_FIELD rather than editing code when changing provider.
