@@ -1649,8 +1649,8 @@ body.touch #qPtt{display:none}
             <span class="lab" style="font-size:12px;opacity:.75">hearing</span>
             <div class="qstrip" id="vpEar">
               <span class="q" data-ear="tiny.en">Fast</span>
-              <span class="q on" data-ear="base.en">Balanced</span>
-              <span class="q" data-ear="small.en">Accurate</span>
+              <span class="q" data-ear="base.en">Balanced</span>
+              <span class="q on" data-ear="small.en">Accurate</span>
             </div>
             <span style="font-size:11.5px;opacity:.7" id="vpEarNote">~40 MB, once</span>
           </div>
@@ -7658,7 +7658,18 @@ function verityEngineLabel(){
 
 /* ---------- speaking ---------- */
 function verityEnqueue(text){
-  VERITY.queue.push(text);
+  /* Being CURRENT matters more than saying everything.
+     This used to push onto an unbounded queue, so once he could not render
+     speech as fast as the room produced things to answer, the backlog grew
+     and never shrank — he ended up replying to something said a minute ago,
+     which is what "his dialogue got behind" was. Speech is real time; a
+     late answer is not a worse answer, it is the wrong answer.
+     So the pending queue holds exactly one line: the newest. Anything still
+     waiting when a fresher line arrives is dropped. */
+  if(VERITY.queue.length){
+    VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
+  }
+  VERITY.queue=[text];
   if(!VERITY.speaking)verityDrain();
 }
 function verityDrain(){
@@ -7771,7 +7782,11 @@ var VP_PRESETS={
     "Helpful first, funny second."
   ].join('\n')
 };
-var VP={text:'',preset:'default',chatty:32,ear:'base.en'};
+/* Accurate by default. small.en was not a sensible default while this ran
+   single-threaded on the CPU; with Whisper on the GPU it is, and accuracy was
+   the complaint. chatty:100 means he answers everything — see verityEnqueue
+   for how that is kept from putting him minutes behind the conversation. */
+var VP={text:'',preset:'default',chatty:100,ear:'small.en',v:2};
 try{
   var _vp=JSON.parse(localStorage.getItem('mc_vp')||'null');
   if(_vp&&typeof _vp==='object'){
@@ -7896,9 +7911,13 @@ function verityShouldRespond(text){
   if(raw.split(/\s+/).filter(Boolean).length<4)return false;
   if(VP.chatty<=0)return false;          /* "only when named" */
   if(VERITY.rateLimitedUntil&&Date.now()<VERITY.rateLimitedUntil)return false;
-  var since=Date.now()-VERITY.lastThought;
-  if(since<11000)return false;
   var p=Math.max(0,Math.min(1,VP.chatty/100));
+  /* The cooldown scales with the setting. At "every message" there is
+     effectively none - the brainBusy guard above is then the only limiter,
+     which is the right one: he answers as fast as he can actually think,
+     and no faster. */
+  var cool=Math.round(11000*(1-p));
+  if(cool>0&&Date.now()-VERITY.lastThought<cool)return false;
   /* a direct question in the room is worth interrupting for more often */
   if(/\?\s*$/.test(t.trim()))return Math.random()<Math.min(1,p*1.7);
   return Math.random()<p;
@@ -8098,7 +8117,11 @@ function veritySpeakable(text){
 function veritySay(text){
   if(!text||!VERITY.on||!VERITY.host)return;
   var now=Date.now();
-  if(now-VERITY.last<2200)return;      /* don't let him talk over himself */
+  /* A flat 2.2 s gap between lines quietly dropped replies whenever the room
+     was busy. The real constraint is that he must not talk over himself, and
+     that is already handled by the speech queue — so this only needs to stop
+     a pathological burst. */
+  if(now-VERITY.last<900)return;
   VERITY.last=now;
   addMsg(VERITY_ME,text,false);        /* the FULL reply, readable and re-readable */
   bc({t:'verity',a:'say',text:text});  /* text only: audio rides the voice stream */
@@ -8203,7 +8226,22 @@ function verityStop(){
    speech, for about 40 MB instead of 25 MB, downloaded once and then cached.
    Override with ?asr=small.en in the URL if you want better still and can
    afford the CPU. */
-var ASR_MODEL='onnx-community/whisper-base.en';
+/* One-time migration of the saved VERITY settings.
+   Anyone who has used this before has ear:'base.en' and chatty:32 sitting in
+   localStorage, and a saved preference beats a new default — so without this
+   the two things actually asked for (hear better, answer everything) would
+   not reach anybody who had already used him. Runs once, stamped with v:2,
+   and never touches the personality text. */
+try{
+  var _m=JSON.parse(localStorage.getItem('mc_vp')||'null');
+  if(_m&&typeof _m==='object'&&_m.v!==2){
+    _m.v=2;
+    _m.ear='small.en';
+    if(typeof _m.chatty!=='number'||_m.chatty<100)_m.chatty=100;
+    localStorage.setItem('mc_vp',JSON.stringify(_m));
+  }
+}catch(e){}
+var ASR_MODEL='onnx-community/whisper-small.en';
 try{
   /* the saved preference from the VERITY panel, then a ?asr= override */
   var _sv=JSON.parse(localStorage.getItem('mc_vp')||'null');
@@ -8412,9 +8450,29 @@ function verityListen(on){
       node.onaudioprocess=function(ev){
         if(!VERITY.on||!VERITY.hearMe)return;
         var inp=ev.inputBuffer.getChannelData(0);
-        /* cheap decimation to 16 kHz — Whisper wants exactly that */
+        /* Resample to the 16 kHz Whisper expects.
+           This used to take every Nth sample and throw the rest away:
+               down[i] = inp[Math.floor(i * ratio)]
+           Dropping samples without filtering first is aliasing. At 48 kHz in
+           and 16 kHz out, everything above 8 kHz folds back down into the
+           speech band as noise that was never there — sibilance turns into
+           buzz, and consonants get corrupted, which is exactly the part of
+           speech a recogniser leans on hardest to tell similar words apart.
+           Whisper has been listening to damaged audio.
+
+           Averaging each window instead is a box filter: crude as filters go,
+           but it actually attenuates the content above the new Nyquist rather
+           than folding it back, which is the whole point. */
         var outLen=Math.floor(inp.length/ratio), down=new Float32Array(outLen), rms=0;
-        for(var i=0;i<outLen;i++){ var v=inp[Math.floor(i*ratio)]; down[i]=v; rms+=v*v; }
+        for(var i=0;i<outLen;i++){
+          var a=Math.floor(i*ratio), b=Math.floor((i+1)*ratio);
+          if(b>inp.length)b=inp.length;
+          if(b<=a)b=a+1;
+          var acc=0,cnt=0;
+          for(var j=a;j<b;j++){acc+=inp[j];cnt++;}
+          var v=cnt?acc/cnt:0;
+          down[i]=v; rms+=v*v;
+        }
         rms=Math.sqrt(rms/(outLen||1));
         /* ---- utterance gating ----------------------------------------
            This is what was actually breaking VERITY's comprehension, and it
@@ -8560,6 +8618,18 @@ function verityFlushUtterance(){
   if(EARS.busy)return;                 /* one at a time; drop rather than queue */
   var pcm=new Float32Array(n), o=0;
   for(var i=0;i<parts.length;i++){ pcm.set(parts[i],o); o+=parts[i].length; }
+  /* Normalise the clip before handing it over. Whisper is measurably worse on
+     quiet input, and a room of people at different distances from different
+     microphones produces wildly different levels — one person three feet from
+     a laptop mic arrives far quieter than someone on a headset. Bring the peak
+     up to a consistent place, with the gain capped so a near-silent clip does
+     not simply get its noise floor amplified into gibberish. */
+  var pk=0;
+  for(var pi=0;pi<pcm.length;pi++){var av=pcm[pi]<0?-pcm[pi]:pcm[pi];if(av>pk)pk=av;}
+  if(pk>0.004&&pk<0.72){
+    var gain=Math.min(8,0.72/pk);
+    for(var gi=0;gi<pcm.length;gi++)pcm[gi]*=gain;
+  }
   EARS.busy=true;
   var id=++EARS.reqId;
   /* Time it. "VERITY takes thirty seconds" needs a breakdown before it can be
