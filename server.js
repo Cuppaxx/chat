@@ -57,6 +57,35 @@ app.use((req, res, next) => {
   next();
 });
 
+// ---- anti-spam -------------------------------------------------------------
+// The room itself is peer-to-peer, so the server only sees signalling, the
+// page, and the VERITY/bridge routes. What can actually take it down is
+// volume: a script hammering the roster endpoint, or opening WebSockets in a
+// loop. Both get a per-address budget.
+//
+// The ceilings are deliberately generous. A real client polls the roster about
+// nine times a minute and loads the page once, and an address is not a person:
+// a household shares one, and a mobile carrier can put thousands behind one.
+// A flood is thousands per second, so there is a lot of room between "a full
+// room on one router" and "someone is attacking this", and the limit belongs
+// in that gap rather than anywhere near normal use.
+const httpHits = new Map();
+const HTTP_PER_MIN = 600;
+function tooMany(map, ip, limit) {
+  const now = Date.now();
+  let r = map.get(ip);
+  if (!r || now > r.resetAt) { r = { n: 0, resetAt: now + 60000 }; map.set(ip, r); }
+  if (map.size > 2000) for (const [k, v] of map) if (now > v.resetAt) map.delete(k);
+  return ++r.n > limit;
+}
+app.use((req, res, next) => {
+  // /verity/tts carries its own, higher budget and must not be double-counted
+  if (req.path.indexOf('/verity/') === 0) return next();
+  if (tooMany(httpHits, clientIp(req), HTTP_PER_MIN)) {
+    return res.status(429).json({ ok: false, error: 'slow down' });
+  }
+  next();
+});
 function clientIp(req) {
   // Render sits behind a proxy, so the socket address is the proxy's. The real
   // client is the first entry of X-Forwarded-For.
@@ -632,10 +661,20 @@ const server = app.listen(PORT, '0.0.0.0', () =>
 // prependListener puts this ahead of PeerServer's own upgrade handler no matter
 // what order things were wired up in, so a banned client's socket is closed
 // before any signalling happens.
+const wsHits = new Map();
+const WS_PER_MIN = 90;   // a normal client opens one and keeps it
 server.prependListener('upgrade', (req, socket) => {
   const ip = clientIp(req);
   if (bannedIps.has(ip)) {
     console.log('refused banned ' + ip);
+    try { socket.destroy(); } catch (e) {}
+    return;
+  }
+  // Connection churn is the one thing that can genuinely exhaust this box:
+  // each upgrade costs a socket and a PeerServer registration, and a loop
+  // opening them is free for the attacker and expensive here.
+  if (tooMany(wsHits, ip, WS_PER_MIN)) {
+    console.log('upgrade rate limit ' + ip);
     try { socket.destroy(); } catch (e) {}
     return;
   }

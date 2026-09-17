@@ -1776,7 +1776,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.1';
+var BUILD='7.2';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -1928,6 +1928,9 @@ var monOn=false, monGain=null, monAn=null, monSrcNode=null, monTimer=null, monVo
 /* moderation: gamertags an admin has put a hard limiter on */
 var limitNames={}, forceLimited=false;
 function isNameLimited(n){var k=nameKey(n);return !!k&&!!limitNames[k];}
+/* gamertags an admin has stopped sending files, with an expiry */
+var noFileNames={};
+function isNameNoFiles(n){var k=nameKey(n);return !!k&&noFileNames[k]>Date.now();}
 /* free-form pitch shift, driven by the Pitch slider. Semitones, -12..+12. */
 var pitchSemis=0, fxPitchNode=null;
 function pitchRatio(){return Math.pow(2,pitchSemis/12);}
@@ -1978,7 +1981,7 @@ var ADMIN_PASS='MingMing67';
    gets the ADMIN password, exactly as before; this is a convenience tier, not
    a security boundary, and it is worth being honest that neither one is. */
 var MOD_PASS='MingMod22';
-var MOD_ACTIONS={mute:1,unmute:1,limit:1,unlimit:1,kick:1};
+var MOD_ACTIONS={mute:1,unmute:1,limit:1,unlimit:1,kick:1,nofiles:1,files:1};
 var role='none';          /* 'none' | 'mod' | 'admin' */
 function isAdmin(){return role==='admin';}
 function isMod(){return role==='mod'||role==='admin';}
@@ -2941,8 +2944,41 @@ function setPeerConfig(cfg){
   try{if(peer._options)peer._options.config=cfg;}catch(e){}
   try{if(peer.options)peer.options.config=cfg;}catch(e){}
 }
+/* ---------------------------------------------------------------- flood guard
+   Everything in this room is peer-to-peer, so a peer sending a thousand
+   messages a second does not touch the server - it floods every OTHER
+   browser, which is worse, because the server can be restarted and somebody's
+   laptop cannot. Each peer gets a budget; over it, their traffic is dropped
+   until they calm down, and they are named once so it is obvious who. */
+var FLOOD_WINDOW=5000, FLOOD_MSGS=14, FLOOD_FILES=4, FLOOD_SYNC=40;
+function floodOk(p,kind){
+  var now=Date.now();
+  if(!p.flood||now-p.flood.at>FLOOD_WINDOW)p.flood={at:now,msg:0,file:0,sync:0};
+  var f=p.flood;
+  if(kind==='file'){ f.file++; if(f.file<=FLOOD_FILES)return true; }
+  else if(kind==='sync'){ f.sync++; if(f.sync<=FLOOD_SYNC)return true; }
+  else { f.msg++; if(f.msg<=FLOOD_MSGS)return true; }
+  if(!p.floodWarned){
+    p.floodWarned=1;
+    sys('🚦 dropping traffic from <b>'+esc(p.name||'someone')+'</b> — far too much, far too fast',true);
+    setTimeout(function(){p.floodWarned=0;},15000);
+  }
+  return false;
+}
 function onData(id,d){
   var p=peers[id];if(!p||!d)return;
+  /* Three lanes, because these are not the same kind of traffic.
+     Chat is typed by a person, so fourteen in five seconds is already absurd.
+     File chunks are exempt: a real transfer is thousands of them, and the
+     transfer itself was gated by its fmeta, which is metered - a chunk for an
+     unknown transfer is two comparisons and a return.
+     Theatre sync is the leader's clock plus an event per play, pause and
+     seek, and a leader dragging the scrub bar can fire a lot of those at once.
+     Dropping those would desync the room, so they get their own wide lane. */
+  if(d.t!=='fchunk'){
+    var lane=(d.t==='fmeta')?'file':((d.t==='tstate'||d.t==='tlead'||d.t==='treq')?'sync':'msg');
+    if(!floodOk(p,lane))return;
+  }
   if(d.t==='who'){
     /* someone still doesn't know who we are — re-introduce ourselves */
     try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',name:me.name,icon:me.icon,
@@ -3100,6 +3136,7 @@ function onData(id,d){
       verityRespond(p.name||'someone',String(d.text));
   }
   else if(d.t==='img'){
+    if(isNameNoFiles(p.name))return;
     if(typeof d.data==='string'&&d.data.indexOf('data:image/')===0&&d.data.length<900000)addMsg(p,null,false,d.data);
     blip(520,.04);
   }else if(d.t==='mute'){p.muted=d.on;renderMembers();}
@@ -3962,13 +3999,50 @@ function applyMod(m,local){
     return;
   }
 
+  /* --- file block -----------------------------------------------------
+     Attachments are peer-to-peer, so there is no upload to switch off at a
+     server. Every client simply refuses incoming transfers from a blocked
+     name, which is the same model the server mute uses and works for exactly
+     as long as everyone is running this build. */
+  if(m.action==='nofiles'||m.action==='files'){
+    var fon=(m.action==='nofiles');
+    if(k){ if(fon)noFileNames[k]=(m.until||Date.now()+30*60000); else delete noFileNames[k]; }
+    if(mine){
+      if(fon){
+        var fm=Math.max(1,Math.round(((m.until||0)-Date.now())/60000));
+        sys('🛡 <b>An admin has stopped you sending files</b> for about '+fm+
+            ' minute'+(fm===1?'':'s')+'. Chat and voice are unaffected.',true);
+        toast('file sending blocked for '+fm+' min');
+      }else{
+        sys('🛡 You can send files again.');
+        toast('file block lifted');
+      }
+    }else if(!local){
+      sys('🛡 <b>'+esc(m.name||'someone')+'</b> was '+(fon?'blocked from sending files':'allowed to send files again')+' by an admin');
+    }
+    renderMembers();
+    return;
+  }
+
   if(m.action==='kick'||m.action==='ban'){
     var until=(m.action==='ban')?Infinity:(m.until||Date.now()+5*60000);
     if(k)banNames[k]=until;
     if(m.id)banned[m.id]=until;
     if(mine){
-      sys('🛡 <b>An admin removed you from the party.</b>',true);
-      toast('you were removed by an admin');blip(240,.18);
+      /* A kick is a five-minute name ban and a ban is forever, but the person
+         on the receiving end was told the same thing either way - "an admin
+         removed you" - so a kick read as permanent and they stopped trying.
+         Say which it was and when they can come back. */
+      if(m.action==='ban'){
+        sys('🛡 <b>An admin banned you.</b> This one does not expire.',true);
+        toast('you were banned');
+      }else{
+        var mins=Math.max(1,Math.round(((m.until||0)-Date.now())/60000));
+        sys('🛡 <b>An admin kicked you.</b> You can rejoin in about '+mins+
+            ' minute'+(mins===1?'':'s')+' — this is temporary.',true);
+        toast('kicked for '+mins+' min');
+      }
+      blip(240,.18);
       setTimeout(function(){leaveParty(false);},500);
       return;
     }
@@ -4769,6 +4843,14 @@ function b64ToBlob(b64,type){
 }
 function onFileMeta(p,d){
   if(!d.fid)return;
+  if(isNameNoFiles(p.name)){
+    if(!p.warnedNoFiles){
+      p.warnedNoFiles=1;
+      sys('🛡 refused a file from <b>'+esc(p.name||'someone')+'</b> — an admin has blocked them from sending files');
+      setTimeout(function(){p.warnedNoFiles=0;},20000);
+    }
+    return;
+  }
   var n=Number(d.size)||0;
   if(n>MAX_FILE)return;
   var chunks=Number(d.chunks)||0;
@@ -5258,7 +5340,7 @@ function admSig(){
   return Object.keys(peers).sort().map(function(id){
     var p=peers[id];
     return id+':'+(p.name||'')+':'+(p.srvMuted?1:0)+':'+(p.srvLimited?1:0)+':'+
-           (p.vol===0?1:0)+':'+(p.ice||'');
+           (isNameNoFiles(p.name)?1:0)+':'+(p.vol===0?1:0)+':'+(p.ice||'');
   }).join('|')+'|'+(roomLocked?1:0);
 }
 var admLastSig=null;
@@ -5318,6 +5400,15 @@ function renderAdmin(force){
     /* Forced limiter. Not a mute: they keep talking, they just stop being able
        to peak. Applied in every listener's audio graph AND on their own
        outgoing chain, so it holds for people who join afterwards too. */
+    var blocked=isNameNoFiles(p.name);
+    r.appendChild(admBtn(blocked?'📎 Allow files':'📵 Block files 30m',
+      blocked?'let them send attachments again'
+             :'stop them sending images and files for thirty minutes — chat and voice keep working',function(){
+      warnIfStale(p);
+      modBroadcast(blocked?'files':'nofiles',p.name,id,blocked?0:30);
+      toast(blocked?('files allowed for '+(p.name||id)):('files blocked for '+(p.name||id)));
+      renderAdmin(true);
+    },blocked?'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)':'linear-gradient(#ffc9a8,#e06a19 55%,#a34506)'));
     r.appendChild(admBtn(p.srvLimited?'🔊 Lift limiter':'🧱 Limit mic',
       'hard-limit their microphone for the whole party — they can still talk, they just cannot be loud',function(){
       var wasLim=!!p.srvLimited;
@@ -5392,7 +5483,8 @@ function admKick(id,forever){
   /* then the real thing: a broadcast every member enforces, keyed on their
      gamertag so coming back on a different slot does not dodge it */
   modBroadcast(forever?'ban':'kick',p.name,id,forever?0:5);
-  sys('🛡 <b>'+esc(nm)+'</b> was '+(forever?'banned for this session':'kicked for 5 minutes'));
+  sys('🛡 <b>'+esc(nm)+'</b> was '+(forever?'<b>banned</b> — this does not expire, lift it in the Ban list'
+                                            :'<b>kicked for 5 minutes</b> — they can rejoin after that'));
   toast((forever?'banned ':'kicked ')+nm);
 }
 /* ---------- who a troll is aimed at ----------
