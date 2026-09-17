@@ -1401,6 +1401,14 @@ body.touch #qPtt{display:none}
       <span id="pitchVal" style="font-size:13px;min-width:120px">normal</span>
       <span class="q" id="pitchReset">Reset</span>
     </div>
+    <div class="row" id="deskRow" style="display:none;font-size:15px;gap:12px;flex-wrap:wrap">
+      <span class="lab">🖥 Desktop app:</span>
+      <span class="q" id="qDeskHotkey" title="a key combination that mutes and unmutes you even while this window is behind something else">🎙 Mute hotkey: none</span>
+      <span class="q" id="qDeskLaunch" title="open Mingus when Windows starts, straight to the tray">Start with Windows</span>
+      <span class="q" id="qDeskTray" title="the X button hides to the tray and keeps your call up, instead of quitting">Close to tray</span>
+      <span class="q" id="qDeskNotify" title="a Windows notification when somebody talks to you and the window is not focused">Notifications</span>
+      <span style="font-size:12px;opacity:.65" id="deskVer"></span>
+    </div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Mic processing:</span>
       <div class="qstrip">
@@ -1866,7 +1874,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.5';
+var BUILD='8.6';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3260,6 +3268,8 @@ function onData(id,d){
   else if(d.t==='fchunk'){onFileChunk(d);}
   else if(d.t==='fend'){onFileEnd(d);}
   else if(d.t==='pm'){
+    try{ if(window.deskNotify)deskNotify((p.name||'someone')+' whispered',
+        String(d.text||'').slice(0,120)); }catch(e){}
     var ptxt=String(d.text||'').slice(0,500);
     if(!ptxt)return;
     pmLastFrom=p.name||d.from||'someone';
@@ -12682,6 +12692,211 @@ function updCheck(){
 }
 setInterval(updCheck,120000);
 setTimeout(updCheck,20000);
+
+/* ============================================================================
+   DESKTOP SHELL
+
+   Everything here is behind `window.mingusDesktop`, which only exists when the
+   page is running inside the Electron wrapper in desktop/. In a browser none of
+   it runs and the room is exactly what it was.
+
+   The split is deliberate: the shell does not know anything about rooms, peers
+   or moderation, and the page does not know anything about Electron. The shell
+   offers the four things a tab genuinely cannot do - a hotkey that works when
+   you are in another window, a tray, an OS notification, a taskbar badge - and
+   the page decides what they mean.
+   ============================================================================ */
+var DESK={on:false,info:null,notify:true,hotkey:null};
+(function(){
+  var D=window.mingusDesktop;
+  if(!D||!D.isDesktop)return;
+  DESK.on=true;
+
+  function chip(id){return document.getElementById(id);}
+  function paint(){
+    var row=chip('deskRow'); if(row)row.style.display='';
+    var h=chip('qDeskHotkey');
+    if(h){
+      h.textContent='🎙 Mute hotkey: '+(DESK.hotkey?DESK.hotkey.replace(/\+/g,' + '):'none');
+      h.classList.toggle('on',!!DESK.hotkey);
+    }
+    var l=chip('qDeskLaunch'); if(l)l.classList.toggle('on',!!(DESK.info&&DESK.info.autoLaunch));
+    var t=chip('qDeskTray');   if(t)t.classList.toggle('on',!!(DESK.info&&DESK.info.closeToTray));
+    var n=chip('qDeskNotify'); if(n)n.classList.toggle('on',DESK.notify);
+    var v=chip('deskVer');
+    if(v&&DESK.info)v.textContent='v'+DESK.info.version+' · Chromium '+String(DESK.info.chrome).split('.')[0];
+  }
+
+  D.info().then(function(i){
+    DESK.info=i;DESK.hotkey=i.hotkey;
+    try{DESK.notify=(localStorage.getItem('mc_desknotify')!=='0');}catch(e){}
+    paint();
+    sys('🖥 Running as the <b>desktop app</b> — your call survives closing the window, and a '+
+        'mute hotkey works even when Mingus is behind something else. Set it in <b>Desktop app</b> above.');
+  }).catch(function(){});
+
+  /* --- the global hotkey ------------------------------------------------
+     Electron only reports the key going DOWN, never coming back up, so this
+     is a toggle rather than hold-to-talk. Hold-to-talk needs a low-level
+     keyboard hook, which means a native module and a real compiler on the
+     machine building it - not worth forcing on anybody for a feature most
+     people leave on toggle anyway. */
+  D.onHotkey(function(){
+    try{
+      if(typeof setMute==='function'){
+        setMute(!muted);
+        D.setMuted(muted);
+        toast(muted?'muted (hotkey)':'unmuted (hotkey)');
+        blip(muted?300:700,.05);
+      }
+    }catch(e){}
+  });
+
+  var hk=chip('qDeskHotkey');
+  if(hk)hk.onclick=function(){
+    if(DESK.hotkey){
+      D.setHotkey(null).then(function(){DESK.hotkey=null;paint();toast('mute hotkey cleared');});
+      return;
+    }
+    hk.textContent='🎙 press the keys…';
+    hk.classList.add('on');
+    var done=false;
+    function cancel(){ if(!done){done=true;window.removeEventListener('keydown',grab,true);paint();} }
+    function grab(e){
+      e.preventDefault();e.stopPropagation();
+      if(e.key==='Escape'){cancel();toast('cancelled');return;}
+      /* a bare letter would fire every time they typed it in another app */
+      var mods=[];
+      if(e.ctrlKey)mods.push('Control');
+      if(e.altKey)mods.push('Alt');
+      if(e.shiftKey)mods.push('Shift');
+      if(e.metaKey)mods.push('Super');
+      var k=e.key;
+      if(['Control','Alt','Shift','Meta'].indexOf(k)>=0)return;   /* wait for a real key */
+      if(k===' ')k='Space';
+      else if(k.length===1)k=k.toUpperCase();
+      if(!mods.length&&!/^F\d+$/.test(k)){
+        toast('use a modifier (Ctrl/Alt/Shift) or a function key — a bare key would fire in every app');
+        return;
+      }
+      done=true;window.removeEventListener('keydown',grab,true);
+      var accel=mods.concat([k]).join('+');
+      D.setHotkey(accel).then(function(r){
+        if(r&&r.ok){DESK.hotkey=r.accel;toast('mute hotkey: '+accel);}
+        else{sys('🖥 '+esc((r&&r.error)||'that combination was refused')+' — try another.',true);}
+        paint();
+      });
+    }
+    window.addEventListener('keydown',grab,true);
+    setTimeout(cancel,8000);
+  };
+
+  var lb=chip('qDeskLaunch');
+  if(lb)lb.onclick=function(){
+    var want=!(DESK.info&&DESK.info.autoLaunch);
+    D.setAutoLaunch(want).then(function(on){
+      DESK.info.autoLaunch=on;paint();
+      toast(on?'Mingus will start with Windows':'no longer starts with Windows');
+    });
+  };
+  var tb=chip('qDeskTray');
+  if(tb)tb.onclick=function(){
+    var want=!(DESK.info&&DESK.info.closeToTray);
+    D.setCloseToTray(want).then(function(on){
+      DESK.info.closeToTray=on;paint();
+      toast(on?'closing hides to the tray':'closing quits');
+    });
+  };
+  var nb=chip('qDeskNotify');
+  if(nb)nb.onclick=function(){
+    DESK.notify=!DESK.notify;
+    try{localStorage.setItem('mc_desknotify',DESK.notify?'1':'0');}catch(e){}
+    paint();
+    toast(DESK.notify?'notifications on':'notifications off');
+    if(DESK.notify)D.notify('Mingus Chatroom','That is what they will look like.');
+  };
+
+  /* --- the unread badge -------------------------------------------------
+     The page already counts unread for its own jump-to-bottom pill; this
+     just puts the same number on the taskbar. */
+  var lastUnread=-1;
+  setInterval(function(){
+    var n=(typeof unread==='number')?unread:0;
+    if(n===lastUnread)return;
+    lastUnread=n;
+    try{D.setUnread(n);}catch(e){}
+  },900);
+
+  /* --- notifications ----------------------------------------------------
+     Only when the window is not focused, and only for things actually aimed
+     at you. A notification for every line in a busy room is how people turn
+     notifications off. */
+  window.deskNotify=function(title,body){
+    if(!DESK.on||!DESK.notify)return;
+    if(document.hasFocus())return;
+    try{D.notify(title,body);D.flash();}catch(e){}
+  };
+
+  /* --- the screen-share picker -----------------------------------------
+     The shell hands over every window and monitor on the machine and asks
+     the page to choose, so the picker looks like the rest of the room
+     instead of a system dialog. */
+  window.__mingusPickSource=function(sources){
+    return new Promise(function(resolve){
+      var back=document.createElement('div');
+      back.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(4,2,20,.86);'+
+        'display:grid;place-items:center;padding:20px';
+      var card=document.createElement('div');
+      card.style.cssText='max-width:900px;max-height:82vh;overflow:auto;border-radius:14px;padding:16px;'+
+        'background:linear-gradient(#efe9ff,#c9b9f8);border:1px solid #fff;box-shadow:0 18px 55px rgba(0,0,0,.7)';
+      var h=document.createElement('div');
+      h.textContent='Share what?';
+      h.style.cssText='font-size:17px;font-weight:700;color:#2b1470;margin-bottom:4px';
+      var sub=document.createElement('div');
+      sub.textContent='Sound from the thing you pick is shared too.';
+      sub.style.cssText='font-size:12px;color:#5b3fb3;margin-bottom:12px';
+      var grid=document.createElement('div');
+      grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px';
+      card.appendChild(h);card.appendChild(sub);card.appendChild(grid);
+      function pick(id){try{back.remove();}catch(e){}resolve(id);}
+      sources.sort(function(a,b){return (b.screen?1:0)-(a.screen?1:0);});
+      sources.forEach(function(sc){
+        var b=document.createElement('button');
+        b.style.cssText='display:block;text-align:left;padding:0;border-radius:10px;overflow:hidden;cursor:pointer;'+
+          'border:2px solid rgba(90,45,224,.35);background:#1a0f3a;color:#efe9ff;font:inherit';
+        b.onmouseenter=function(){b.style.borderColor='#6a2dff';};
+        b.onmouseleave=function(){b.style.borderColor='rgba(90,45,224,.35)';};
+        if(sc.thumb){
+          var im=document.createElement('img');
+          im.src=sc.thumb;im.style.cssText='display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#000';
+          b.appendChild(im);
+        }
+        var cap=document.createElement('div');
+        cap.style.cssText='padding:7px 9px;font-size:12px;display:flex;align-items:center;gap:7px';
+        if(sc.icon){
+          var ic=document.createElement('img');
+          ic.src=sc.icon;ic.style.cssText='width:16px;height:16px;flex:none';
+          cap.appendChild(ic);
+        }
+        var nm=document.createElement('span');
+        nm.textContent=(sc.screen?'🖥 ':'')+sc.name;
+        nm.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        cap.appendChild(nm);
+        b.appendChild(cap);
+        b.onclick=function(){pick(sc.id);};
+        grid.appendChild(b);
+      });
+      var cancel=document.createElement('button');
+      cancel.className='btn grey';cancel.textContent='Cancel';
+      cancel.style.cssText='margin-top:12px';
+      cancel.onclick=function(){pick(null);};
+      card.appendChild(cancel);
+      back.appendChild(card);
+      back.onclick=function(e){if(e.target===back)pick(null);};
+      document.body.appendChild(back);
+    });
+  };
+})();
 </script>
 </body>
 </html>

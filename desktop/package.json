@@ -1,0 +1,42 @@
+{
+  "name": "mingus-chatroom-desktop",
+  "productName": "Mingus Chatroom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mingus Chatroom as a desktop app — tray, global hotkeys, notifications, screen share",
+  "author": "Cuppaxx",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder --win",
+    "portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "town.mingus.chatroom",
+    "productName": "Mingus Chatroom",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "offline.html", "build/icon.png"],
+    "extraResources": [
+      { "from": "../mingus-chatroom.html", "to": "mingus-chatroom.html" }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mingus Chatroom"
+    }
+  }
+}

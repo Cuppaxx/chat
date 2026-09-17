@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mingus Chatroom</title>
+<style>
+  :root{color-scheme:dark}
+  html,body{height:100%;margin:0}
+  body{background:#07051a;color:#efe9ff;display:grid;place-items:center;
+       font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px;box-sizing:border-box}
+  .card{max-width:560px;text-align:center}
+  h1{font-size:22px;font-weight:400;margin:0 0 6px;letter-spacing:.5px}
+  h1 b{font-weight:700;color:#c9b3ff}
+  .why{font-size:13px;color:#b9a9e6;margin:14px 0 22px;word-break:break-word}
+  .why code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;font-size:12px}
+  button{font:inherit;font-size:14px;padding:9px 18px;border-radius:999px;cursor:pointer;
+         color:#fff;border:1px solid rgba(255,255,255,.85);margin:0 5px;
+         background-image:linear-gradient(#9d78ff,#6a2dff 55%,#4a1bd0)}
+  button.grey{background-image:linear-gradient(#8d84a8,#5d5470 55%,#453e57)}
+  button:hover{filter:brightness(1.08)}
+  .note{font-size:12px;color:#8d7cc0;margin-top:20px}
+  .orb{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;
+       background:radial-gradient(circle at 36% 30%,#fff,#b9a0ff 42%,#5a2de0 78%,#2a1268);
+       box-shadow:0 0 34px rgba(123,63,228,.75)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="orb"></div>
+    <h1><b>Mingus</b> Chatroom</h1>
+    <div class="why" id="why">Could not reach the server.</div>
+    <div>
+      <button id="retry">Try again</button>
+      <button class="grey" id="local" style="display:none">Open the bundled copy</button>
+    </div>
+    <div class="note">
+      The server sleeps when nobody has used it for a while and takes about half a minute
+      to wake up, so trying again usually does it. The bundled copy can still reach other
+      people once the server is back, but it is whatever version shipped with this app.
+    </div>
+  </div>
+<script>
+  var q = new URLSearchParams(location.search);
+  var why = q.get('why') || 'unknown error';
+  var url = q.get('url') || '';
+  document.getElementById('why').innerHTML =
+    'Could not reach <code>' + url.replace(/[<>&]/g, '') + '</code><br>' +
+    String(why).replace(/[<>&]/g, '');
+  if (q.get('local')) document.getElementById('local').style.display = '';
+  document.getElementById('retry').onclick = function () {
+    this.textContent = 'connecting…';
+    window.mingusDesktop && window.mingusDesktop.retry();
+  };
+  document.getElementById('local').onclick = function () {
+    window.mingusDesktop && window.mingusDesktop.openLocalCopy();
+  };
+  /* the server is probably waking up, so have another go on its behalf */
+  setTimeout(function () { window.mingusDesktop && window.mingusDesktop.retry(); }, 20000);
+</script>
+</body>
+</html>
