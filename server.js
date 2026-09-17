@@ -40,6 +40,54 @@ const PEERLOG_MAX = 300;
 // Location/ISP answers, cached so repeat traces do not re-ask a third party.
 const geoCache = new Map();
 
+// ---- devices ---------------------------------------------------------------
+// An address is a poor identity: a VPN changes it on a whim and a household
+// shares one. So each browser also keeps a random id in its own storage and
+// hands it over when joining. It survives a VPN, a new gamertag and a new
+// address, and it is what makes "these four names are one person" visible.
+//
+// It is NOT a wall. Clearing site data, a private window or a different
+// browser all produce a fresh id. What it does is raise the price of coming
+// back from "pick another VPN exit" to "lose your settings every time", and
+// show an admin which names belong together.
+const devices = new Map();       // did -> { ips:Set, names:Set, first, last, ids:Set }
+const bannedDevices = new Set();
+const helloById = new Map();     // intended peer id -> { did, name, at }
+const tempBlock = new Map();     // ip -> until, for a banned device that just tried
+const TEMP_BLOCK_MS = 15 * 60 * 1000;
+
+function deviceSeen(did, ip, name, id) {
+  if (!did) return null;
+  let d = devices.get(did);
+  if (!d) {
+    d = { ips: new Set(), names: new Set(), first: Date.now(), last: 0, ids: new Set() };
+    devices.set(did, d);
+  }
+  d.last = Date.now();
+  if (ip) d.ips.add(ip);
+  if (name) d.names.add(String(name).slice(0, 24));
+  if (id) d.ids.add(id);
+  // keep the per-device history bounded
+  for (const key of ['ips', 'names', 'ids']) {
+    if (d[key].size > 40) d[key] = new Set(Array.from(d[key]).slice(-40));
+  }
+  if (devices.size > 3000) {
+    // drop the least recently seen quarter rather than growing without limit
+    const rows = Array.from(devices.entries()).sort((a, b) => a[1].last - b[1].last);
+    for (let i = 0; i < rows.length / 4; i++) devices.delete(rows[i][0]);
+  }
+  return d;
+}
+function deviceInfo(did) {
+  const d = did && devices.get(did);
+  if (!d) return null;
+  return {
+    did, banned: bannedDevices.has(did),
+    names: Array.from(d.names), ips: Array.from(d.ips),
+    first: d.first, last: d.last, seen: d.ids.size
+  };
+}
+
 app.use(express.json({ limit: '16kb' }));
 
 // The chatroom page is ~430 KB of HTML, CSS and JavaScript in one file, and it
@@ -107,6 +155,32 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// Joining announces the device before the socket opens, which is what lets a
+// device ban be enforced at the socket rather than on the honour system.
+app.post('/hello', (req, res) => {
+  const ip = clientIp(req);
+  const { did, id, name } = req.body || {};
+  const clean = (typeof did === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(did)) ? did : null;
+  if (clean && bannedDevices.has(clean)) {
+    // They are banned and they told us who they are. Shut the address too, for
+    // a while, so skipping this call next time does not simply walk them in.
+    tempBlock.set(ip, Date.now() + TEMP_BLOCK_MS);
+    console.log('banned device ' + clean.slice(0, 8) + ' from ' + ip);
+    return res.json({ ok: false, banned: true });
+  }
+  if (clean) {
+    deviceSeen(clean, ip, name, id);
+    if (typeof id === 'string' && id.length < 80) {
+      helloById.set(id, { did: clean, name, at: Date.now() });
+      if (helloById.size > 500) {
+        const cut = Date.now() - 600000;
+        for (const [k, v] of helloById) if (v.at < cut) helloById.delete(k);
+      }
+    }
+  }
+  res.json({ ok: true, known: !!clean });
+});
+
 // ---- the denoiser's model ---------------------------------------------------
 // 112 KB of WebAssembly. Serving it from here rather than sending every
 // visitor's browser to a CDN means one download onto this box instead of one
@@ -171,8 +245,33 @@ app.get('/admin/bans', requireAdmin, (req, res) => {
   res.json({
     ok: true,
     ips: Array.from(bannedIps),
+    devices: Array.from(bannedDevices).map((did) => deviceInfo(did) || { did, banned: true }),
     online: Array.from(peerIps.entries()).map(([id, r]) => ({ id, ip: r.ip, at: r.at })),
   });
+});
+
+app.post('/admin/ban-device', requireAdmin, (req, res) => {
+  const { did, peerId, alsoIp } = req.body || {};
+  let target = did;
+  if (!target && peerId) {
+    const r = peerIps.get(peerId);
+    target = r && r.did;
+  }
+  if (!target) return res.json({ ok: false, error: 'no device id for that person — they are on an older or modified client, so ban the address instead' });
+  bannedDevices.add(target);
+  const d = devices.get(target);
+  const ips = d ? Array.from(d.ips) : [];
+  if (alsoIp) for (const ip of ips) { bannedIps.add(ip); tempBlock.delete(ip); }
+  // shut the door on wherever they are sitting right now
+  for (const [, r] of peerIps) if (r.did === target) tempBlock.set(r.ip, Date.now() + TEMP_BLOCK_MS);
+  res.json({ ok: true, did: target, ips, alsoIp: !!alsoIp, count: bannedDevices.size });
+});
+app.post('/admin/unban-device', requireAdmin, (req, res) => {
+  const { did } = req.body || {};
+  const had = bannedDevices.delete(did);
+  const d = devices.get(did);
+  if (d) for (const ip of d.ips) tempBlock.delete(ip);
+  res.json({ ok: had, did, count: bannedDevices.size });
 });
 
 app.post('/admin/ban', requireAdmin, (req, res) => {
@@ -234,8 +333,14 @@ app.post('/admin/trace', requireAdmin, async (req, res) => {
   const t = traceFor(ip);
   const out = {
     ok: true, ip, banned: bannedIps.has(ip), since: rec ? rec.at : null,
-    here: t.here, recent: t.recent, online: peerIps.size
+    here: t.here, recent: t.recent, online: peerIps.size,
+    device: deviceInfo(rec && rec.did)
   };
+  // every device that has ever come from this address, which is the other half
+  // of the question - one household, or one person with a lot of names
+  const onIp = [];
+  for (const [did, d] of devices) if (d.ips.has(ip)) onIp.push(deviceInfo(did));
+  out.devicesHere = onIp.slice(0, 25);
   if (lookup) out.geo = await geoLookup(ip);
   res.json(out);
 });
@@ -780,6 +885,15 @@ server.prependListener('upgrade', (req, socket) => {
     try { socket.destroy(); } catch (e) {}
     return;
   }
+  const tb = tempBlock.get(ip);
+  if (tb) {
+    if (Date.now() < tb) {
+      console.log('refused (banned device seen here) ' + ip);
+      try { socket.destroy(); } catch (e) {}
+      return;
+    }
+    tempBlock.delete(ip);
+  }
   // Connection churn is the one thing that can genuinely exhaust this box:
   // each upgrade costs a socket and a PeerServer registration, and a loop
   // opening them is free for the attacker and expensive here.
@@ -792,8 +906,12 @@ server.prependListener('upgrade', (req, socket) => {
     const id = new URL(req.url, 'http://x').searchParams.get('id');
     if (id) {
       const at = Date.now();
-      peerIps.set(id, { ip, at });
-      peerLog.push({ id, ip, at });
+      // the device that announced it was about to claim this exact id
+      const h = helloById.get(id);
+      const did = (h && at - h.at < 120000) ? h.did : null;
+      if (did) deviceSeen(did, ip, h.name, id);
+      peerIps.set(id, { ip, at, did });
+      peerLog.push({ id, ip, at, did });
       if (peerLog.length > PEERLOG_MAX) peerLog.splice(0, peerLog.length - PEERLOG_MAX);
     }
   } catch (e) {}

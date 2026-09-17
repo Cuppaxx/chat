@@ -1813,7 +1813,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.8';
+var BUILD='7.9';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -1917,6 +1917,22 @@ var room='lobby', peer=null, peers={}, pending={};
 var localStream=null, micOn=false, muted=false, deaf=false, ptt=false, pttDown=false, radioFx=false;
 var camStream=null, camOn=false;
 var quality='clear', msgCount=0, leaving=false, forceRelay=false;
+/* A random id for this browser, kept in its own storage. An address is a poor
+   identity - a VPN changes it, a household shares one - and this does not
+   change when either happens, which is what makes a ban worth anything against
+   somebody who can reach for a VPN. It identifies a browser, not a person, and
+   clearing site data makes a new one. */
+var DEVICE_ID=(function(){
+  try{
+    var k='mc_did', v=localStorage.getItem(k);
+    if(!v||!/^[A-Za-z0-9_-]{8,64}$/.test(v)){
+      v=(crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,'')
+        :(Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2));
+      localStorage.setItem(k,v);
+    }
+    return v;
+  }catch(e){ return ''; }   /* storage blocked: they simply have no device id */
+})();
 var actx=null, localAnalyser=null;
 var outStream=null, phAudio=null, phVideo=null, phCanvas=null, phTimer=null;
 var MEDIA_OK=true, VIDEO_OK=true, audioGesture=false;
@@ -2671,6 +2687,22 @@ function connectRoom(){
       $('#btnJoin').disabled=false;setStatus('room full');return;
     }
     var id=PREFIX+'-'+room+'-'+slot;
+    /* Announce before the socket opens, so a device ban can be enforced at the
+       socket rather than on the honour system. Deliberately not awaited: a
+       server that is asleep or an older build must not stop anyone joining. */
+    try{
+      fetch(adminBase()+'/hello',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({did:DEVICE_ID,id:id,name:me.name||''})})
+        .then(function(r){return r.json();})
+        .then(function(j){
+          if(j&&j.banned){
+            try{leaveParty(false);}catch(e){}
+            $('#modal').style.display='grid';
+            $('#err').innerHTML='<b>You are banned from this server.</b>';
+            $('#btnJoin').disabled=false;
+          }
+        }).catch(function(){});
+    }catch(e){}
     var p;
     try{p=new Peer(id,peerOpts());}
     catch(e){
@@ -11820,8 +11852,8 @@ function tracePanel(){
   main.innerHTML=
     '<b>'+esc(d.ip)+'</b>'+(d.banned?'  <b style="color:#b0122a">[BANNED]</b>':'')+'<br>'+
     'connected '+esc(traceAgo(d.since))+
-    ' · route '+esc(p.ice||'unknown')+
-    (p.relay?' (through a relay — their address here is the TURN server, not theirs)':'')+
+    ' · media route '+esc(p.ice||'unknown')+
+    (p.relay?' (relay — that is the MEDIA path only; the address above is still theirs)':'')+
     ' · build '+esc(p.build||'?');
   box.appendChild(main);
 
@@ -11850,6 +11882,8 @@ function tracePanel(){
     box.appendChild(rec);
   }
 
+  box.appendChild(traceDeviceBlock(d));
+
   if(d.geo){
     var g=el('div','');
     g.style.cssText=mono+';margin-top:6px';
@@ -11876,6 +11910,21 @@ function tracePanel(){
       traceLookup();
     },'linear-gradient(#cfe4ff,#3f7fd6 55%,#1b4c8c)'));
   }
+  if(d.device&&!d.device.banned){
+    row.appendChild(admBtn('🚷 Ban this device',
+      'refuse this browser however its address changes — the one that survives a VPN. '+
+      'They can still come back by clearing their site data or using another browser.',function(){
+      traceBanDevice(false);
+    },'linear-gradient(#ffb0e6,#c2189a 55%,#7d0f63)'));
+    row.appendChild(admBtn('🚷+⛔ Device AND every address it used',
+      'ban the browser and block every address it has connected from',function(){
+      traceBanDevice(true);
+    },'linear-gradient(#ff9ca6,#e0192f 55%,#a10f20)'));
+  }else if(d.device&&d.device.banned){
+    row.appendChild(admBtn('✅ Unban this device','let this browser back in',function(){
+      traceUnbanDevice(d.device.did);
+    },'linear-gradient(#9dffb0,#2ec24a 55%,#127d2a)'));
+  }
   row.appendChild(admBtn(d.banned?'✅ Unban this address':'⛔ Ban this address',
     d.banned?'lift the block on this address'
             :'block this address at the server — everyone on it, including anyone above',function(){
@@ -11891,10 +11940,68 @@ function tracePanel(){
   row.appendChild(admBtn('✕ Close','',function(){traceClose();}));
   box.appendChild(row);
 
-  var note=el('div','','Addresses are held in memory only and are gone when the server restarts. '+
-                       'Nothing here is ever shown to anyone but an admin.');
+  var note=el('div','','A relayed MEDIA route does not hide their address — the signalling '+
+                       'connection is direct either way. A VPN does hide it, which is what the '+
+                       'device id is for. All of this is in memory and gone when the server '+
+                       'restarts, and is never shown to anyone but an admin.');
   note.style.cssText='font-size:11px;opacity:.6;margin-top:5px';
   box.appendChild(note);
+}
+
+/* ---------------------------------------------------------------------------
+   The device half of the trace panel.
+
+   An address answers "where are they", which a VPN makes meaningless in one
+   click. The device id answers "is this the same browser as last time", which
+   a VPN does not touch - so it is the one that survives somebody who knows
+   what they are doing, and the one that shows four gamertags are one person.
+   --------------------------------------------------------------------------- */
+function traceDeviceBlock(d){
+  var mono='font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6';
+  var wrap=el('div','');
+  wrap.style.cssText=mono+';margin-top:7px;padding-top:6px;border-top:1px solid rgba(25,90,160,.3)';
+  var dev=d.device;
+  if(!dev){
+    wrap.innerHTML='<b>device:</b> <i>none reported</i> — they are on an older build, or one that '+
+      'has been edited to stay quiet. Ban the address for this one.';
+    return wrap;
+  }
+  var names=(dev.names||[]).filter(Boolean);
+  var ips=(dev.ips||[]).filter(Boolean);
+  wrap.innerHTML=
+    '<b>device</b> '+esc(dev.did.slice(0,12))+'…'+(dev.banned?'  <b style="color:#b0122a">[BANNED]</b>':'')+
+    '  · first seen '+esc(traceAgo(dev.first))+'<br>'+
+    (names.length>1
+      ? ('<b style="color:#b0122a">⚠ this browser has used '+names.length+' names:</b> '+esc(names.join(', ')))
+      : ('names used: '+esc(names.join(', ')||'—')))+
+    '<br>'+
+    (ips.length>1
+      ? ('<b style="color:#b0122a">⚠ from '+ips.length+' addresses:</b> '+esc(ips.join(', '))+
+         '  — changing address is what a VPN does')
+      : ('addresses used: '+esc(ips.join(', ')||'—')));
+  return wrap;
+}
+function traceBanDevice(alsoIp){
+  if(!TRACE.id)return;
+  admApi('/admin/ban-device',{peerId:TRACE.id,alsoIp:alsoIp?1:0}).then(function(j){
+    if(!j||!j.ok){toast((j&&j.error)||'that failed');
+      if(j&&j.error)sys('🛡 '+esc(j.error),true);
+      return;}
+    toast('device banned'+(alsoIp?' + '+j.ips.length+' address(es)':''));
+    sys('🛡 <b>Device banned.</b> That browser is refused however its address changes'+
+        (alsoIp?(', and '+j.ips.length+' address'+(j.ips.length===1?'':'es')+' it has used are blocked too'):'')+
+        '. They get back in by clearing their site data or using another browser — this raises '+
+        'the price of returning, it does not make it impossible.');
+    traceUser(TRACE.id);
+    try{loadServerBans();}catch(e){}
+  });
+}
+function traceUnbanDevice(did){
+  admApi('/admin/unban-device',{did:did}).then(function(j){
+    toast(j&&j.ok?'device unbanned':'that device was not banned');
+    if(TRACE.id)traceUser(TRACE.id);
+    try{loadServerBans();}catch(e){}
+  });
 }
 </script>
 </body>
