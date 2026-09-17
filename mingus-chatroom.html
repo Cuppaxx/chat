@@ -1777,7 +1777,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.2';
+var BUILD='7.3';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -1890,6 +1890,16 @@ var MEDIA_OK=true, VIDEO_OK=true, audioGesture=false;
    On laptop speakers it can cause echo for everyone else, and the fix is to
    switch Echo cancel back on — that choice is saved from then on. */
 var micNS=false, micEC=false, micAGC=false;
+/* Declared HERE, not down with the rest of the denoise code at the bottom of
+   the file. A `var` hoists as undefined but its assignment runs where it is
+   written, and startup reads this object a few lines below - so with the
+   object defined at the end, the very first read threw and took the whole
+   script down with it, which looked like "the icon picker is gone and you
+   cannot log in". State that startup touches has to be declared before it. */
+var DN={level:2,mod:null,node:null,nodeCtx:null,nodeCh:0,
+        ready:false,loading:null,failed:false,why:''};
+var DN_MODEL_URLS=['/rnnoise.wasm',
+  'https://cdn.jsdelivr.net/npm/@jitsi/rnnoise-wasm@0.2.1/dist/rnnoise.wasm'];
 /* The denoiser below is the real answer to background noise and it is on by
    default. The three flags above stay off: they are the browser's own, much
    weaker processing, and echo cancel in particular is a tradeoff (it saves
@@ -10955,10 +10965,6 @@ var DN_WORKLET=[
    graph that will not run at 48 kHz, or a model that will not download, and it
    falls back to the browser's own suppression and says so.
    ============================================================================ */
-var DN={level:2,mod:null,node:null,nodeCtx:null,nodeCh:0,
-        ready:false,loading:null,failed:false,why:''};
-var DN_MODEL_URLS=['/rnnoise.wasm',
-  'https://cdn.jsdelivr.net/npm/@jitsi/rnnoise-wasm@0.2.1/dist/rnnoise.wasm'];
 function dnActive(){return DN.level>0&&!DN.failed;}
 function dnLabel(){return DN.level===0?'Denoise: off':(DN.level===1?'Denoise: on':'Denoise: max');}
 function dnFetchModel(){
