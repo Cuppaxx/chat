@@ -1286,6 +1286,310 @@ body.touch #qPtt{display:none}
   .mem .st{gap:6px}
   .volnum{display:none}
 }
+
+/* ============================================================================
+   SKEUOMORPHIC PASS
+
+   Surface only - colour, gradient, shadow, border, radius. Nothing here moves
+   anything, which is why it can sit at the end and override freely.
+
+   Three tricks do most of the work:
+
+   1. EDGES. A lit top edge and a shaded bottom edge, both inset, is what makes
+      something read as a raised cap rather than a coloured rectangle. Inverted,
+      the same pair makes a hole.
+   2. GLOSS THAT CURVES. A flat white overlay looks like a sticker. A gloss with
+      its own border-radius, narrower than the thing it sits on, reads as light
+      bending across a curved surface.
+   3. GRAIN. A little noise over everything. No real material is perfectly
+      smooth, and its absence is most of what makes flat design look flat.
+   ============================================================================ */
+
+/* ---- 3. the grain ------------------------------------------------------
+   On the panel's OWN background, which sits BEHIND its content. The first
+   attempt put it in ::after, which paints over everything - so the grain went
+   across the text as well and the whole room came out hazy and washed out.
+   Grain belongs in the material, not on the lens. */
+.blade{
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E"),
+    linear-gradient(var(--bladeA),var(--bladeB) 22%,var(--bladeC) 62%,var(--bladeD) 100%);
+  background-blend-mode:soft-light,normal;
+}
+
+/* ---- 1+2. buttons: a gel cap ------------------------------------------- */
+.btn{
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.55) inset,          /* lit top edge  */
+    0 -2px 3px rgba(0,0,0,.35) inset,             /* shaded underside */
+    0 0 0 1px rgba(30,10,80,.55),                 /* dark seam, separates it */
+    0 3px 7px rgba(20,6,60,.55),                  /* cast shadow */
+    0 10px 18px -8px rgba(0,0,0,.5);
+  text-shadow:0 -1px 0 rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.18);
+}
+.btn::before{
+  left:3px;right:3px;top:1px;height:46%;
+  border-radius:999px 999px 60% 60%/999px 999px 22px 22px;
+  background:linear-gradient(rgba(255,255,255,.72),rgba(255,255,255,.34) 55%,rgba(255,255,255,.04));
+}
+/* a second, dimmer reflection along the bottom - light bouncing back up */
+.btn::after{
+  content:"";position:absolute;left:8%;right:8%;bottom:1px;height:32%;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 100%,rgba(255,255,255,.26),transparent 70%);
+}
+.btn:hover{filter:brightness(1.1) saturate(1.05)}
+.btn:active{
+  transform:translateY(1px);
+  box-shadow:
+    0 2px 5px rgba(0,0,0,.45) inset,
+    0 -1px 0 rgba(255,255,255,.25) inset,
+    0 0 0 1px rgba(30,10,80,.6),
+    0 1px 2px rgba(20,6,60,.5);
+}
+.btn:active::before{opacity:.5}
+
+/* ---- chips: the same cap, smaller -------------------------------------- */
+.q{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.5);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.6) inset,
+    0 -2px 3px rgba(60,30,130,.34) inset,
+    0 1px 2px rgba(30,12,80,.3),
+    0 3px 6px -3px rgba(20,6,60,.4);
+  text-shadow:0 1px 0 rgba(255,255,255,.5);
+}
+.q::before{
+  content:"";position:absolute;left:2px;right:2px;top:1px;height:48%;
+  border-radius:999px 999px 55% 55%/999px 999px 14px 14px;
+  background:linear-gradient(rgba(255,255,255,.42),rgba(255,255,255,.06));
+  pointer-events:none;
+}
+.q.on{
+  border-color:rgba(255,255,255,.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.7) inset,
+    0 -3px 6px rgba(20,4,70,.55) inset,
+    0 0 12px rgba(123,63,228,.8),
+    0 2px 5px rgba(20,6,60,.55);
+  text-shadow:0 -1px 0 rgba(0,0,0,.5);
+}
+.q.on::before{background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.06))}
+.q:active{box-shadow:0 2px 4px rgba(30,12,80,.45) inset,0 0 0 1px rgba(255,255,255,.35) inset}
+
+/* ---- tabs: physical tabs, lit along the top edge ----------------------- */
+.tab{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.45) inset,
+    -1px 0 0 rgba(255,255,255,.14) inset,
+    0 -6px 10px -6px rgba(0,0,0,.5) inset,
+    0 -2px 6px rgba(0,0,0,.35);
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+}
+.tab::before{
+  left:2px;right:2px;top:1px;height:54%;
+  border-radius:7px 7px 40% 40%/7px 7px 12px 12px;
+  background:linear-gradient(rgba(255,255,255,.34),rgba(255,255,255,.04));
+}
+.tab.main{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.75) inset,
+    0 -8px 14px -8px rgba(60,20,150,.5) inset,
+    0 -3px 10px rgba(90,45,224,.35);
+}
+
+/* ---- 1 inverted. text fields, carved into the panel -------------------- */
+input[type=text],input[type=password],textarea,select{
+  border:1px solid rgba(70,40,140,.55);
+  box-shadow:
+    0 2px 5px rgba(30,10,90,.4) inset,            /* shadow cast INTO the hole */
+    0 -1px 0 rgba(255,255,255,.7),                /* lit lower lip outside */
+    0 1px 0 rgba(255,255,255,.35) inset;
+  background-image:linear-gradient(rgba(240,234,255,.55),rgba(255,255,255,.95) 30%);
+}
+input[type=text]:focus,input[type=password]:focus,textarea:focus{
+  outline:none;
+  box-shadow:
+    0 2px 6px rgba(30,10,90,.45) inset,
+    0 0 0 2px rgba(123,63,228,.55),
+    0 0 14px rgba(123,63,228,.45);
+}
+
+/* ---- sliders: a milled channel and a chrome knob ----------------------- */
+.vol::-webkit-slider-runnable-track{
+  border:1px solid rgba(60,30,130,.7);
+  background-image:linear-gradient(rgba(70,40,140,.55),rgba(210,198,248,.9) 60%);
+  box-shadow:0 2px 4px rgba(25,8,70,.55) inset,0 1px 0 rgba(255,255,255,.55);
+}
+.vol::-webkit-slider-thumb{
+  background:
+    radial-gradient(circle at 36% 26%,#fff 0%,rgba(255,255,255,.9) 14%,transparent 42%),
+    linear-gradient(#f3efff,#b9a6f0 46%,#6c47cf 54%,#3d1f9e);
+  border:1px solid rgba(255,255,255,.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.8) inset,
+    0 -2px 3px rgba(20,4,70,.5) inset,
+    0 2px 5px rgba(15,4,50,.65),
+    0 0 9px rgba(123,63,228,.5);
+}
+.vol::-moz-range-track{
+  box-shadow:0 2px 4px rgba(25,8,70,.55) inset,0 1px 0 rgba(255,255,255,.55);
+}
+.vol::-moz-range-thumb{
+  background:
+    radial-gradient(circle at 36% 26%,#fff 0%,rgba(255,255,255,.9) 14%,transparent 42%),
+    linear-gradient(#f3efff,#b9a6f0 46%,#6c47cf 54%,#3d1f9e);
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 2px 5px rgba(15,4,50,.65);
+}
+
+/* ---- chat bubbles: glass with a highlight across the top --------------- */
+.msg .b{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 -5px 10px -6px rgba(60,20,140,.35) inset,
+    0 2px 5px rgba(50,18,120,.3),
+    0 8px 16px -10px rgba(30,8,80,.45);
+}
+.msg .b::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:42%;pointer-events:none;
+  border-radius:8px 8px 45% 45%/8px 8px 16px 16px;
+  background:linear-gradient(rgba(255,255,255,.62),rgba(255,255,255,.06));
+}
+
+/* ---- the channel rail and panels: embossed, not drawn ------------------ */
+.side .row.cur{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.55) inset,
+    0 -4px 8px -5px rgba(10,2,40,.6) inset,
+    0 2px 5px rgba(20,6,60,.35);
+  text-shadow:0 -1px 0 rgba(0,0,0,.45);
+}
+h3{
+  background-image:linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,0));
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 -1px 0 rgba(80,50,160,.2);
+}
+.chat{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.5) inset,
+    0 -1px 0 rgba(80,50,160,.35),
+    0 -8px 18px -12px rgba(10,2,40,.7) inset;
+}
+.log{
+  box-shadow:
+    inset 0 3px 12px rgba(12,3,45,.62),
+    inset 0 -2px 8px rgba(12,3,45,.35),
+    inset 0 1px 0 rgba(0,0,0,.35);
+}
+.compose{
+  background-image:linear-gradient(rgba(255,255,255,.12),rgba(255,255,255,.02));
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 -3px 10px -6px rgba(10,2,40,.6) inset;
+}
+
+/* ---- avatars: little glass domes --------------------------------------- */
+.ava,.mem .ava{
+  position:relative;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.85) inset,
+    0 -3px 6px rgba(30,10,90,.45) inset,
+    0 2px 5px rgba(20,6,60,.5);
+}
+.ava::after{
+  content:"";position:absolute;left:12%;right:12%;top:6%;height:42%;
+  border-radius:50%;pointer-events:none;
+  background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.05));
+}
+
+/* ---- the theatre stage: a screen set into a bezel ---------------------- */
+.tstage,#tstage{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.22),
+    0 0 0 6px rgba(18,6,55,.9),
+    0 0 0 7px rgba(255,255,255,.14),
+    0 10px 30px rgba(0,0,0,.65),
+    inset 0 2px 20px rgba(0,0,0,.8);
+}
+.tprog{
+  box-shadow:inset 0 2px 5px rgba(8,2,30,.8),0 1px 0 rgba(255,255,255,.25);
+}
+
+/* ---- the top bar: brushed, with a lit lower edge ----------------------- */
+.top{
+  background-image:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,0));
+}
+.abxy{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.8) inset,
+    0 -2px 4px rgba(0,0,0,.45) inset,
+    0 2px 4px rgba(0,0,0,.5);
+  text-shadow:0 -1px 0 rgba(0,0,0,.4);
+}
+
+/* ---- engraved rows ------------------------------------------------------
+   A single 1px line is a drawn line. A dark line with a light line directly
+   under it is a GROOVE - the light one reads as the lower lip catching the
+   light - and that one detail does more for physicality than any amount of
+   gradient. It is how every control panel of this era separated its rows. */
+.row{
+  border-bottom:1px solid rgba(86,52,168,.26);
+  box-shadow:0 1px 0 rgba(255,255,255,.62);
+}
+.row:last-child{box-shadow:none}
+.row.action:hover,.row.action.hl{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -8px 14px -8px rgba(12,2,48,.55),
+    0 1px 0 rgba(255,255,255,.35);
+}
+
+/* ---- letterpress ---------------------------------------------------------
+   Dark text with a white shadow one pixel BELOW it looks stamped into a light
+   surface. Inverted on the selected rows, where the surface is dark. */
+.row,.side .row,.lab,h3,.volnum{
+  text-shadow:0 1px 0 rgba(255,255,255,.72);
+}
+.row.action:hover,.row.action.hl,.side .row.cur,.q.on,.btn{
+  text-shadow:0 -1px 0 rgba(0,0,0,.45);
+}
+
+/* ---- a deeper surface ----------------------------------------------------
+   The old gradient ran from near-white to a pale lilac, which is most of why
+   it read as flat: a real moulded panel has a good deal more range between the
+   light it catches at the top and the shadow it holds at the bottom. */
+:root{
+  --bladeA:#fdfbff; --bladeB:#ddd2ff; --bladeC:#bda9f4; --bladeD:#9f88e6;
+}
+.blade{
+  border-top:1px solid rgba(255,255,255,1);
+  box-shadow:
+    0 18px 55px rgba(0,0,0,.72),
+    0 0 0 1px var(--bladeRing),
+    0 0 60px var(--bladeGlow),
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -2px 0 rgba(120,88,200,.45),
+    inset 2px 0 0 rgba(255,255,255,.45),
+    inset -2px 0 0 rgba(120,88,200,.3);
+}
+
+/* ---- the channel rail, milled in ---------------------------------------- */
+.side{
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.55),inset -2px 0 4px -2px rgba(40,14,110,.3);
+}
+.side .row{border-bottom-color:rgba(86,52,168,.2)}
+
+/* ---- the header strip ---------------------------------------------------- */
+.tabs .tab{border-bottom:none}
+.top h1{text-shadow:0 0 18px var(--titleGlow),0 2px 3px rgba(0,0,0,.6)}
+
+/* Reduced transparency / high contrast users get the depth without the
+   glare, since all of the above is decoration rather than information. */
+@media (prefers-contrast:more){
+  .btn::before,.btn::after,.q::before,.tab::before,.msg .b::before,.ava::after{display:none}
+  .blade::after{opacity:.2}
+}
 </style>
 </head>
 <body>
@@ -1874,7 +2178,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.6';
+var BUILD='8.7';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
