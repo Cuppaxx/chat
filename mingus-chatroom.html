@@ -1220,6 +1220,10 @@ body.touch #qPtt{display:none}
     <div class="row" style="font-size:15px;gap:10px;flex-wrap:wrap">
       <span class="lab">VERITY voice:</span>
       <select id="verityVoice" style="font:inherit;font-size:13px;padding:3px 6px;border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d"></select>
+      <span style="font-size:12px;opacity:.75">volume</span>
+      <input type="range" id="verityVol" class="vol" min="0" max="100" step="1" value="55"
+             style="width:120px" title="how loud VERITY is — for you and for everyone he is sent to">
+      <span id="verityVolVal" style="font-size:12px;min-width:34px">55%</span>
       <span class="q" id="verityMute" title="silence her on your machine only">🔇 Mute VERITY (me)</span>
       <span class="q on" id="verityHear" title="transcribe the room in your own browser so VERITY can react — no audio is uploaded">🎤 Let VERITY hear me</span>
     </div>
@@ -7306,13 +7310,46 @@ var VERITY_VOICES=[
   {id:'am_fenrir', n:'Fenrir — gravelly'}
 ];
 
+/* His level. One control rather than two: he lives on a single bus that
+   feeds both the local speakers and the outgoing voice track, so turning him
+   down turns him down for the room as well. That is the right behaviour here
+   — only the person who called him runs him, so this is his master level, and
+   "he is too loud" is nearly always true for everybody at once. */
+function verityVolWanted(){
+  var v=0.55;
+  try{
+    var sv=parseInt(localStorage.getItem('mc_veritylvl')||'',10);
+    if(sv>=0&&sv<=100)v=sv/100;
+  }catch(e){}
+  return v;
+}
+function veritySetVol(pct){
+  var v=Math.max(0,Math.min(1,pct/100));
+  try{localStorage.setItem('mc_veritylvl',String(Math.round(pct)));}catch(e){}
+  if(VERITY.bus&&!VERITY.mutedLocal){
+    try{VERITY.bus.gain.value=v;}catch(e){}
+  }
+  var lbl=document.getElementById('verityVolVal');
+  if(lbl)lbl.textContent=Math.round(pct)+'%';
+}
+(function(){
+  var sl=document.getElementById('verityVol');
+  if(!sl)return;
+  sl.value=Math.round(verityVolWanted()*100);
+  veritySetVol(parseInt(sl.value,10));
+  sl.oninput=function(){veritySetVol(parseInt(this.value,10)||0);};
+})();
+
 /* ---------- audio bus: VERITY -> outgoing WebRTC track + local speakers ---------- */
 function verityBus(){
   var c=ctx();
   ensureFxGraph();
   if(!VERITY.bus){
     VERITY.bus=c.createGain();
-    VERITY.bus.gain.value=1;
+    /* Default 0.55, not 1. Fish renders at a healthy broadcast level and he
+       was arriving considerably louder than anybody talking, which in a voice
+       call is the difference between a character and a nuisance. */
+    VERITY.bus.gain.value=verityVolWanted();
     VERITY.bus.connect(fxDest);        /* out to everyone over the voice stream */
     VERITY.bus.connect(c.destination); /* and out of the caller's own speakers */
     /* and into the Discord send bus, so the voice channel hears her too */
@@ -7628,19 +7665,22 @@ function verityChunks(text){
   while(out.length>3)out[2]+=' '+out.splice(3,1)[0];
   return out;
 }
-function verityPlayBuf(buf){
+function verityPlayBuf(buf,gen){
+  if(gen!=null&&gen!==VERITY.gen)return Promise.resolve();   /* superseded */
   var c=ctx();
   var src=c.createBufferSource();
   src.buffer=buf;
   src.connect(verityBus());
+  VERITY.playing=src;
   return new Promise(function(done){
-    src.onended=done;
+    src.onended=function(){if(VERITY.playing===src)VERITY.playing=null;done();};
     src.start();
     setTimeout(done,(buf.duration*1000)+600);   /* never wedge the queue */
   });
 }
 function verityFishRender(text){
   var t0=Date.now(), first=true;
+  var gen=VERITY.gen||0;
   var chunks=(String(text).length>110)?verityChunks(text):[text];
   /* Every piece is requested NOW. They synthesise concurrently on Fish's
      side, so by the time the first finishes playing the second is usually
@@ -7648,9 +7688,11 @@ function verityFishRender(text){
   var jobs=chunks.map(function(c){return verityFishFetch(c);});
   return jobs.reduce(function(chain,job){
     return chain.then(function(){
+      if(gen!==VERITY.gen)return;        /* a newer line took over mid-reply */
       return job.then(function(buf){
+        if(gen!==VERITY.gen)return;
         if(first){first=false;VERITY.lastTtsMs=Date.now()-t0;}
-        return verityPlayBuf(buf);
+        return verityPlayBuf(buf,gen);
       });
     });
   },Promise.resolve());
@@ -7680,6 +7722,18 @@ function verityEngineLabel(){
 }
 
 /* ---------- speaking ---------- */
+/* Bumped every time a newer line supersedes what is playing. Anything mid-
+   flight compares the generation it started with and gives up if it has moved
+   on — which is what stops him finishing a stale three-part answer while the
+   room has already moved two topics along. */
+function verityBumpGen(){
+  VERITY.gen=(VERITY.gen||0)+1;
+  if(VERITY.playing){
+    try{VERITY.playing.onended=null;VERITY.playing.stop();}catch(e){}
+    VERITY.playing=null;
+  }
+  return VERITY.gen;
+}
 function verityEnqueue(text){
   /* Being CURRENT matters more than saying everything.
      This used to push onto an unbounded queue, so once he could not render
@@ -7689,8 +7743,14 @@ function verityEnqueue(text){
      late answer is not a worse answer, it is the wrong answer.
      So the pending queue holds exactly one line: the newest. Anything still
      waiting when a fresher line arrives is dropped. */
-  if(VERITY.queue.length){
+  if(VERITY.queue.length||VERITY.speaking){
+    /* Something newer has arrived. Drop whatever was waiting AND cut short
+       whatever is mid-sentence: capping the queue at one was not enough on
+       its own, because a reply is rendered in up to three pieces and the
+       chain would still play all of them before looking at the queue again.
+       That is how he got behind a second time. */
     VERITY.dropped=(VERITY.dropped||0)+VERITY.queue.length;
+    verityBumpGen();
   }
   VERITY.queue=[text];
   if(!VERITY.speaking)verityDrain();
@@ -8820,7 +8880,7 @@ verityButtons();
     VERITY.mutedLocal=!VERITY.mutedLocal;
     m.classList.toggle('on',VERITY.mutedLocal);
     if(VERITY.mutedLocal){VERITY.queue=[];try{speechSynthesis.cancel();}catch(e){}}
-    if(VERITY.bus)VERITY.bus.gain.value=VERITY.mutedLocal?0:1;
+    if(VERITY.bus)VERITY.bus.gain.value=VERITY.mutedLocal?0:verityVolWanted();
     toast(VERITY.mutedLocal?'VERITY muted for you':'VERITY unmuted');
     renderMembers();
   };
@@ -9286,11 +9346,27 @@ function blip(f,d){
    All of it happens in YOUR browser, on audio you have already received.
    Nothing is sent to them, nobody else is affected, and it is remembered by
    gamertag so it survives them rejoining on a different slot. */
+/* Measured, because the previous numbers were wrong in a way that is
+   invisible from reading them. Rendering a hot 0.9-peak tone through the
+   exact chain playRemote builds gave:
+
+       off   peak 0.900
+       auto  peak 0.915   <- LOUDER than off
+       limit peak 0.757
+       hard  peak 0.582
+
+   The makeup gains (1.25 / 1.6 / 2.1) were almost exactly cancelling the
+   compression they were meant to compensate for, so "Auto-level" made a loud
+   person louder and "Brick wall" took barely a third off. The whole point of
+   these is that somebody is too loud, so every step must audibly REDUCE
+   peaks; restoring the average level is the auto-level gain's job, further
+   down the chain, where it can respond to how loud that person actually is
+   rather than guessing in advance. */
 var LIMS={
   off  :{l:'Off',          icon:'🔊', wet:0, auto:false, th:0,   kn:0,  ra:1,  at:.01,  re:.25, mk:1},
-  auto :{l:'Auto-level',   icon:'📉', wet:1, auto:true,  th:-18, kn:14, ra:3,  at:.02,  re:.30, mk:1.25},
-  limit:{l:'Limiter',      icon:'🎚', wet:1, auto:true,  th:-24, kn:10, ra:8,  at:.006, re:.20, mk:1.6},
-  hard :{l:'Brick wall',   icon:'🧱', wet:1, auto:true,  th:-32, kn:3,  ra:20, at:.002, re:.10, mk:2.1}
+  auto :{l:'Auto-level',   icon:'📉', wet:1, auto:true,  th:-18, kn:14, ra:3,  at:.02,  re:.30, mk:0.8},
+  limit:{l:'Limiter',      icon:'🎚', wet:1, auto:true,  th:-24, kn:10, ra:8,  at:.006, re:.20, mk:0.55},
+  hard :{l:'Brick wall',   icon:'🧱', wet:1, auto:true,  th:-32, kn:3,  ra:20, at:.002, re:.10, mk:0.35}
 };
 var LIM_ORDER=['off','auto','limit','hard'];
 var AUTO_TARGET=0.085;        /* RMS we aim a talking voice at */
@@ -9329,8 +9405,14 @@ function applyLimiter(p){
 function cycleLim(id){
   var p=peers[id];if(!p)return;
   if(p.srvLimited){toast('an admin has them on a limiter — you cannot change it');return;}
-  if(!p.comp&&!ELEMENT_AUDIO&&!p.stream){toast('no voice from them yet');return;}
   if(ELEMENT_AUDIO){toast('the mic reducer needs WebAudio — Safari plays remote voices directly');return;}
+  /* Without the chain there is nothing to adjust, and applyLimiter() returns
+     silently — so the button appeared to work and did nothing. Say so. */
+  if(!p.comp){
+    toast(p.stream?'their audio chain is not built yet — try again in a moment'
+                  :'no voice from them yet');
+    return;
+  }
   var i=LIM_ORDER.indexOf(p.limMode||'off');
   p.limMode=LIM_ORDER[(i+1)%LIM_ORDER.length];
   rememberLim(p.name,p.limMode);
