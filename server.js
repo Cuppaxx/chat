@@ -218,6 +218,75 @@ app.get('/rnnoise.wasm', (req, res) => {
   });
 });
 
+// ---- transcription ---------------------------------------------------------
+// Whisper was running in the listener's browser, which is both the accuracy
+// ceiling (small.en, or base.en with no GPU) and the reason the room stutters -
+// it competes with the room for the same machine. Groq serves
+// whisper-large-v3-turbo, the key is already here for VERITY's brain, and at
+// one clip every few seconds this sits well inside the free tier.
+//
+// The browser keeps its local worker as a fallback, so if this is not
+// configured or runs out of quota, hearing degrades rather than stopping.
+const ASR_MODEL_REMOTE = process.env.ASR_MODEL || 'whisper-large-v3-turbo';
+const ASR_URL = process.env.ASR_URL || 'https://api.groq.com/openai/v1/audio/transcriptions';
+let asrCalls = 0, asrFails = 0, asrMsTotal = 0, asrLastErr = '';
+const asrHits = new Map();
+const ASR_PER_MIN = 40;
+
+app.get('/verity/asr/status', (req, res) => res.json({
+  ok: !!LLM_KEY, model: ASR_MODEL_REMOTE,
+  reason: LLM_KEY ? null : 'LLM_API_KEY is not set on the server',
+  calls: asrCalls, fails: asrFails,
+  avgMs: asrCalls ? Math.round(asrMsTotal / asrCalls) : 0,
+  lastError: asrLastErr || null
+}));
+
+app.post('/verity/asr', express.raw({ type: ['audio/wav', 'application/octet-stream'], limit: '8mb' }),
+  async (req, res) => {
+    if (!LLM_KEY) return res.status(503).json({ ok: false, error: 'LLM_API_KEY is not set on the server' });
+    const ip = clientIp(req);
+    if (tooMany(asrHits, ip, ASR_PER_MIN)) {
+      return res.status(429).json({ ok: false, error: 'too many clips, slow down' });
+    }
+    const body = req.body;
+    if (!body || !body.length || body.length < 1000) {
+      return res.json({ ok: false, error: 'no audio' });
+    }
+    const t0 = Date.now();
+    try {
+      const fd = new FormData();
+      fd.append('file', new Blob([body], { type: 'audio/wav' }), 'clip.wav');
+      fd.append('model', ASR_MODEL_REMOTE);
+      fd.append('response_format', 'json');
+      fd.append('language', 'en');
+      // Whisper invents fluent nonsense when handed near-silence, and a low
+      // temperature is the cheapest thing that discourages it.
+      fd.append('temperature', '0');
+      const r = await fetch(ASR_URL, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + LLM_KEY },
+        body: fd,
+        signal: AbortSignal.timeout(20000)
+      });
+      const txt = await r.text();
+      if (!r.ok) {
+        asrFails++; asrLastErr = r.status + ' ' + txt.slice(0, 160);
+        // a spent quota should read as a spent quota, not as a mystery
+        const retry = r.headers.get('retry-after');
+        return res.status(r.status === 429 ? 429 : 502)
+          .json({ ok: false, error: 'upstream ' + r.status, detail: txt.slice(0, 200), retryAfter: retry });
+      }
+      let j = {};
+      try { j = JSON.parse(txt); } catch (e) {}
+      const ms = Date.now() - t0;
+      asrCalls++; asrMsTotal += ms;
+      res.json({ ok: true, text: String((j && j.text) || '').trim(), ms, model: ASR_MODEL_REMOTE });
+    } catch (e) {
+      asrFails++; asrLastErr = String((e && e.message) || e);
+      res.status(502).json({ ok: false, error: asrLastErr });
+    }
+  });
+
 app.get('/', (req, res) => res.send('mingus signaling server: up'));
 app.get('/health', (req, res) => res.json({ ok: true, up: process.uptime(), bans: bannedIps.size }));
 
