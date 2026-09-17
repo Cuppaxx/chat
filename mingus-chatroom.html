@@ -1813,7 +1813,7 @@ body.touch #qPtt{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='7.9';
+var BUILD='8.0';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3752,6 +3752,7 @@ function wireFx(){
 function setFx(mode){
   if(mode!=='none'&&forceClean){toast('an admin has locked your mic to a plain voice');return;}
   fxMode=mode;
+  try{dnPush();}catch(e){}      /* the gate follows the effect */
   var chips=document.querySelectorAll('.q[data-fx]');
   for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-fx')===mode);
   if(micOn){
@@ -4916,7 +4917,8 @@ function runCommand(line){
     return true;
   }
   if(cmd==='help'){
-    sys('<b>Commands</b> — <b>/layout</b> report the page layout (paste it when something looks wrong) · '+
+    sys('<b>Commands</b> — <b>/fxtest</b> measure your mic through every stage (paste it when the voice FX sound wrong) · '+
+        '<b>/layout</b> report the page layout (paste it when something looks wrong) · '+
         '<b>/w name message</b> whisper · <b>/r message</b> reply to the last whisper · '+
         '<b>/shout message</b> leave whisper mode and talk to the room · <b>/me does a thing</b> · '+
         '<b>/clear</b> clear your own chat log');
@@ -4924,6 +4926,7 @@ function runCommand(line){
   }
   if(cmd==='clear'){$('#log').innerHTML='';unread=0;setJump();sys('your chat log was cleared (only yours)');return true;}
   if(cmd==='layout'){layoutReport();return true;}
+  if(cmd==='fxtest'){fxTest();return true;}
   return false;   /* unknown: let it go out as an ordinary message */
 }
 $('#btnSend').onclick=send;
@@ -11167,9 +11170,13 @@ function layoutReport(){
 
   sys('📐 <b>Layout report</b><br><pre style="margin:6px 0 0;font-size:11px;line-height:1.45;'+
       'white-space:pre-wrap;color:#efe9ff">'+esc(lines.join('\n'))+'</pre>');
+  /* writeText returns a PROMISE, so try/catch never sees its rejection - and
+     it rejects routinely, such as when the window is not focused. That was an
+     uncaught rejection in the console every time either report ran. */
   try{
-    navigator.clipboard.writeText(lines.join('\n'));
-    toast('layout report copied — paste it to Claude');
+    navigator.clipboard.writeText(lines.join('\n'))
+      .then(function(){toast('layout report copied — paste it to Claude');},
+            function(){toast('select the report above and copy it');});
   }catch(e){}
 }
 /* ---------------------------------------------------------------------------
@@ -11392,7 +11399,16 @@ function dnLoad(){
     });
   return DN.loading;
 }
-function dnGateFlag(){return DN.level>=2?1:0;}
+function dnGateFlag(){
+  /* The gate is driven by a SPEECH detector, and a voice effect is not speech.
+     A held sung note, a ring-modulated robot, a growl pitched down five
+     semitones - the detector scores all of them low and the gate drops them to
+     8%, which sounds exactly like the effect being broken. Denoising still
+     runs (somebody using Robot next to a fan still wants the fan gone); only
+     the gate steps aside. */
+  if(typeof fxMode!=='undefined'&&fxMode&&fxMode!=='none')return 0;
+  return DN.level>=2?1:0;
+}
 function dnPush(){ if(DN.node)try{DN.node.port.postMessage({gate:dnGateFlag()});}catch(e){} }
 function dnGetNode(){
   if(!DN.ready||!DN.mod)return null;
@@ -12002,6 +12018,195 @@ function traceUnbanDevice(did){
     if(TRACE.id)traceUser(TRACE.id);
     try{loadServerBans();}catch(e){}
   });
+}
+
+/* ============================================================================
+   /fxtest — measure the microphone chain, stage by stage
+
+   "The voice FX are broken" cannot be debugged from the other end of a chat
+   window. Every chain here builds and passes audio when measured on my
+   machine, so whatever is wrong is on yours, and the only way to see it is to
+   measure it there.
+
+   This taps the REAL outgoing chain at four points while you talk:
+
+     1. the raw microphone, before anything
+     2. after the denoiser
+     3. after the voice effect
+     4. the track that actually leaves for everyone else
+
+   A stage that is much quieter than the one above it is the stage that is
+   eating your voice, and the report names it. It also reports pitch in and
+   pitch out, because for Autotune and Pitch that IS the effect - a chain at
+   full level that does not move the pitch is broken in a completely different
+   way from one that goes quiet.
+   ============================================================================ */
+function fxTest(){
+  if(!micOn||!localStream){
+    sys('🎤 <b>/fxtest</b> needs your microphone on — switch Voice Chat on and run it again.',true);
+    return;
+  }
+  var c;
+  try{c=ctx();}catch(e){sys('no Web Audio here',true);return;}
+  if(fxMode==='none'){
+    sys('🎤 Running with <b>no effect selected</b>. Pick an effect first if it is the effects you '+
+        'are testing — this will only show the denoiser and the outgoing track.');
+  }
+  sys('🎤 <b>/fxtest — talk normally for four seconds.</b> Say anything; hum if it is Autotune.');
+
+  var taps=[];
+  function tap(label,node){
+    if(!node)return;
+    try{
+      var an=c.createAnalyser();an.fftSize=4096;
+      node.connect(an);
+      taps.push({label:label,an:an,buf:new Float32Array(an.fftSize),
+                 peak:0,sum:0,n:0,hz:0,hzN:0,node:node});
+    }catch(e){}
+  }
+  /* the real chain, exactly as wireFx built it */
+  tap('1 raw microphone',fxSource);
+  if(DN.node&&dnActive())tap('2 after denoise',DN.node);
+  if(fxChain&&fxChain.output&&fxMode!=='none')tap('3 after the effect',fxChain.output);
+  try{
+    var t=fxDest&&fxDest.stream&&fxDest.stream.getAudioTracks()[0];
+    if(t)tap('4 leaving for others',c.createMediaStreamSource(new MediaStream([t])));
+  }catch(e){}
+
+  if(!taps.length){
+    sys('🎤 Could not tap the chain at all — the effects graph is not built. That is itself the '+
+        'answer: your voice is going out as the bare microphone track.',true);
+    return;
+  }
+
+  /* autocorrelation, same method the autotune uses, so "did the pitch move" is
+     answered the same way the effect answers it */
+  function pitchOf(b,sr){
+    var N=b.length,i,e=0;
+    for(i=0;i<N;i++)e+=b[i]*b[i];
+    if(Math.sqrt(e/N)<0.005)return 0;
+    var minLag=Math.floor(sr/1000),maxLag=Math.floor(sr/75);
+    if(maxLag>N-2)maxLag=N-2;
+    var best=0,bestLag=0;
+    for(var lag=minLag;lag<=maxLag;lag+=2){
+      var sum=0,n1=0,n2=0;
+      for(i=0;i<N-lag;i+=2){var a=b[i],d=b[i+lag];sum+=a*d;n1+=a*a;n2+=d*d;}
+      var v=sum/(Math.sqrt(n1*n2)+1e-9);
+      if(v>best){best=v;bestLag=lag;}
+    }
+    if(!(best>0.55)||!bestLag)return 0;
+    /* Octave check. Autocorrelation peaks just as happily at twice the true
+       period, so a 196 Hz note reads as 98 unless you look: if half the lag
+       correlates nearly as well, half the lag is the real one. */
+    for(var half=bestLag>>1;half>=minLag;half>>=1){
+      var s2=0,a2=0,b2=0;
+      for(i=0;i<N-half;i+=2){var x=b[i],y=b[i+half];s2+=x*y;a2+=x*x;b2+=y*y;}
+      var v2=s2/(Math.sqrt(a2*b2)+1e-9);
+      if(v2>best*0.85){bestLag=half;best=v2;} else break;
+    }
+    return sr/bestLag;
+  }
+
+  var ticks=0;
+  var iv=setInterval(function(){
+    ticks++;
+    for(var i=0;i<taps.length;i++){
+      var t=taps[i];
+      try{
+        t.an.getFloatTimeDomainData(t.buf);
+        var pk=0,sm=0;
+        for(var k=0;k<t.buf.length;k++){var a=t.buf[k];var ab=a<0?-a:a;if(ab>pk)pk=ab;sm+=a*a;}
+        if(pk>t.peak)t.peak=pk;
+        t.sum+=sm/t.buf.length;t.n++;
+        var hz=pitchOf(t.buf,c.sampleRate);
+        if(hz){t.hz+=hz;t.hzN++;}
+      }catch(e){}
+    }
+    if(ticks>=40){
+      clearInterval(iv);
+      taps.forEach(function(t){try{t.node.disconnect(t.an);}catch(e){}});
+      fxTestReport(taps);
+    }
+  },100);
+}
+function fxTestReport(taps){
+  var dB=function(v){return v>0.00001?(20*Math.log10(v)).toFixed(1)+' dB':'silent';};
+  var lines=[];
+  lines.push('room '+room+' · build '+BUILD+' · graph '+Math.round(ctx().sampleRate)+' Hz');
+  lines.push('effect: '+fxMode+(fxMode==='pitch'?(' '+pitchSemis+' semitones'):'')+
+             ' · denoise: '+(DN.level===0?'off':(DN.level===1?'on':'max'))+
+             (DN.ready?' (running)':(DN.failed?(' (NOT running: '+DN.why+')'):' (still loading)'))+
+             ' · gate on this effect: '+(dnGateFlag()?'yes':'no'));
+  lines.push('');
+  var prev=null,culprit=null;
+  taps.forEach(function(t){
+    var rms=Math.sqrt(t.sum/Math.max(1,t.n));
+    var hz=t.hzN?(t.hz/t.hzN):0;
+    var drop=prev?(20*Math.log10((rms+1e-9)/(prev+1e-9))):0;
+    lines.push('  '+t.label.padEnd(22)+
+               ' peak '+dB(t.peak).padStart(9)+
+               '  rms '+dB(rms).padStart(9)+
+               (prev?('  ('+(drop>=0?'+':'')+drop.toFixed(1)+' dB)'):'         ')+
+               (hz?('  pitch '+hz.toFixed(0)+' Hz'):'  pitch —'));
+    if(prev&&drop<-12&&!culprit)culprit=t.label;
+    prev=rms;
+  });
+  lines.push('');
+  if(!taps[0]||taps[0].peak<0.004){
+    lines.push('VERDICT: nothing is arriving from the microphone at all — the effects are not');
+    lines.push('the problem. Check the mic is unmuted and is the right device.');
+  }else if(culprit){
+    lines.push('VERDICT: the signal falls off a cliff at "'+culprit+'".');
+    lines.push('That stage is the one eating it.');
+  }else{
+    var first=taps[0], last=taps[taps.length-1];
+    var fh=first.hzN?first.hz/first.hzN:0, lh=last.hzN?last.hz/last.hzN:0;
+    /* how far a pitch sits from the nearest semitone - which is the thing
+       autotune is actually trying to change. "Did the pitch move" is the wrong
+       question: an already-in-tune note SHOULD come out untouched, and asking
+       the wrong question reports working autotune as broken. */
+    var offC=function(hz){
+      if(!hz)return null;
+      var n=Math.round(12*Math.log2(hz/440)+69);
+      return 1200*Math.log2(hz/(440*Math.pow(2,(n-69)/12)));
+    };
+    if(fxMode==='auto'&&fh&&lh){
+      var inOff=offC(fh), outOff=offC(lh);
+      if(Math.abs(inOff)<15){
+        lines.push('VERDICT: the chain is healthy, but you were already singing in tune');
+        lines.push('('+Math.round(inOff)+' cents off), so autotune had nothing to correct.');
+        lines.push('Run it again deliberately flat or sharp to see it work.');
+      }else if(Math.abs(outOff)<Math.abs(inOff)-15){
+        lines.push('VERDICT: autotune IS working — it pulled you from '+Math.round(inOff)+
+                   ' cents off the note to '+Math.round(outOff)+'.');
+        lines.push('If it sounds wrong, it is the sound of it rather than a broken chain.');
+      }else{
+        lines.push('VERDICT: level is fine, but autotune left you '+Math.round(outOff)+
+                   ' cents off the note when you went in '+Math.round(inOff)+' off.');
+        lines.push('It is running and not correcting — a different fault from a dead chain.');
+      }
+    }else if((fxMode==='pitch'||fxMode==='deep'||fxMode==='chip')&&fh&&lh&&
+             Math.abs(1200*Math.log2(lh/fh))<60){
+      lines.push('VERDICT: level is fine all the way through, but the pitch barely moved');
+      lines.push('('+fh.toFixed(0)+' Hz in, '+lh.toFixed(0)+' Hz out). The effect is running and');
+      lines.push('doing nothing, which is a different fault from the chain being broken.');
+    }else{
+      lines.push('VERDICT: the chain looks healthy — level holds up at every stage'+
+                 (lh&&fh?(' and the pitch moved '+(1200*Math.log2(lh/fh)/100).toFixed(1)+' semitones'):'')+'.');
+      lines.push('If it still sounds wrong, it is the SOUND rather than the routing.');
+    }
+  }
+  var txt=lines.join('\n');
+  sys('🎤 <b>FX chain report</b><br><pre style="margin:6px 0 0;font-size:11px;line-height:1.45;'+
+      'white-space:pre-wrap;color:#efe9ff">'+esc(txt)+'</pre>');
+  /* writeText returns a PROMISE, so try/catch never sees its rejection - and
+     it rejects routinely, such as when the window is not focused. That was an
+     uncaught rejection in the console every time either report ran. */
+  try{
+    navigator.clipboard.writeText(txt)
+      .then(function(){toast('fx report copied — paste it to Claude');},
+            function(){toast('select the report above and copy it');});
+  }catch(e){}
 }
 </script>
 </body>
