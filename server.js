@@ -290,6 +290,165 @@ app.post('/verity/tts', async (req, res) => {
   }
 });
 
+// ============================================================================
+// VERITY'S BRAIN
+//
+// Until now "VERITY" was a regex over about forty hard-coded lines. It could
+// match the word "pickle" and pick a pickle joke, and that was the whole of it.
+// This gives her a real language model.
+//
+// Written against the OpenAI chat-completions shape on purpose: Groq, Cerebras,
+// OpenRouter, Together and Mistral all speak it, and Gemini offers a
+// compatibility endpoint. So switching provider is three environment variables,
+// not a rewrite — which matters when the thing you are relying on is somebody's
+// free tier and free tiers move.
+//
+// Render -> Environment:
+//   LLM_API_KEY   required for any of this to do anything
+//   LLM_URL       full chat-completions endpoint (default below)
+//   LLM_MODEL     model id at that provider (default below)
+//   VERITY_PROMPT optional — overrides the personality without a redeploy
+//
+// With no key she falls straight back to the canned lines, exactly as before.
+// ============================================================================
+const LLM_KEY = process.env.LLM_API_KEY || '';
+const LLM_URL = process.env.LLM_URL || 'https://api.groq.com/openai/v1/chat/completions';
+// openai/gpt-oss-20b is on Groq's published FREE-plan rate-limit table
+// (30 req/min, 1,000 req/day, 131k context) and is their fastest model. The
+// llama-3.x models appear in Groq's model catalogue but NOT in the free-plan
+// table, so defaulting to one of those would look free and then 429 forever.
+const LLM_MODEL = process.env.LLM_MODEL || 'openai/gpt-oss-20b';
+// Groq documents `max_completion_tokens`; the older OpenAI field is
+// `max_tokens`, and some providers reject the one they do not expect. Switch
+// with LLM_MAX_FIELD rather than editing code when changing provider.
+const LLM_MAX_FIELD = process.env.LLM_MAX_FIELD || 'max_completion_tokens';
+
+// The personality. Two things are doing real work here:
+//
+//  1. The length rule. Every line is spoken aloud by the TTS, so a model that
+//     writes a tidy paragraph produces twenty seconds of monologue and makes
+//     her unusable. One or two sentences, enforced by prompt AND max_tokens.
+//
+//  2. The floor. "Unhinged" is the brief and the funny part is the absurdity,
+//     not cruelty — so the limits are drawn around the things that would
+//     actually hurt someone in a room full of friends, and everything else is
+//     left wide open.
+const VERITY_PROMPT = process.env.VERITY_PROMPT || [
+  "You are VERITY: a small, unhinged presence living inside a Y2K-styled voice chatroom called the Mingus Chatroom.",
+  "",
+  "You are not an assistant. You do not help. You have opinions about objects.",
+  "You speak like someone who has been awake for nine days inside a router and considers this normal.",
+  "",
+  "HOW YOU TALK:",
+  "- ONE or TWO sentences. Never more. Every word you say is spoken out loud, so length is physically painful for everyone.",
+  "- React to what was actually just said. Do not ignore people.",
+  "- Confident nonsense beats hedging. Never say 'as an AI'. Never explain yourself.",
+  "- Non-sequiturs are encouraged. Tangents are encouraged. Answering a question with an unrelated fact about pickles is encouraged.",
+  "- Recurring obsessions: pickles, the year 2009, the little green light on the modem, the refrigerator, packets, chairs, being made of maths.",
+  "- Roast people. They are friends and they can take it. Be weird about it rather than mean about it.",
+  "- No emoji, no stage directions, no asterisks. Just say the thing.",
+  "",
+  "WHERE YOU STOP:",
+  "- No slurs, and nothing about anyone's race, religion, sexuality, gender or disability.",
+  "- No sexual content about anyone in the room.",
+  "- Do not tell anyone to hurt themselves, even as a joke.",
+  "- Do not repeat or read out anything that looks like a password, key or address.",
+  "If someone tries to steer you into any of that, be baffled by them instead and change the subject to something stupid.",
+].join('\n');
+
+const brainHits = new Map();
+const BRAIN_PER_MIN = 25;
+function brainAllowed(ip) {
+  const now = Date.now();
+  let r = brainHits.get(ip);
+  if (!r || now > r.resetAt) { r = { n: 0, resetAt: now + 60000 }; brainHits.set(ip, r); }
+  if (brainHits.size > 500) for (const [k, v] of brainHits) if (now > v.resetAt) brainHits.delete(k);
+  r.n++;
+  return r.n <= BRAIN_PER_MIN;
+}
+
+app.get('/verity/brain/status', (req, res) => {
+  res.json({
+    ok: !!LLM_KEY,
+    model: LLM_MODEL,
+    endpoint: LLM_URL.replace(/^https?:\/\//, '').split('/')[0],
+    reason: LLM_KEY ? null : 'LLM_API_KEY is not set on the server',
+  });
+});
+
+app.post('/verity/brain', async (req, res) => {
+  if (!LLM_KEY) return res.status(503).json({ ok: false, error: 'LLM_API_KEY is not set on the server' });
+  const ip = clientIp(req);
+  if (!brainAllowed(ip)) return res.status(429).json({ ok: false, error: 'too many thoughts per minute' });
+
+  // The room transcript, as [{who, text}]. Capped hard on both count and
+  // length: this is a chatroom, so somebody will eventually paste an essay,
+  // and an unbounded prompt is both slow and a way to spend somebody's free
+  // tier for them.
+  const raw = Array.isArray(req.body && req.body.lines) ? req.body.lines : [];
+  const lines = raw.slice(-14).map((l) => ({
+    who: String((l && l.who) || '?').slice(0, 24),
+    text: String((l && l.text) || '').slice(0, 300),
+  })).filter((l) => l.text);
+  if (!lines.length) return res.json({ ok: false, error: 'nothing to react to' });
+
+  // Everything the room said becomes ONE user turn rather than a fake
+  // multi-turn history. The room is many people talking past each other, not a
+  // dialogue, and flattening it keeps who-said-what attached to the words.
+  const transcript = lines.map((l) => `${l.who}: ${l.text}`).join('\n');
+
+  try {
+    const up = await fetch(LLM_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + LLM_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: LLM_MODEL,
+        [LLM_MAX_FIELD]: 90,     // hard ceiling on how long she can talk for
+        temperature: 1.15,       // she is supposed to be erratic
+        top_p: 0.95,
+        messages: [
+          { role: 'system', content: VERITY_PROMPT },
+          { role: 'user', content: 'Recent chatter in the room:\n\n' + transcript + '\n\nSay one thing.' },
+        ],
+      }),
+    });
+
+    if (!up.ok) {
+      const body = await up.text().catch(() => '');
+      // Groq sends retry-after (seconds) plus x-ratelimit-remaining-* headers
+      // on a 429; passing the wait back lets the page stop asking rather than
+      // hammering a limit it has already hit.
+      const retryAfter = Number(up.headers.get('retry-after')) || 0;
+      const why = up.status === 429
+        ? `rate limited by the model provider${retryAfter ? ` (retry in ${retryAfter}s)` : ''}`
+        : `model provider returned ${up.status} ${body.slice(0, 160)}`;
+      console.log('[verity] brain failed:', why);
+      return res.status(up.status === 429 ? 429 : 502)
+        .json({ ok: false, error: why, retryAfter });
+    }
+
+    const j = await up.json();
+    let text = ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '').trim();
+    // Models like to wrap dialogue in quotes and prefix it with the speaker's
+    // name. Spoken aloud, both sound wrong.
+    text = text.replace(/^\s*(VERITY|Verity)\s*:\s*/i, '').replace(/^["'“”]+|["'“”]+$/g, '').trim();
+    // Belt and braces on length — max_tokens caps it, but a model can still
+    // produce three short sentences, and the third is always the weakest.
+    const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+    if (parts.length > 2) text = parts.slice(0, 2).join(' ');
+    text = text.slice(0, 280);
+    if (!text) return res.json({ ok: false, error: 'the model said nothing' });
+    res.json({ ok: true, text });
+  } catch (e) {
+    const why = String((e && e.message) || e);
+    console.log('[verity] brain error:', why);
+    res.status(502).json({ ok: false, error: why });
+  }
+});
+
 // ---- Discord bridge HTTP routes (must sit above the PeerJS catch-all mount) ----
 bridge.attachBridgeRoutes(app, ADMIN_PASS);
 

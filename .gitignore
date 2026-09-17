@@ -1,2 +1,4 @@
 .claude/
+.edits/*.py
+!.edits/check.py
 .edits/_extracted.js
