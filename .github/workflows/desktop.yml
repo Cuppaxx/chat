@@ -1,0 +1,72 @@
+# Builds the Windows app on GitHub's own Windows machine whenever the desktop
+# shell (or the page it bundles as its offline fallback) changes, and publishes
+# it to one fixed release, "desktop-latest", under fixed file names:
+#
+#   https://github.com/Cuppaxx/chat/releases/download/desktop-latest/Mingus-Chatroom-Setup.exe
+#   https://github.com/Cuppaxx/chat/releases/download/desktop-latest/Mingus-Chatroom-Portable.exe
+#
+# The chatroom's "Download now" button links to the first one, so it always
+# hands out the newest build and nobody has to upload anything by hand.
+name: Desktop app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - 'mingus-chatroom.html'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build installer and portable exe
+        working-directory: desktop
+        run: npx electron-builder --win --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Move the desktop-latest tag to this commit
+        shell: bash
+        run: |
+          git tag -f desktop-latest
+          git push -f origin desktop-latest
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-latest
+          name: Mingus Chatroom for Windows (latest)
+          body: |
+            The newest build of the Mingus Chatroom desktop app, rebuilt automatically from `main`.
+
+            - **Mingus-Chatroom-Setup.exe** — installer, with Start menu and desktop shortcuts
+            - **Mingus-Chatroom-Portable.exe** — runs from anywhere, installs nothing
+
+            Windows SmartScreen will warn because the app is unsigned: **More info → Run anyway**.
+          files: |
+            desktop/dist/Mingus-Chatroom-Setup.exe
+            desktop/dist/Mingus-Chatroom-Portable.exe
+          make_latest: true
+          fail_on_unmatched_files: true

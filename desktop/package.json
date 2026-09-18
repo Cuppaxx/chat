@@ -19,15 +19,36 @@
   "build": {
     "appId": "town.mingus.chatroom",
     "productName": "Mingus Chatroom",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "offline.html", "build/icon.png"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "build/icon.png"
+    ],
     "extraResources": [
-      { "from": "../mingus-chatroom.html", "to": "mingus-chatroom.html" }
+      {
+        "from": "../mingus-chatroom.html",
+        "to": "mingus-chatroom.html"
+      }
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.png"
     },
@@ -36,7 +57,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Mingus Chatroom"
+      "shortcutName": "Mingus Chatroom",
+      "artifactName": "Mingus-Chatroom-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "Mingus-Chatroom-Portable.${ext}"
     }
   }
 }
