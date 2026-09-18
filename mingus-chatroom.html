@@ -3783,7 +3783,7 @@ body{min-height:0}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.2';
+var BUILD='10.3';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -4765,6 +4765,14 @@ function connectRoom(){
     }
     p.on('open',function(){
       clearTimeout(joinTimer);clearTimeout(slowNote);
+      /* 'open' fires again every time a dropped peer reconnects. That is not a
+         new join - rebinding here stacked a second set of handlers and
+         re-announced "you joined" - so just say so and re-check the room. */
+      if(peer===p){
+        setStatus('online as '+id+' via '+(CFG.host||SIGNAL_HOST)+(forceRelay?' · TURN only':''));
+        try{scan();}catch(e){}
+        return;
+      }
       peer=p;me.slot=slot;me.id=id;bindPeer(p);
       myPastIds[id]=1;          /* never show our own old slot as somebody else */
       $('#modal').style.display='none';$('#btnJoin').disabled=false;$('#err').textContent='';
@@ -4995,7 +5003,31 @@ function bindPeer(p){
     try{c.answer(outbound(),{sdpTransform:lowSdp});}catch(e){sys('failed to answer a call: '+esc(e.message),true);}
     attachCall(c,false);
   });
-  p.on('disconnected',function(){if(!leaving){setStatus('reconnecting…');try{p.reconnect();}catch(e){}}});
+  /* Reconnect with a back-off, never instantly.
+     PeerJS fires 'disconnected' every time a reconnect attempt fails, and this
+     used to call reconnect() again on the spot - so while the server was
+     unreachable (every deploy restarts it) one tab looped hundreds of times a
+     second. Each attempt is a WebSocket, the server allows 90 a minute per
+     address, and the loop burned that in well under a second: everybody else
+     on the same wifi then could not join at all, and was told the server was
+     "probably still waking up". Measured on 10.2: 500 attempts in 3 s. */
+  p.on('disconnected',function(){
+    if(leaving||p.destroyed)return;
+    var n=p.__retries=(p.__retries||0)+1;
+    var wait=Math.min(30000,1000*Math.pow(2,Math.min(n-1,5)))*(0.75+Math.random()*0.5);
+    setStatus('reconnecting… (attempt '+n+' in '+Math.round(wait/1000)+'s)');
+    clearTimeout(p.__rt);clearTimeout(p.__ok);
+    p.__rt=setTimeout(function(){
+      if(leaving||p.destroyed||!p.disconnected)return;
+      try{p.reconnect();}catch(e){}
+      /* A reconnect onto a socket the server still remembers is accepted
+         without a fresh OPEN (peer-server only sends OPEN to new ids), so
+         'open' cannot be relied on to reset the back-off. Staying connected
+         for 30 s can. */
+      p.__ok=setTimeout(function(){if(!p.disconnected&&!p.destroyed)p.__retries=0;},30000);
+    },wait);
+  });
+  p.on('open',function(){p.__retries=0;clearTimeout(p.__rt);});
   p.on('close',function(){if(!leaving)setStatus('connection closed');});
 }
 function isBanned(id){return banned[id]!=null&&banned[id]>Date.now();}
@@ -15199,6 +15231,10 @@ window.addEventListener('beforeunload',function(){try{peer&&peer.destroy();}catc
    tearing its window down, mobile tab discards), and a peer that is not
    destroyed on the way out is exactly what leaves a ghost in everyone's list */
 window.addEventListener('pagehide',function(){try{peer&&!peer.destroyed&&peer.destroy();}catch(e){}});
+/* back online after a wifi drop: skip whatever is left of the reconnect back-off */
+window.addEventListener('online',function(){
+  try{if(peer&&!peer.destroyed&&peer.disconnected&&!leaving){clearTimeout(peer.__rt);peer.reconnect();}}catch(e){}
+});
 window.addEventListener('hashchange',function(){
   var r=slug(location.hash.slice(1));
   if(r&&r!==room)switchRoom(r);

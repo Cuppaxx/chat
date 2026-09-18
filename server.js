@@ -1064,7 +1064,11 @@ const server = app.listen(PORT, '0.0.0.0', () =>
 // what order things were wired up in, so a banned client's socket is closed
 // before any signalling happens.
 const wsHits = new Map();
-const WS_PER_MIN = 90;   // a normal client opens one and keeps it
+// 180, up from 90. An address is often a whole household or a school: each
+// join walks the slots (one socket per taken slot) and every deploy makes
+// everyone reconnect at once. 90 was close enough to that for one busy
+// house to lock itself out, and a lockout reads to them as "can't join".
+const WS_PER_MIN = 180;
 server.prependListener('upgrade', (req, socket) => {
   const ip = clientIp(req);
   if (bannedIps.has(ip)) {
