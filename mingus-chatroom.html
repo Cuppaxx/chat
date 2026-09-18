@@ -3742,7 +3742,7 @@ body.bloom .fxring{box-shadow:0 0 14px var(--sel1),0 0 30px var(--sel1)}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.0';
+var BUILD='10.1';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -7687,8 +7687,13 @@ function netTest(){
   try{pc.createDataChannel('t');}catch(e){}
   pc.onicecandidateerror=function(e){
     if(!e||!e.errorCode)return;
-    if(iceErrs.length>=5)return;
-    iceErrs.push(e.errorCode+' '+String(e.errorText||'').slice(0,60)+' ← '+String(e.url||'').slice(0,70));
+    /* the same server fails once per network adapter / address family, so
+       without de-duplicating, five copies of one harmless line crowd out
+       anything that matters */
+    var line=e.errorCode+' '+String(e.errorText||'').slice(0,60)+' ← '+String(e.url||'').slice(0,70);
+    if(iceErrs.indexOf(line)>=0)return;
+    if(iceErrs.length>=8)return;
+    iceErrs.push(line);
   };
   pc.onicecandidate=function(e){
     if(e.candidate){
@@ -7705,10 +7710,26 @@ function netTest(){
     if(finished)return;finished=true;
     try{pc.close();}catch(e){}
     sys('candidates — local: '+got.host+' · STUN/public: '+got.srflx+' · TURN/relay: '+got.relay);
-    if(iceErrs.length)sys('relay errors: '+esc(iceErrs.join(' | ')));
-    var badKey=false;
-    for(var q=0;q<iceErrs.length;q++)
+    /* 701 = the browser could not look the STUN/TURN hostname up. Chrome
+       tries every server on every adapter and for IPv4 AND IPv6, so on any
+       machine with IPv6 enabled (or a VPN / virtual adapter) a few of these
+       are normal and mean nothing as long as some lookup worked - which the
+       STUN/public count above shows. They only matter when nothing got out. */
+    var dnsOnly=iceErrs.length>0, badKey=false;
+    for(var q=0;q<iceErrs.length;q++){
       if(/^4[08][013]/.test(iceErrs[q]))badKey=true;
+      if(!/^701 /.test(iceErrs[q]))dnsOnly=false;
+    }
+    if(iceErrs.length){
+      if(dnsOnly&&(got.srflx>0||got.relay>0))
+        sys('<span style="opacity:.7">ignorable: '+iceErrs.length+' STUN lookup miss'+(iceErrs.length===1?'':'es')+
+            ' (701) - one adapter or IPv6 could not resolve a server, but others got through</span>');
+      else sys('relay errors: '+esc(iceErrs.join(' | ')));
+    }
+    if(dnsOnly&&!got.srflx&&!got.relay)
+      sys('🚫 <b>Your DNS cannot look up the STUN/TURN servers</b> (every error is 701). Usually a VPN, a '+
+          'DNS filter (Pi-hole, NextDNS, AdGuard, a school/work network) or a security suite blocking '+
+          'stun.* hostnames. Allow stun.l.google.com and stun.cloudflare.com, or try another network.',true);
     if(got.relay>0&&got.srflx>0)
       good('✅ <b>Your network is fine.</b> STUN and TURN both work — you should be able to connect to anybody.');
     else if(got.relay>0)
@@ -8956,6 +8977,10 @@ function theaterShare(){
    cheap and makes the fix self-healing rather than refresh-only. */
 function bladeUnscroll(){
   try{
+    /* EXCEPT the Discord theme's User Settings page, which is the one place
+       .blade is meant to scroll (overflow-y:auto). Resetting it there yanked
+       the settings back to the top every second while you were reading them. */
+    if(document.documentElement.classList.contains('dc-set'))return;
     var b=document.querySelector('.blade');
     if(b&&b.scrollTop)b.scrollTop=0;
     if(b&&b.scrollLeft)b.scrollLeft=0;
@@ -15643,7 +15668,7 @@ function dcMode(on){
     m.style.display=hid?'':'none';this.classList.toggle('on',hid);
     blade.style.gridTemplateColumns=hid?'':'240px minmax(0,1fr) 0';
   };
-  $('#dcGear').onclick=function(){r.classList.add('dc-set');};
+  $('#dcGear').onclick=dcOpenSet;
   $('#dcSearch').oninput=function(){
     var q=this.value.trim().toLowerCase();
     document.querySelectorAll('#log .msg').forEach(function(m){
@@ -15671,7 +15696,7 @@ function dcMode(on){
       e.stopPropagation();menu.classList.remove('open');srv.classList.remove('open');
       var k=a.getAttribute('data-a');
       if(k==='inv')$('#btnInvite').click();
-      if(k==='set')r.classList.add('dc-set');
+      if(k==='set')dcOpenSet();
       if(k==='skin')$('#btnSkin').click();
       if(k==='arc')arcOpen();
       if(k==='cfg')$('#btnCfg').click();
@@ -15706,9 +15731,14 @@ function dcMode(on){
   $('#dcLeave').onclick=function(){leaveParty(false);};
   $('#dcMic').onclick=function(){if(!micOn)$('#btnMic').click();else setMute(!muted);setTimeout(dcTick,50);};
   $('#dcDeaf').onclick=function(){setDeaf(!deaf);setTimeout(dcTick,50);};
-  $('#dcSet').onclick=$('#dcWho').onclick=function(){r.classList.add('dc-set');};
+  $('#dcSet').onclick=$('#dcWho').onclick=dcOpenSet;
   dcTick();
   DCM.t=setInterval(dcTick,600);
+}
+/* open User Settings at the top, the way Discord does */
+function dcOpenSet(){
+  document.documentElement.classList.add('dc-set');
+  var b=document.querySelector('.blade');if(b)b.scrollTop=0;
 }
 /* keep the added pieces in step with the page */
 function dcTick(){
