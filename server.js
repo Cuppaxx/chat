@@ -654,6 +654,9 @@ app.post('/verity/tts', async (req, res) => {
         model: FISH_MODEL,        // a real lowercase header, not a body field
       },
       body: JSON.stringify(body),
+      // a hung render used to hold his whole speech queue until the browser
+      // gave up on its own; fail fast and let the page fall back instead
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!up.ok) {
@@ -746,8 +749,24 @@ const LLM_MAX_FIELD = process.env.LLM_MAX_FIELD || 'max_completion_tokens';
 //
 // Set LLM_REASONING_EFFORT to an empty string for providers that reject the
 // parameter (it is a Groq/gpt-oss extension, not standard OpenAI).
-const LLM_REASONING = process.env.LLM_REASONING_EFFORT === undefined
-  ? 'low' : process.env.LLM_REASONING_EFFORT;
+//
+// Per model, because the models disagree. Qwen 3.8 still THINKS at 'low' -
+// only 'none' switches reasoning off - and that hidden thinking was the whole
+// of "he has become super delayed" since the switch to qwen: seconds of
+// reasoning before every one-line quip. gpt-oss has no 'none' and 'low' is
+// its floor. An explicit LLM_REASONING_EFFORT still overrides both.
+const LLM_REASONING_ENV = process.env.LLM_REASONING_EFFORT;
+function reasoningFor(model) {
+  if (LLM_REASONING_ENV !== undefined) return LLM_REASONING_ENV;
+  if (/qwen/i.test(model)) return 'none';
+  if (/gpt-oss/i.test(model)) return 'low';
+  return '';
+}
+// A slow provider must not hold the whole room up. Each model gets a few
+// seconds; a hang or a server error moves on to the next one like a 429 does,
+// and the whole walk stays inside the page's own 12 s give-up.
+const LLM_ATTEMPT_MS = Number(process.env.LLM_ATTEMPT_MS || 6000);
+const LLM_DEADLINE_MS = 11000;
 // Headroom for SERIOUS MODE. The reasoning model spends a chunk of this
 // before it writes anything, and a real answer to a real question needs room.
 // Length is governed by the prompt and by the trim below, not by starving it.
@@ -911,25 +930,42 @@ app.post('/verity/brain', async (req, res) => {
     // failure is a real failure and stops here, rather than spending the next
     // model's allowance on the same broken request.
     const chain = [LLM_MODEL].concat(LLM_FALLBACKS);
-    let up = null, usedModel = null, lastRetryAfter = 0, lastBody = '';
+    let up = null, usedModel = null, lastRetryAfter = 0, lastBody = '', lastFail = '';
+    const deadline = Date.now() + LLM_DEADLINE_MS;
     for (const candidate of chain) {
-      const attempt = await fetch(LLM_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + LLM_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(Object.assign({
-          model: candidate,
-        [LLM_MAX_FIELD]: LLM_MAX_TOKENS,
-        temperature: 1.2,        // he is supposed to be erratic
-        top_p: 0.95,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: transcript + '\n\n' + closing },
-        ],
-        }, LLM_REASONING ? { reasoning_effort: LLM_REASONING } : {})),
-      });
+      const left = deadline - Date.now();
+      if (left < 1500) break;
+      const effort = reasoningFor(candidate);
+      let attempt;
+      try {
+        attempt = await fetch(LLM_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + LLM_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(Object.assign({
+            model: candidate,
+            [LLM_MAX_FIELD]: LLM_MAX_TOKENS,
+            temperature: 1.2,        // he is supposed to be erratic
+            top_p: 0.95,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: transcript + '\n\n' + closing },
+            ],
+          }, effort ? { reasoning_effort: effort } : {})),
+          signal: AbortSignal.timeout(Math.min(LLM_ATTEMPT_MS, left)),
+        });
+      } catch (e) {
+        lastFail = candidate + ' ' + (e && e.name === 'TimeoutError' ? 'took too long' : String((e && e.message) || e));
+        console.log('[verity] ' + lastFail + ', trying the next model');
+        continue;
+      }
+      if (attempt.status >= 500) {
+        lastFail = candidate + ' returned ' + attempt.status;
+        console.log('[verity] ' + lastFail + ', trying the next model');
+        continue;
+      }
       if (attempt.status === 429) {
         lastRetryAfter = Math.max(lastRetryAfter, Number(attempt.headers.get('retry-after')) || 0);
         lastBody = await attempt.text().catch(() => '');
@@ -940,6 +976,10 @@ app.post('/verity/brain', async (req, res) => {
       break;
     }
 
+    if (!up && lastFail && !lastRetryAfter) {
+      console.log('[verity] brain gave up:', lastFail);
+      return res.status(504).json({ ok: false, error: 'every model was too slow or down (' + lastFail + ')' });
+    }
     if (!up) {
       const mins = Math.ceil(lastRetryAfter / 60);
       const why = 'every free model is rate limited'
@@ -963,7 +1003,9 @@ app.post('/verity/brain', async (req, res) => {
     const j = await up.json();
     const choice = (j.choices && j.choices[0]) || {};
     const msg = choice.message || {};
-    let text = (msg.content || '').trim();
+    // Qwen writes its thinking inline as <think>…</think> when a provider
+    // does not split it out; none of that should ever be read aloud.
+    let text = (msg.content || '').replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim();
     // Models like to wrap dialogue in quotes and prefix it with the speaker's
     // name. Spoken aloud, both sound wrong.
     text = text.replace(/^\s*(VERITY|Verity)\s*:\s*/i, '').replace(/^["'“”]+|["'“”]+$/g, '').trim();

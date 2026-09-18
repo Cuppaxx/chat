@@ -3742,7 +3742,7 @@ body.bloom .fxring{box-shadow:0 0 14px var(--sel1),0 0 30px var(--sel1)}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='9.9';
+var BUILD='10.0';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -8400,6 +8400,9 @@ function brStop(quiet){
 async function brLink(){
   if(!isAdmin()){toast('the Discord bridge is admin-only');return;}
   if(BR.on){toast('already linked');return;}
+  /* a second press while the bot is still joining used to start a second,
+     overlapping link that broke the first one */
+  if(BR.linking||BR.ws){toast('still linking…');return;}
   if(!window.MediaRecorder){sys('🔗 This browser has no MediaRecorder, so it cannot feed Discord.',true);return;}
   var mime='audio/webm;codecs=opus';
   if(!MediaRecorder.isTypeSupported(mime)){
@@ -8412,8 +8415,10 @@ async function brLink(){
   var pick=pickSel&&pickSel.value?JSON.parse(pickSel.value):null;
   sys('🔗 Asking the bot to join '+(pick?('<b>'+esc(pick.n)+'</b>'):'your Discord voice channel')+'…');
   var j=null;
+  BR.linking=true;
   try{ j=await brApi('/bridge/join',pick?{guildId:pick.g,channelId:pick.c}:null); }
-  catch(e){ sys('🔗 Could not reach the server: '+esc(String(e.message||e)),true); brStat('failed'); return; }
+  catch(e){ BR.linking=false; sys('🔗 Could not reach the server: '+esc(String(e.message||e)),true); brStat('failed'); return; }
+  BR.linking=false;
   if(!j||!j.ok){
     sys('🔗 The bot could not join: <b>'+esc((j&&j.error)||'unknown')+'</b>',true);
     brStat('failed');
@@ -8733,13 +8738,23 @@ function brPlay(r,ad){
   /* Jitter buffer. Packets arrive in bursts from a busy free-tier server, so we
      play them a little behind real time and only re-prime on a real gap. Each
      underrun (a packet that arrived after its slot) widens the cushion, up to
-     600 ms, so a choppy link settles into a steady delay instead of stuttering. */
-  if(r.lead===undefined)r.lead=0.25;
+     600 ms, so a choppy link settles into a steady delay instead of stuttering.
+
+     It used to only ever grow. One bad patch early on and every Discord voice
+     stayed 600 ms late for the rest of the session - and VERITY, who hears
+     Discord through this same path, heard them late too. Now each new
+     sentence (a re-prime after real silence) wins back 50 ms if the last
+     20 s went by without an underrun. */
+  if(r.lead===undefined)r.lead=0.2;
   if(!r.primed){ r.primed=true; r.next=now+r.lead; }   /* first packet: just prime */
   else if(r.next<now){                    /* late: we ran dry */
     var gap=now-r.next;
     if(gap<1.5){ r.under=(r.under||0)+1; BR.st.under++; r.lead=Math.min(0.6,r.lead+0.1); }
-    else r.under=0;                       /* long silence between sentences — not an underrun */
+    else{                                 /* long silence between sentences — not an underrun */
+      r.under=0;
+      if(!r.lastUnder||Date.now()-r.lastUnder>20000)r.lead=Math.max(0.12,r.lead-0.05);
+    }
+    if(gap<1.5)r.lastUnder=Date.now();
     r.next=now+r.lead;
   }else if(r.next>now+r.lead+0.6){        /* drifted far ahead (clock skew) — resync */
     r.next=now+r.lead;
@@ -8767,6 +8782,10 @@ function brOnMessage(ev){
         brStat('linked · hearing '+m.name);
       }
       renderMembers();
+    }
+    else if(m.t==='bye'){
+      /* the server lost the voice connection and has torn the bridge down */
+      sys('🔗 Discord link dropped: <b>'+esc(String(m.reason||'unknown'))+'</b>. Press 🔗 to relink.',true);
     }
     else if(m.t==='quiet'){
       if(BR.speakingNow&&m.slot!=null)delete BR.speakingNow[m.slot];
@@ -12648,8 +12667,13 @@ function verityProbeFish(){
 function verityFishFetch(text){
   var key=verityCacheKey(text);
   if(VERITY.cache[key])return Promise.resolve(VERITY.cache[key]);
+  /* A render that never came back held his whole speech queue: nothing else
+     could be said until it did. Give up after 12 s and let the fallback voice
+     take the line. */
+  var ctl=null; try{ctl=new AbortController();}catch(e){}
+  var giveUp=setTimeout(function(){try{if(ctl)ctl.abort();}catch(e){}},12000);
   return fetch(adminBase()+'/verity/tts',{
-    method:'POST',headers:{'Content-Type':'application/json'},
+    method:'POST',headers:{'Content-Type':'application/json'},signal:ctl?ctl.signal:undefined,
     body:JSON.stringify({text:text,voice:verityFishVoiceNow()})
   }).then(function(r){
     if(!r.ok){
@@ -12662,6 +12686,7 @@ function verityFishFetch(text){
     }
     return r.arrayBuffer();
   }).then(function(ab){
+    clearTimeout(giveUp);
     if(!ab||!ab.byteLength)throw new Error('empty audio');
     var c=ctx();
     return new Promise(function(res,rej){

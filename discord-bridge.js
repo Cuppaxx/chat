@@ -80,6 +80,7 @@ function status() {
     vc: state.vc,
     lastError: state.lastError || null,
     txPackets: state.txPackets,
+    txDropped: state.txDropped || 0,   // packets skipped to keep Discord from lagging behind
     rx: {
       packets: state.rxPackets,
       kb: Math.round(state.rxBytes / 1024),
@@ -223,29 +224,37 @@ async function joinDiscord(opts) {
   });
   state.connection.on('error', (e) => { state.lastError = String(e && e.message || e); log('connection error', state.lastError); });
   state.connection.on('stateChange', (o, n) => log('voice', o.status, '->', n.status));
-  try {
-    await entersState(state.connection, VoiceConnectionStatus.Ready, 20000);
-  } catch (e) {
-    throw new Error('could not reach the voice channel in 20s (check the bot has Connect + Speak on that channel): ' + (e && e.message || e));
+  // The voice handshake sometimes stalls in 'signalling' on the first try and
+  // then just sits there — that was a good share of "sometimes it's broken".
+  // A fresh second attempt almost always goes straight through.
+  let ready = false, lastErr = null;
+  for (let attempt = 1; attempt <= 2 && !ready; attempt++) {
+    try {
+      await entersState(state.connection, VoiceConnectionStatus.Ready, attempt === 1 ? 15000 : 20000);
+      ready = true;
+    } catch (e) {
+      lastErr = e;
+      if (attempt === 1) {
+        log('voice connection did not become ready, retrying once');
+        try { state.connection.destroy(); } catch (e2) {}
+        state.connection = joinVoiceChannel({
+          channelId, guildId, adapterCreator: guild.voiceAdapterCreator, selfDeaf: false, selfMute: false,
+        });
+        state.connection.on('error', (e3) => { state.lastError = String(e3 && e3.message || e3); log('connection error', state.lastError); });
+        state.connection.on('stateChange', (o, n) => log('voice', o.status, '->', n.status));
+      }
+    }
+  }
+  if (!ready) {
+    throw new Error('could not reach the voice channel (check the bot has Connect + Speak on that channel): ' + (lastErr && lastErr.message || lastErr));
   }
   log('voice connection ready');
+  watchConnection(state.connection, { entersState, VoiceConnectionStatus });
 
-  // Browser -> WebM bytes -> demux -> split every packet into 20 ms Opus
-  // packets -> player. Chrome's MediaRecorder writes 60 ms Opus packets and the
-  // player sends one packet per 20 ms tick, so without the split Discord gets
-  // audio at 3x speed with broken timing and its receiver shreds it.
-  const prism = require('prism-media');
-  const { Transform } = require('stream');
-  const { splitOpusPacket } = require('./opus-split');
-  state.feed = new PassThrough({ highWaterMark: 1 << 20 });
-  const demux = new prism.opus.WebmDemuxer();
-  const split = new Transform({
-    readableObjectMode: true, writableObjectMode: true,
-    transform(pkt, enc, cb) { for (const f of splitOpusPacket(pkt)) { state.txPackets++; this.push(f); } cb(); },
-  });
-  demux.on('error', (e) => { state.lastError = 'demux: ' + (e && e.message || e); log(state.lastError); });
-  state.feed.pipe(demux).pipe(split);
-  const resource = createAudioResource(split, { inputType: StreamType.Opus });
+  // The player lives for the whole link; the audio pipeline feeding it is
+  // rebuilt for every browser socket (see newFeed), because each socket
+  // carries its own WebM header.
+  state.makeResource = (stream) => createAudioResource(stream, { inputType: StreamType.Opus });
   // The browser sends a chunk every ~200 ms, but the player polls every 20 ms
   // and by default gives up after 5 empty polls (100 ms). That made it go
   // idle right after the first chunk while audio kept arriving. Gaps are
@@ -262,7 +271,6 @@ async function joinDiscord(opts) {
       log(state.lastError);
     }
   });
-  state.player.play(resource);
   state.connection.subscribe(state.player);
   wireReceiver(state.connection, state.client.user && state.client.user.id);
 
@@ -270,7 +278,112 @@ async function joinDiscord(opts) {
   state.startedAt = Date.now();
   state.bytes = 0;
   state.lastError = '';
+  // A socket that was already attached (a relink while the bot was still in
+  // the channel) gets a clean pipeline now; otherwise the next one will.
+  if (state.socket && state.socket.readyState === 1) newFeed();
+  else armFeedWatchdog();
   pushVoiceRoster();
+}
+
+/* Browser -> WebM bytes -> demux -> split every packet into 20 ms Opus
+   packets -> player. Chrome's MediaRecorder writes 60 ms Opus packets and the
+   player sends one packet per 20 ms tick, so without the split Discord gets
+   audio at 3x speed with broken timing and its receiver shreds it.
+
+   Built fresh for EVERY feed socket. The WebM header only exists at the start
+   of a MediaRecorder stream, so a second socket's stream written into the
+   first socket's demuxer (what happened when you relinked while the bot was
+   still sitting in the channel) is unparseable, and Discord heard nothing
+   until the bot was kicked and rejoined. */
+function newFeed() {
+  if (!state.player || !state.makeResource) return;
+  const prism = require('prism-media');
+  const { Transform } = require('stream');
+  const { splitOpusPacket } = require('./opus-split');
+  try { if (state.feed) state.feed.end(); } catch (e) {}
+  const feed = new PassThrough({ highWaterMark: 1 << 20 });
+  const demux = new prism.opus.WebmDemuxer();
+  let resource = null, dropped = 0;
+  const split = new Transform({
+    readableObjectMode: true, writableObjectMode: true,
+    transform(pkt, enc, cb) {
+      for (const f of splitOpusPacket(pkt)) {
+        // Drift control. The player drains exactly one packet per 20 ms, so
+        // anything the browser (or a stalled free-tier CPU) delivers faster
+        // than that piles up and stays piled up - Discord ends up hearing the
+        // room seconds late and it never catches back up. If more than ~400 ms
+        // is queued, drop packets until it is back under ~120 ms; Opus hides a
+        // few lost 20 ms frames far better than it hides a growing delay.
+        const queuedMs = resource ? (state.txPackets * 20 - dropped * 20 - resource.playbackDuration) : 0;
+        state.txPackets++;
+        if (queuedMs > 400 || (state.catchingUp && queuedMs > 120)) {
+          state.catchingUp = true; dropped++; state.txDropped = (state.txDropped || 0) + 1;
+          continue;
+        }
+        state.catchingUp = false;
+        this.push(f);
+      }
+      cb();
+    },
+  });
+  demux.on('error', (e) => { state.lastError = 'demux: ' + (e && e.message || e); log(state.lastError); });
+  feed.pipe(demux).pipe(split);
+  state.txPackets = 0; state.catchingUp = false;
+  resource = state.makeResource(split);
+  state.feed = feed;
+  state.player.play(resource);
+  clearTimeout(state.feedWatchdog);
+  log('fresh audio pipeline for the browser feed');
+}
+
+/* If the bot joined but no browser ever attaches a feed (the page was closed,
+   the WebSocket was blocked), it would otherwise sit in the channel forever,
+   silent, and the next link attempt would find it "already active". */
+function armFeedWatchdog() {
+  clearTimeout(state.feedWatchdog);
+  state.feedWatchdog = setTimeout(() => {
+    if (state.active && !(state.socket && state.socket.readyState === 1)) {
+      state.lastError = 'no browser attached the audio feed within 30s';
+      leaveDiscord(state.lastError);
+    }
+  }, 30000);
+}
+
+/* Discord moves voice servers, drops UDP, or somebody drags the bot to another
+   channel. Previously any of those left the connection 'disconnected' for good
+   while the bridge still reported itself active - linked, and dead. This is
+   the recovery the @discordjs/voice docs recommend: give it five seconds to
+   reconnect on its own, then try one explicit rejoin, then give up loudly. */
+function watchConnection(conn, { entersState, VoiceConnectionStatus }) {
+  conn.on(VoiceConnectionStatus.Disconnected, async () => {
+    if (state.connection !== conn || !state.active) return;
+    try {
+      await Promise.race([
+        entersState(conn, VoiceConnectionStatus.Signalling, 5000),
+        entersState(conn, VoiceConnectionStatus.Connecting, 5000),
+      ]);
+      log('voice connection recovering on its own');
+    } catch (e) {
+      if (state.connection !== conn || !state.active) return;
+      try {
+        log('voice connection lost, rejoining');
+        conn.rejoin();
+        await entersState(conn, VoiceConnectionStatus.Ready, 15000);
+        log('voice connection back');
+      } catch (e2) {
+        if (state.connection !== conn || !state.active) return;
+        state.lastError = 'lost the Discord voice connection and could not get it back';
+        sendToBrowser(JSON.stringify({ t: 'bye', reason: state.lastError }));
+        leaveDiscord(state.lastError);
+      }
+    }
+  });
+  conn.on(VoiceConnectionStatus.Destroyed, () => {
+    if (state.connection !== conn || !state.active) return;
+    state.lastError = 'the Discord voice connection was closed';
+    sendToBrowser(JSON.stringify({ t: 'bye', reason: state.lastError }));
+    leaveDiscord(state.lastError);
+  });
 }
 
 
@@ -319,15 +432,21 @@ function wireReceiver(connection, selfId) {
 
 function leaveDiscord(reason) {
   log('tearing down:', reason || 'requested');
-  for (const id in state.rx) { try { state.rx[id].stream.destroy(); } catch (e) {} }
-  state.rx = {}; state.rxPackets = 0; state.rxBytes = 0; state.txPackets = 0; state.clientStats = null; state.clientStatsAt = 0;
-  state.slotByUser = {}; state.nextSlot = 1;
-  try { if (state.player) state.player.stop(true); } catch (e) {}
-  try { if (state.feed) state.feed.end(); } catch (e) {}
-  try { if (state.connection) state.connection.destroy(); } catch (e) {}
-  try { if (state.socket && state.socket.readyState === 1) state.socket.close(); } catch (e) {}
-  state.player = null; state.feed = null; state.connection = null; state.socket = null;
+  // Mark inactive and detach FIRST: destroying the connection fires its
+  // Destroyed handler synchronously, which must see a bridge that is already
+  // on its way down rather than start a second teardown.
   state.active = false;
+  const conn = state.connection, player = state.player, feed = state.feed, sock = state.socket;
+  state.player = null; state.feed = null; state.connection = null; state.socket = null;
+  state.makeResource = null;
+  clearTimeout(state.feedWatchdog);
+  for (const id in state.rx) { try { state.rx[id].stream.destroy(); } catch (e) {} }
+  state.rx = {}; state.rxPackets = 0; state.rxBytes = 0; state.txPackets = 0; state.txDropped = 0; state.clientStats = null; state.clientStatsAt = 0;
+  state.slotByUser = {}; state.nextSlot = 1;
+  try { if (player) player.stop(true); } catch (e) {}
+  try { if (feed) feed.end(); } catch (e) {}
+  try { if (conn) conn.destroy(); } catch (e) {}
+  try { if (sock && sock.readyState === 1) sock.close(); } catch (e) {}
   state.vc = [];
   state.channelId = null; state.channelName = '';
   // the relay selection is deliberately kept: reconnecting should not silently
@@ -351,6 +470,14 @@ function attachBridgeRoutes(app, isAdmin, ipOf) {
 
   app.post('/bridge/join', requireAdmin, async (req, res) => {
     const want = { guildId: req.body && req.body.guildId, channelId: req.body && req.body.channelId };
+    // A second press while the first join is still handshaking used to start
+    // a second, overlapping join that tore the first one's connection out
+    // from under it. Wait for the one already in flight instead.
+    if (state.joining) {
+      try { await state.joining; } catch (e) {}
+      return res.json(state.active ? { ok: true, already: true, ...status() }
+                                   : { ok: false, error: state.lastError || 'join failed' });
+    }
     // Asking for a different channel while already connected should MOVE the
     // bot, not be silently ignored as "already active".
     if (state.active && want.channelId && want.channelId !== state.channelId) {
@@ -358,14 +485,18 @@ function attachBridgeRoutes(app, isAdmin, ipOf) {
     } else if (state.active) {
       return res.json({ ok: true, already: true, ...status() });
     }
+    state.joining = joinDiscord(want);
     try {
-      await joinDiscord(want);
+      await state.joining;
       res.json({ ok: true, ...status() });
     } catch (e) {
-      state.lastError = String(e && e.message || e);
-      log('join failed:', state.lastError);
+      const why = String(e && e.message || e);
+      log('join failed:', why);
       leaveDiscord('join failed');
-      res.json({ ok: false, error: state.lastError });
+      state.lastError = why;
+      res.json({ ok: false, error: why });
+    } finally {
+      state.joining = null;
     }
   });
 
@@ -483,6 +614,21 @@ function attachBridgeFeed(server, isAdmin, ipOf) {
     log('browser attached to the feed');
     if (state.socket && state.socket !== ws) { try { state.socket.close(); } catch (e) {} }
     state.socket = ws;
+    // every socket starts a brand-new WebM stream, so it needs its own demuxer
+    if (state.active) newFeed();
+
+    // Heartbeat. A browser that vanished without a clean close (sleep, Wi-Fi
+    // drop, the app killed) left a half-open socket that looked alive for
+    // ages, so the bot sat "active" in the channel and the next link found
+    // it wedged. No pong for 30 s means it is gone.
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+    const beat = setInterval(() => {
+      if (!ws.isAlive) { log('browser feed stopped answering pings'); try { ws.terminate(); } catch (e) {} return; }
+      ws.isAlive = false;
+      try { ws.ping(); } catch (e) {}
+    }, 15000);
+    ws.on('close', () => clearInterval(beat));
 
     ws.on('message', (data, isBinary) => {
       if (!isBinary) {
