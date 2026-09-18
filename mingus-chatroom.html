@@ -1834,6 +1834,295 @@ h3{
   .btn::before,.btn::after,.q::before,.tab::before,.msg .b::before,.ava::after{display:none}
   .blade::after{opacity:.2}
 }
+/* ============================================================================
+   STYLED THEMES - Windows XP, Frutiger Aero, Dark Aero, Windows 95
+
+   The other themes are colour swaps of one recipe. These four change what
+   things are MADE of: bevels instead of gloss, frosted glass instead of
+   plastic, title bars, square corners, the fonts of the era. Same layout,
+   same controls, same places - only the material changes, so nothing moves
+   for anybody who switches.
+
+   Every rule is scoped under :root[data-theme=...], which out-ranks the base
+   rules and the skeuomorphic pass regardless of where they sit in the file.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------- WINDOWS XP */
+:root[data-theme="xp"]{
+  --base:#245edb; --baseTop:#3a80f0; --baseBot:#1b4fb8;
+  --glow1:transparent; --glow2:transparent; --glow3:transparent; --glow4:transparent;
+  --sel1:#5d9bf5; --sel2:#316ac5; --sel3:#2456ad;
+  --txt:#ffffff; --dim:#e3eeff; --line:rgba(255,255,255,.4);
+  --ink:#000000; --ink2:#1d4a9f;
+  --bladeA:#f6f4ec; --bladeB:#ece9d8; --bladeC:#ece9d8; --bladeD:#e2dec9;
+  --bladeGlow:transparent; --bladeRing:#0831d9;
+  --tabA:#3d86f5; --tabB:#1f5bd6;
+  --tabMainA:#3d95ff; --tabMainB:#0058ee; --tabMainC:#0046c8;
+  --btnA:#7fd16f; --btnB:#3e9c33; --btnC:#2b7d22;
+  --btn2A:#7cb4ff; --btn2B:#2f6fde; --btn2C:#1d4fb8;
+  --chipA:#ffffff; --chipB:#ece9d8; --chipEdge:#003c74; --chipInk:#000000;
+  --cardA:#f6f4ec; --cardB:#ece9d8; --cardC:#e2dec9;
+  --bubbleA:#ffffff; --bubbleB:#ffffe1; --bubbleMeA:#eaf2ff; --bubbleMeB:#d3e3ff;
+  --orb1:#ffffff; --orb2:#b9f0a4; --orb3:#3e9c33; --orb4:#1c5a14;
+  --orbGlow:rgba(80,190,60,.45); --titleGlow:rgba(0,30,120,.8);
+  --radius:8px;
+  --font:Tahoma,"Trebuchet MS",Verdana,sans-serif;
+}
+/* Bliss: blue sky, soft clouds, the green hill */
+:root[data-theme="xp"] #bg{
+  background-color:#3a7fe6;
+  background-image:
+    radial-gradient(160% 70% at 30% 118%, #74c13f 0 40%, #4d9a22 50%, transparent 51%),
+    radial-gradient(120% 60% at 85% 125%, #5aa82a 0 45%, transparent 46%),
+    radial-gradient(40% 12% at 25% 30%, rgba(255,255,255,.75), transparent 70%),
+    radial-gradient(30% 9% at 70% 22%, rgba(255,255,255,.6), transparent 70%),
+    linear-gradient(#1a5ed8 0%, #3f8cf0 35%, #9bcbf8 68%, #d8ecfc 80%);
+}
+:root[data-theme="xp"] #orbs{display:none}
+:root[data-theme="xp"] .top h1{font-weight:700;font-style:italic;text-shadow:1px 2px 2px rgba(0,20,90,.7)}
+:root[data-theme="xp"] .top h1 b{background:linear-gradient(#fff,#ffe29a);-webkit-background-clip:text;background-clip:text;color:transparent}
+:root[data-theme="xp"] .clock{background:linear-gradient(#1290e8,#0b75d6);border:1px solid #0a4fb0;border-radius:3px;
+  padding:3px 10px;font-size:13px;font-weight:400;text-shadow:none;box-shadow:inset 1px 1px 0 rgba(255,255,255,.35)}
+/* the tab strip becomes the window's title bar and the taskbar buttons */
+:root[data-theme="xp"] .tabs .tab{border-radius:4px 4px 0 0;border:1px solid #1941a5;border-bottom:none;color:#fff;
+  background-image:linear-gradient(#5b9cff,#2b6ae4 45%,#1f55d0);text-shadow:1px 1px 0 rgba(0,0,0,.35)}
+:root[data-theme="xp"] .tabs .tab.main{border-radius:8px 8px 0 0;border-color:#0831d9;font-weight:700;color:#fff;
+  background-image:linear-gradient(#0997ff 0%,#0053ee 9%,#0050ee 45%,#0066ff 88%,#0055ee 100%);
+  text-shadow:1px 1px 0 #0a1883;box-shadow:none}
+:root[data-theme="xp"] .tab::before{display:none}
+:root[data-theme="xp"] .blade{background:#ece9d8;background-image:none;border:3px solid #0831d9;border-top:none;
+  border-radius:0 0 8px 8px;box-shadow:0 10px 28px rgba(0,20,80,.5)}
+:root[data-theme="xp"] .blade::before,:root[data-theme="xp"] .blade::after{display:none}
+:root[data-theme="xp"] h3{background:linear-gradient(90deg,#fff 0%,#c6d3f7 100%);color:#215dc6;letter-spacing:.3px;
+  text-transform:none;font-size:11.5px;box-shadow:none;border-bottom:1px solid #b0c4f0}
+:root[data-theme="xp"] .row{border-bottom-color:rgba(0,0,0,.08)}
+:root[data-theme="xp"] .row.action:hover,:root[data-theme="xp"] .row.action.hl,
+:root[data-theme="xp"] .side .row.cur{background:#316ac5;background-image:none;color:#fff;box-shadow:none}
+:root[data-theme="xp"] .row.action:hover::after,:root[data-theme="xp"] .row.action.hl::after{display:none}
+:root[data-theme="xp"] .side{background:linear-gradient(90deg,#7ba2e7,#6375d6);box-shadow:none}
+:root[data-theme="xp"] .side .row{color:#fff}
+/* the green Start button for primary actions, Luna buttons for the rest */
+:root[data-theme="xp"] .btn{border-radius:4px 12px 12px 4px;border:1px solid #2b6a20;font-style:italic;font-weight:700;
+  background-image:linear-gradient(#5fbf4f 0%,#3e9c33 45%,#2f8726 100%);box-shadow:1px 1px 2px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.45)}
+:root[data-theme="xp"] .btn::before,:root[data-theme="xp"] .btn::after{display:none}
+:root[data-theme="xp"] .btn.grey,:root[data-theme="xp"] .rb,:root[data-theme="xp"] .q{border-radius:3px;border:1px solid #003c74;
+  color:#000;font-style:normal;font-weight:400;text-shadow:none;
+  background-image:linear-gradient(#ffffff,#f3f2ee 60%,#dcd8cd);box-shadow:none}
+:root[data-theme="xp"] .btn.blue{border-radius:3px;font-style:normal;border-color:#003c74;
+  background-image:linear-gradient(#7cb4ff,#2f6fde 50%,#1d4fb8)}
+:root[data-theme="xp"] .btn.grey:hover,:root[data-theme="xp"] .rb:hover,:root[data-theme="xp"] .q:hover{
+  box-shadow:inset 0 0 0 2px #fcc55c;filter:none}
+:root[data-theme="xp"] .q.on{background-image:linear-gradient(#e3e1d8,#f4f3ee);color:#000;border-color:#003c74;
+  box-shadow:inset 0 0 0 2px #316ac5;font-weight:700}
+:root[data-theme="xp"] input[type=text],:root[data-theme="xp"] input[type=password],
+:root[data-theme="xp"] textarea,:root[data-theme="xp"] select,:root[data-theme="xp"] .sel{
+  border:1px solid #7f9db9;border-radius:0;background:#fff;color:#000;box-shadow:none}
+:root[data-theme="xp"] .card{background:#ece9d8;background-image:none;border:3px solid #0831d9;border-radius:8px 8px 3px 3px;
+  box-shadow:0 12px 40px rgba(0,0,0,.55);padding-top:0}
+:root[data-theme="xp"] .card::before{display:none}
+:root[data-theme="xp"] .card h2{margin:0 -22px 12px;padding:6px 12px;font-size:15px;font-weight:700;color:#fff;
+  background-image:linear-gradient(#0997ff 0%,#0053ee 9%,#0050ee 45%,#0066ff 88%,#0055ee 100%);text-shadow:1px 1px 0 #0a1883}
+:root[data-theme="xp"] .chat{background:#fff}
+:root[data-theme="xp"] .log{background:linear-gradient(#2d5bb8,#1d438f);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+:root[data-theme="xp"] .msg .b{background:#ffffe1;background-image:none;border:1px solid #000;border-radius:7px;color:#000;box-shadow:1px 2px 3px rgba(0,0,0,.35)}
+:root[data-theme="xp"] .msg.me .b{background:#e8f0ff}
+:root[data-theme="xp"] .compose{background:#ece9d8;background-image:none;box-shadow:inset 0 1px 0 #fff}
+:root[data-theme="xp"] .fold{background:#fff;border:1px solid #7f9db9;border-radius:4px}
+:root[data-theme="xp"] .log::-webkit-scrollbar-track{background:#f4f4f0}
+:root[data-theme="xp"] .log::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#c6d6fc,#aebff7);border:1px solid #fff;border-radius:3px}
+
+/* ------------------------------------------------------------- FRUTIGER AERO */
+:root[data-theme="aero"]{
+  --base:#5ec0f2; --baseTop:#8fd6ff; --baseBot:#d9f5ff;
+  --glow1:rgba(255,255,255,.8); --glow2:rgba(120,230,120,.5); --glow3:rgba(80,200,255,.6); --glow4:rgba(255,250,210,.6);
+  --sel1:#46bdf0; --sel2:#168fd8; --sel3:#0a64ae;
+  --txt:#ffffff; --dim:#eaf8ff; --line:rgba(255,255,255,.7);
+  --ink:#06304f; --ink2:#12629a;
+  --bladeA:rgba(255,255,255,.62); --bladeB:rgba(236,250,255,.48); --bladeC:rgba(222,246,255,.44); --bladeD:rgba(210,240,255,.5);
+  --bladeGlow:rgba(40,168,236,.35); --bladeRing:rgba(255,255,255,.9);
+  --tabA:rgba(20,120,200,.55); --tabB:rgba(10,90,170,.5);
+  --tabMainA:rgba(255,255,255,.95); --tabMainB:rgba(228,246,255,.9); --tabMainC:rgba(190,230,251,.9);
+  --btnA:#9be8ff; --btnB:#23a4e8; --btnC:#0873c2;
+  --btn2A:#c3f7a5; --btn2B:#52c23a; --btn2C:#2c8d1e;
+  --chipA:rgba(255,255,255,.92); --chipB:rgba(222,245,255,.82); --chipEdge:#8ccbeb; --chipInk:#0a4a75;
+  --cardA:rgba(255,255,255,.88); --cardB:rgba(234,249,255,.8); --cardC:rgba(210,238,252,.82);
+  --bubbleA:#ffffff; --bubbleB:#effaff; --bubbleMeA:#e8fadd; --bubbleMeB:#caf0b8;
+  --orb1:#ffffff; --orb2:#d6f6ff; --orb3:#48c2f4; --orb4:#0b6aa8;
+  --orbGlow:rgba(90,200,255,.55); --titleGlow:rgba(0,70,140,.75);
+  --radius:14px;
+  --font:"Segoe UI","Frutiger","Myriad Pro","Trebuchet MS",sans-serif;
+}
+/* sky, a green meadow, the sun behind the glass, a lens flare */
+:root[data-theme="aero"] #bg{
+  background-color:#6cc6f5;
+  background-image:
+    radial-gradient(35% 30% at 18% 8%, rgba(255,255,240,.95), rgba(255,255,240,0) 70%),
+    radial-gradient(6% 5% at 34% 22%, rgba(255,255,255,.55), transparent 70%),
+    radial-gradient(3% 2.5% at 44% 31%, rgba(200,255,230,.5), transparent 70%),
+    radial-gradient(180% 55% at 50% 125%, #7fdc4a 0 42%, #3fae2c 52%, transparent 53%),
+    radial-gradient(120% 40% at 90% 120%, #9be85c 0 40%, transparent 41%),
+    linear-gradient(#2f9fe8 0%, #6cc6f5 40%, #bfe9ff 70%, #effbff 84%);
+}
+:root[data-theme="aero"] .top h1{text-shadow:0 2px 6px rgba(0,60,120,.6)}
+:root[data-theme="aero"] .top h1 b{background:linear-gradient(#4fd0ff,#0a86d8 55%,#0a5aa8);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.9)) drop-shadow(0 2px 4px rgba(0,50,110,.45))}
+:root[data-theme="aero"] .top h1{color:#fff}
+:root[data-theme="aero"] .clock{text-shadow:0 1px 4px rgba(0,60,120,.7)}
+/* frosted glass: see-through, blurred, with a bright rim and a highlight */
+:root[data-theme="aero"] .blade,:root[data-theme="aero"] .card,:root[data-theme="aero"] .tabs .tab{
+  -webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5)}
+:root[data-theme="aero"] .blade{border:1px solid rgba(255,255,255,.95);border-radius:0 0 16px 16px;
+  box-shadow:0 14px 44px rgba(0,60,120,.28),inset 0 1px 0 #fff,inset 0 0 0 1px rgba(255,255,255,.35)}
+:root[data-theme="aero"] .tabs .tab{border-radius:12px 12px 0 0;border:1px solid rgba(255,255,255,.75);border-bottom:none}
+:root[data-theme="aero"] .tabs .tab.main{color:var(--ink)}
+:root[data-theme="aero"] .btn{border-radius:999px;border:1px solid rgba(255,255,255,.95);
+  box-shadow:0 3px 10px rgba(0,90,160,.35),inset 0 1px 0 #fff,inset 0 -6px 10px rgba(0,60,140,.25)}
+:root[data-theme="aero"] .btn::before{height:52%;border-radius:999px 999px 40% 40%;
+  background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.15))}
+:root[data-theme="aero"] .q,:root[data-theme="aero"] .rb{border-radius:999px;box-shadow:inset 0 1px 0 #fff,0 1px 3px rgba(0,80,140,.2)}
+:root[data-theme="aero"] .q.on{box-shadow:0 0 12px rgba(40,170,240,.8),inset 0 1px 0 rgba(255,255,255,.7)}
+:root[data-theme="aero"] .card{border:1px solid #fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,50,110,.45),inset 0 1px 0 #fff}
+:root[data-theme="aero"] .modal{background:rgba(20,70,120,.45)}
+:root[data-theme="aero"] .log{background:rgba(6,50,90,.42);box-shadow:inset 0 2px 10px rgba(0,30,70,.4)}
+:root[data-theme="aero"] .msg .b{border-radius:14px;border:1px solid #fff;box-shadow:0 2px 8px rgba(0,60,120,.25),inset 0 1px 0 #fff}
+:root[data-theme="aero"] .fold{background:rgba(255,255,255,.45);border-color:rgba(255,255,255,.85);border-radius:12px}
+
+/* ------------------------------------------------------- DARK FRUTIGER AERO */
+:root[data-theme="aerodark"]{
+  --base:#020a16; --baseTop:#04142a; --baseBot:#01050c;
+  --glow1:rgba(0,200,180,.35); --glow2:rgba(40,120,255,.35); --glow3:rgba(130,60,255,.28); --glow4:rgba(0,255,170,.2);
+  --sel1:#6ff0ff; --sel2:#17b3d8; --sel3:#0a7898;
+  --txt:#e8f8ff; --dim:#9fd4ea; --line:rgba(120,230,255,.3);
+  --ink:#e8f8ff; --ink2:#7fd8f5;
+  --bladeA:rgba(20,50,80,.62); --bladeB:rgba(10,32,56,.58); --bladeC:rgba(6,24,44,.6); --bladeD:rgba(4,18,34,.66);
+  --bladeGlow:rgba(0,210,255,.35); --bladeRing:rgba(110,240,255,.55);
+  --tabA:rgba(20,60,95,.7); --tabB:rgba(8,30,55,.7);
+  --tabMainA:rgba(40,95,135,.85); --tabMainB:rgba(18,58,92,.85); --tabMainC:rgba(8,36,64,.85);
+  --btnA:#5fe6ff; --btnB:#0f9fc8; --btnC:#07607e;
+  --btn2A:#8affc7; --btn2B:#15c486; --btn2C:#087a52;
+  --chipA:rgba(40,85,120,.8); --chipB:rgba(16,44,70,.8); --chipEdge:rgba(110,230,255,.55); --chipInk:#dff7ff;
+  --cardA:rgba(26,62,96,.9); --cardB:rgba(12,38,64,.9); --cardC:rgba(6,24,44,.92);
+  --bubbleA:rgba(40,80,115,.95); --bubbleB:rgba(22,52,82,.95); --bubbleMeA:rgba(20,95,105,.95); --bubbleMeB:rgba(10,70,82,.95);
+  --orb1:#ffffff; --orb2:#8ff5ff; --orb3:#17b3d8; --orb4:#02283a;
+  --orbGlow:rgba(0,220,255,.5); --titleGlow:rgba(0,230,255,.8);
+  --radius:14px;
+  --font:"Segoe UI","Frutiger","Myriad Pro","Trebuchet MS",sans-serif;
+}
+/* night sky, an aurora, a scatter of stars */
+:root[data-theme="aerodark"] #bg{
+  background-color:#020a16;
+  background-image:
+    radial-gradient(60% 18% at 30% 22%, rgba(0,255,190,.28), transparent 70%),
+    radial-gradient(50% 14% at 65% 16%, rgba(80,140,255,.28), transparent 70%),
+    radial-gradient(45% 20% at 80% 30%, rgba(160,80,255,.2), transparent 70%),
+    radial-gradient(1px 1px at 12% 18%, #fff, transparent),radial-gradient(1px 1px at 72% 9%, #fff, transparent),
+    radial-gradient(1px 1px at 44% 40%, #cff, transparent),radial-gradient(1px 1px at 88% 52%, #fff, transparent),
+    radial-gradient(1px 1px at 25% 66%, #dff, transparent),radial-gradient(1px 1px at 60% 75%, #fff, transparent),
+    radial-gradient(160% 50% at 50% 125%, #062a2a 0 45%, transparent 46%),
+    linear-gradient(#01050c, #04142a 55%, #062038);
+}
+:root[data-theme="aerodark"] .top h1 b{background:linear-gradient(#fff,#9ff6ff 55%,#2fc6e8);-webkit-background-clip:text;background-clip:text;color:transparent}
+:root[data-theme="aerodark"] .blade,:root[data-theme="aerodark"] .card,:root[data-theme="aerodark"] .tabs .tab{
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3)}
+:root[data-theme="aerodark"] .blade{border:1px solid rgba(120,235,255,.5);border-radius:0 0 16px 16px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 40px rgba(0,200,255,.18),0 18px 50px rgba(0,0,0,.7),inset 0 1px 0 rgba(160,245,255,.35)}
+:root[data-theme="aerodark"] .blade::before{background:linear-gradient(rgba(160,240,255,.14),rgba(160,240,255,0))}
+:root[data-theme="aerodark"] .tabs .tab{border-radius:12px 12px 0 0;border:1px solid rgba(120,235,255,.35);border-bottom:none;color:var(--dim)}
+:root[data-theme="aerodark"] .tabs .tab.main{color:#fff}
+:root[data-theme="aerodark"] .tab.main::before{background:linear-gradient(rgba(180,245,255,.25),rgba(180,245,255,0))}
+:root[data-theme="aerodark"] h3{color:var(--ink2);background-image:none;box-shadow:none;border-bottom:1px solid rgba(120,235,255,.18)}
+:root[data-theme="aerodark"] .row{border-bottom-color:rgba(120,235,255,.1)}
+:root[data-theme="aerodark"] .btn{border-radius:999px;border:1px solid rgba(150,245,255,.7);
+  box-shadow:0 0 14px rgba(0,210,255,.35),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.35)}
+:root[data-theme="aerodark"] .q,:root[data-theme="aerodark"] .rb{border-radius:999px;color:var(--chipInk)}
+:root[data-theme="aerodark"] .q.on{box-shadow:0 0 14px rgba(0,220,255,.7),inset 0 1px 0 rgba(255,255,255,.4)}
+:root[data-theme="aerodark"] input[type=text],:root[data-theme="aerodark"] input[type=password],
+:root[data-theme="aerodark"] textarea:not([style]),:root[data-theme="aerodark"] select:not([style]),:root[data-theme="aerodark"] .sel{
+  background:rgba(0,12,24,.55);color:#e8f8ff;border:1px solid rgba(120,235,255,.45)}
+:root[data-theme="aerodark"] .card{border:1px solid rgba(140,240,255,.55);border-radius:18px;
+  box-shadow:0 0 50px rgba(0,200,255,.2),0 24px 70px rgba(0,0,0,.8)}
+:root[data-theme="aerodark"] .card::before{background:linear-gradient(rgba(170,245,255,.16),rgba(170,245,255,0))}
+:root[data-theme="aerodark"] .log{background:rgba(0,8,18,.5)}
+:root[data-theme="aerodark"] .msg .b{color:#e8f8ff;border:1px solid rgba(130,235,255,.45);border-radius:14px;box-shadow:0 0 10px rgba(0,200,255,.15)}
+:root[data-theme="aerodark"] .fold{background:rgba(0,20,38,.45);border-color:rgba(120,235,255,.3);border-radius:12px}
+:root[data-theme="aerodark"] .rq button{background:rgba(0,20,38,.6);color:#e8f8ff;border-color:rgba(120,235,255,.45)}
+/* panels inside the admin box that assumed a light background */
+:root[data-theme="aerodark"] #admList,:root[data-theme="aerodark"] #admBans{background:rgba(0,12,24,.5)!important;border-color:rgba(120,235,255,.3)!important}
+
+/* ---------------------------------------------------------------- WINDOWS 95 */
+:root[data-theme="win95"]{
+  --base:#008080; --baseTop:#008080; --baseBot:#008080;
+  --glow1:transparent; --glow2:transparent; --glow3:transparent; --glow4:transparent;
+  --sel1:#000080; --sel2:#000080; --sel3:#000080;
+  --txt:#000000; --dim:#000000; --line:#808080;
+  --ink:#000000; --ink2:#000080;
+  --bladeA:#c0c0c0; --bladeB:#c0c0c0; --bladeC:#c0c0c0; --bladeD:#c0c0c0;
+  --bladeGlow:transparent; --bladeRing:#000;
+  --tabA:#c0c0c0; --tabB:#c0c0c0;
+  --tabMainA:#000080; --tabMainB:#000080; --tabMainC:#1084d0;
+  --btnA:#c0c0c0; --btnB:#c0c0c0; --btnC:#c0c0c0;
+  --btn2A:#c0c0c0; --btn2B:#c0c0c0; --btn2C:#c0c0c0;
+  --chipA:#c0c0c0; --chipB:#c0c0c0; --chipEdge:#000; --chipInk:#000;
+  --cardA:#c0c0c0; --cardB:#c0c0c0; --cardC:#c0c0c0;
+  --bubbleA:#ffffff; --bubbleB:#ffffff; --bubbleMeA:#ffffe1; --bubbleMeB:#ffffe1;
+  --orb1:#ffffff; --orb2:#c0c0c0; --orb3:#808080; --orb4:#000;
+  --orbGlow:transparent; --titleGlow:transparent;
+  --radius:0px;
+  --font:"MS Sans Serif","Microsoft Sans Serif",Tahoma,Arial,sans-serif;
+}
+:root[data-theme="win95"] #bg{background:#008080}
+:root[data-theme="win95"] #bg::after,:root[data-theme="win95"] #orbs{display:none}
+:root[data-theme="win95"] *{border-radius:0!important}
+:root[data-theme="win95"] .top h1{color:#fff;text-shadow:1px 1px 0 #000;font-weight:700}
+:root[data-theme="win95"] .top h1 b{color:#fff;background:none;-webkit-background-clip:border-box;background-clip:border-box}
+:root[data-theme="win95"] .clock{color:#000;background:#c0c0c0;padding:2px 8px;font-size:12px;font-weight:400;text-shadow:none;
+  border:1px solid;border-color:#808080 #fff #fff #808080}
+:root[data-theme="win95"] .orb{background:#c0c0c0;box-shadow:none;border:2px solid;border-color:#fff #000 #000 #fff}
+:root[data-theme="win95"] .orb::after{display:none}
+/* raised: light top-left, dark bottom-right. pressed: the other way round */
+:root[data-theme="win95"] .blade,:root[data-theme="win95"] .btn,:root[data-theme="win95"] .q,:root[data-theme="win95"] .rb,
+:root[data-theme="win95"] .card,:root[data-theme="win95"] .tabs .tab:not(.main),:root[data-theme="win95"] .compose{
+  background:#c0c0c0;background-image:none;color:#000;text-shadow:none;
+  border:2px solid;border-color:#fff #000 #000 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf}
+:root[data-theme="win95"] .blade::before,:root[data-theme="win95"] .blade::after,:root[data-theme="win95"] .btn::before,
+:root[data-theme="win95"] .btn::after,:root[data-theme="win95"] .card::before,:root[data-theme="win95"] .tab::before,
+:root[data-theme="win95"] .q::before,:root[data-theme="win95"] .msg .b::before{display:none}
+:root[data-theme="win95"] .btn{font-weight:400;padding:4px 14px}
+:root[data-theme="win95"] .btn:active,:root[data-theme="win95"] .q.on,:root[data-theme="win95"] .rb:active{
+  border-color:#000 #fff #fff #000;box-shadow:inset 1px 1px #808080,inset -1px -1px #dfdfdf;background:#d4d4d4;color:#000;font-weight:700}
+:root[data-theme="win95"] .btn:hover,:root[data-theme="win95"] .q:hover{filter:none}
+:root[data-theme="win95"] .tabs .tab.main{color:#fff;font-weight:700;border:2px solid;border-color:#fff #000 #000 #fff;
+  background-image:linear-gradient(90deg,#000080,#1084d0);box-shadow:none}
+:root[data-theme="win95"] h3{color:#000;background:#c0c0c0;background-image:none;box-shadow:none;letter-spacing:0;
+  text-transform:none;font-size:11px;border-bottom:1px solid #808080}
+:root[data-theme="win95"] .row{border-bottom-color:transparent;color:#000}
+:root[data-theme="win95"] .row.action:hover,:root[data-theme="win95"] .row.action.hl,:root[data-theme="win95"] .side .row.cur{
+  background:#000080;background-image:none;color:#fff;text-shadow:none;box-shadow:none}
+:root[data-theme="win95"] .row.action:hover::after,:root[data-theme="win95"] .row.action.hl::after{display:none}
+:root[data-theme="win95"] .layout{background-image:none}
+:root[data-theme="win95"] .side{box-shadow:inset -1px 0 #808080,inset -2px 0 #fff}
+:root[data-theme="win95"] input[type=text],:root[data-theme="win95"] input[type=password],
+:root[data-theme="win95"] textarea,:root[data-theme="win95"] select,:root[data-theme="win95"] .sel{
+  background:#fff;color:#000;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #000}
+:root[data-theme="win95"] .card{padding-top:0;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf,4px 4px 0 rgba(0,0,0,.35)}
+:root[data-theme="win95"] .card h2{margin:2px -20px 12px;padding:3px 8px;font-size:13px;font-weight:700;color:#fff;
+  background-image:linear-gradient(90deg,#000080,#1084d0)}
+:root[data-theme="win95"] .card p{color:#000}
+:root[data-theme="win95"] .modal{background:rgba(0,64,64,.6)}
+:root[data-theme="win95"] .chat{background:#c0c0c0;border-top:none;box-shadow:none}
+:root[data-theme="win95"] .log{background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #000}
+:root[data-theme="win95"] .msg .b{background:#ffffe1;background-image:none;border:1px solid #000;color:#000;box-shadow:none}
+:root[data-theme="win95"] .msg.sys{color:#000080}
+:root[data-theme="win95"] .msg.sys b{color:#000}
+:root[data-theme="win95"] .msg.sys.bad{color:#a00000}
+:root[data-theme="win95"] .msg.sys.good{color:#006000}
+:root[data-theme="win95"] .fold{background:#c0c0c0;border:2px solid;border-color:#808080 #fff #fff #808080}
+:root[data-theme="win95"] .log::-webkit-scrollbar{width:16px}
+:root[data-theme="win95"] .log::-webkit-scrollbar-track{background:#dfdfdf}
+:root[data-theme="win95"] .log::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-color:#fff #000 #000 #fff}
+:root[data-theme="win95"] .tprog{background:#fff;border:1px solid #808080}
+:root[data-theme="win95"] .tprog i{background:#000080}
+
 </style>
 </head>
 <body>
@@ -2488,7 +2777,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='9.6';
+var BUILD='9.7';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -4020,6 +4309,7 @@ function onData(id,d){
     }
     return;
   }
+  if(d.t==='scrpause'){p.scrPaused=!!d.on;renderTheater();return;}
   if(d.t==='tstopshare'){
     /* the host may end a stream on their own stage; admins and mods anywhere */
     var okStop=d.k===ADMIN_PASS||d.k===MOD_PASS||(!!p.name&&p.name===tLeader);
@@ -5124,6 +5414,9 @@ function toggleScreen(){
   });
 }
 function stopScreen(announce){
+  if(SCRP.on){clearInterval(SCRP.timer);SCRP.timer=null;try{if(SCRP.track)SCRP.track.stop();}catch(e){}
+    try{if(SCRP.vid){SCRP.vid.pause();SCRP.vid.srcObject=null;}}catch(e){}
+    SCRP={on:false,canvas:null,track:null,timer:null,vid:null};}
   if(scrStream)try{scrStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
   scrStream=null;scrOn=false;
   $('#scrState').textContent='Off';
@@ -7901,14 +8194,31 @@ function tPos(){
 }
 function tState(){
   var ps=tPos();
-  return {t:'tstate',q:tQ,idx:tIdx,leader:tLeader,time:ps.time,playing:ps.playing};
+  return {t:'tstate',q:tQ,idx:tIdx,leader:tLeader,time:ps.time,playing:ps.playing,
+          sitePaused:tSitePaused,streamPaused:!!(scrOn&&SCRP.on)};
 }
 /* empty the stage: nothing playing in any of the three players */
 function tClearStage(){
   try{var v=tVid();v.pause();v.removeAttribute('src');v.load();}catch(e){}
-  try{var f=tFrame();f.setAttribute('src','about:blank');f.removeAttribute('src');}catch(e){}
+  tFrameUnload();
   ytStop();
+  tLoadedUrl='';tSitePaused=false;
 }
+/* Removing an iframe's src attribute does NOT unload the page in it - the
+   browser keeps the old document running, sound and all. That is why a
+   website removed from the queue carried on playing. Loading about:blank is
+   what actually stops it. */
+function tFrameUnload(){
+  try{var f=tFrame();if(f&&f.getAttribute('src')!=='about:blank')f.setAttribute('src','about:blank');}catch(e){}
+}
+/* which item the stage actually has loaded - compared by URL, not by queue
+   position: removing the current item slides the next one into the SAME
+   position, so an index check saw "nothing changed" and viewers kept playing
+   the removed site */
+var tLoadedUrl='';
+/* website pause: the host keeps their own copy to make changes in; everybody
+   else's copy is stopped behind a card until the host resumes */
+var tSitePaused=false;
 function tBroadcast(){if(inTheater())bc(tState());}
 function renderTheater(){
   var box=document.getElementById('theater');
@@ -7974,9 +8284,22 @@ function renderTheater(){
   /* lock the frame for everyone except whoever is driving - for YouTube that
      is what stops a follower pressing pause on their own copy and drifting */
   stage.classList.toggle('locked',(isSite||isYt)&&!drive&&!share);
-  $('#tover').classList.toggle('hide',!!cur);
+  /* a viewer of a paused website gets a card, not a blank white frame */
+  var pausedCard=isSite&&tSitePaused&&!drive&&!share;
+  $('#tover').classList.toggle('hide',!!cur&&!pausedCard);
+  stage.classList.toggle('empty',(!cur&&!share)||pausedCard);
+  if(pausedCard){stage.classList.remove('site');stage.classList.remove('locked');}
+  var ot=document.querySelector('#tover .tovtitle'), os=document.querySelector('#tover .tovsub'), ob=document.querySelector('#tover .tovbig');
+  if(ot)ot.textContent=pausedCard?('Paused by '+(tLeader||'the host')):'Nothing playing';
+  if(ob)ob.textContent=pausedCard?'⏸':'🎬';
+  if(os)os.innerHTML=pausedCard?'They are making changes — it will come back on its own.'
+    :'Paste a link below — a media file, a YouTube video, or any website.<br>'+
+     'For anything that refuses to be embedded, use <b>🖥 Screen Share</b> instead.';
+  var shareP=share&&(share.id==='me'?SCRP.on:!!(peers[share.id]&&peers[share.id].scrPaused));
   $('#tStat').textContent=share
-    ? ('📡 streaming '+share.name+' — full quality, in sync')
+    ? (shareP?('⏸ '+share.name+' paused the stream'):('📡 streaming '+share.name+' — full quality, in sync'))
+    : (isSite&&tSitePaused)
+    ? (drive?'⏸ paused for everyone else — your copy is live, ▶ to resume':'⏸ '+(tLeader||'the host')+' paused the page')
     : (cur
       ? (isSite?(drive?'you are driving this page':'view only — '+(tLeader||'the leader')+' drives')
               : (drive?'you are driving':'following '+(tLeader||'…')))
@@ -8008,9 +8331,10 @@ function tLoad(i,play){
   if(i>=tQ.length){if(tQ.length)toast('end of the queue');return;}
   tIdx=i;
   var item=tQ[i], u=item.url, v=tVid(), f=tFrame(), k=tKind(item);
+  tLoadedUrl=u;tSitePaused=false;
   if(k==='yt'){
     try{v.pause();}catch(e){}
-    try{f.removeAttribute('src');}catch(e){}
+    tFrameUnload();
     YTS.lastAt=0;
     ytLoad(ytIdOf(u),0,play);
   }else if(k==='site'){
@@ -8020,7 +8344,7 @@ function tLoad(i,play){
     if(f.getAttribute('src')!==u)f.setAttribute('src',u);
   }else{
     ytStop();
-    try{f.removeAttribute('src');}catch(e){}
+    tFrameUnload();
     if(v.getAttribute('src')!==u){v.setAttribute('src',u);v.load();}
     if(play)v.play().catch(function(){toast('tap the player to start — autoplay was blocked');});
   }
@@ -8035,7 +8359,7 @@ function tRemove(i){
   else if(i===tIdx){
     tIdx=Math.min(tIdx,tQ.length-1);
     if(tIdx>=0)tLoad(tIdx,false);
-    else{try{var v=tVid();v.pause();v.removeAttribute('src');v.load();}catch(e){}}
+    else tClearStage();
   }
   sys('🎬 <b>'+esc(me.name)+'</b> removed <b>'+esc(was.title||was.url)+'</b> from the queue');
   renderTheater();tBroadcast();
@@ -8045,25 +8369,33 @@ function tApply(d){
   if(Array.isArray(d.q))tQ=d.q.slice(0,200);
   if(typeof d.leader==='string')tLeader=d.leader;
   var v=tVid();
-  if(typeof d.idx==='number'&&d.idx!==tIdx){
+  var wantUrl=(typeof d.idx==='number'&&d.idx>=0&&tQ[d.idx])?tQ[d.idx].url:'';
+  var wasPaused=tSitePaused;
+  if(typeof d.sitePaused==='boolean')tSitePaused=d.sitePaused;
+  /* pausing does not change the item, so it has to unload the page itself -
+     otherwise the card goes up and the site keeps playing behind it */
+  if(tSitePaused&&!wasPaused&&!canDrive()&&wantUrl&&tKind(tQ[d.idx])==='site')tFrameUnload();
+  if(typeof d.idx==='number'&&(d.idx!==tIdx||wantUrl!==tLoadedUrl||(wasPaused&&!tSitePaused))){
     tIdx=d.idx;
     var it=tQ[tIdx];
+    tLoadedUrl=wantUrl;
     if(tIdx<0){
       tClearStage();                    /* the host stopped: empty the stage */
     }else if(it){
       var ik=tKind(it);
       if(ik==='yt'){
         try{v.pause();}catch(e){}
-        try{tFrame().removeAttribute('src');}catch(e){}
+        tFrameUnload();
         if(!canDrive())ytLoad(ytIdOf(it.url),(+d.time||0)+(d.playing?0.3:0),!!d.playing);
       }else if(ik==='site'){
         try{v.pause();}catch(e){}
         ytStop();
         var f=tFrame();
-        if(f.getAttribute('src')!==it.url)f.setAttribute('src',it.url);
+        if(tSitePaused&&!canDrive())tFrameUnload();
+        else if(f.getAttribute('src')!==it.url)f.setAttribute('src',it.url);
       }else{
         ytStop();
-        try{tFrame().removeAttribute('src');}catch(e){}
+        tFrameUnload();
         if(v.getAttribute('src')!==it.url){v.setAttribute('src',it.url);v.load();}
       }
     }
@@ -8099,7 +8431,7 @@ function tReset(){
      actually unloads rather than lingering in the back/forward cache. */
   try{
     var f=tFrame();
-    if(f){f.setAttribute('src','about:blank');f.removeAttribute('src');}
+    tFrameUnload();
     var st=document.getElementById('tstage');
     if(st)st.className='tstage';
   }catch(e){}
@@ -8137,6 +8469,8 @@ $('#tAdd').onclick=function(){
 };
 $('#tUrl').onkeydown=function(e){if(e.key==='Enter')$('#tAdd').click();};
 $('#tPlay').onclick=function(){
+  if(scrOn&&inTheater()&&SCRP.on){scrPause(false);return;}
+  if(canDrive()&&tSitePaused&&tKind(tQ[tIdx])==='site'){tSitePause(false);return;}
   if(!canDrive())return;
   if(tIdx<0&&tQ.length)return tLoad(0,true);
   if(tKind(tQ[tIdx])==='yt'){ytPlay();setTimeout(tBroadcast,300);return;}
@@ -8144,8 +8478,12 @@ $('#tPlay').onclick=function(){
   setTimeout(tBroadcast,80);
 };
 $('#tPause').onclick=function(){
+  /* streaming your screen to the stage: freeze what everyone sees */
+  if(scrOn&&inTheater()){scrPause(true);return;}
   if(!canDrive())return;
-  if(tKind(tQ[tIdx])==='yt')ytPause(); else tVid().pause();
+  var k=tKind(tQ[tIdx]);
+  if(k==='site'){tSitePause(true);return;}
+  if(k==='yt')ytPause(); else tVid().pause();
   setTimeout(tBroadcast,80);
 };
 $('#tNext').onclick=function(){if(canDrive())tLoad(tIdx+1,true);};
@@ -8159,6 +8497,74 @@ $('#tTake').onclick=function(){
   sys('🎬 <b>'+esc(me.name)+'</b> '+(was?'took the queue lead (admin)':'is hosting the theatre'));
   renderTheater();tBroadcast();
 };
+/* ---- pausing a website -------------------------------------------------
+   A page from another site cannot be paused from here - the browser does not
+   let one site reach into another's frame. What CAN be done: everyone else's
+   copy is unloaded (which stops its sound and video) behind a "paused" card,
+   while the host's own copy stays live so they can pick the next episode,
+   change settings, whatever. Resume reloads it for everyone. To keep a movie
+   at the exact same spot for everybody, stream the page instead - that pause
+   is below and is frame-exact. */
+function tSitePause(on){
+  if(!canDrive())return;
+  tSitePaused=!!on;
+  bc(tState());
+  sys(on?'🎬 you paused the page for everyone — your copy stays live so you can make changes. ▶ resumes it.'
+        :'🎬 page resumed for everyone');
+  renderTheater();
+}
+/* ---- pausing a stream ----------------------------------------------------
+   For a Plex-style site the right tool is "Stream this page": everyone sees
+   the host's actual screen. Pausing it freezes that picture on its last frame
+   with a "paused" banner and mutes its sound, so the host can click around -
+   pick something else, open settings - without everyone watching. ▶ goes back
+   to the live screen. */
+var SCRP={on:false,canvas:null,track:null,timer:null,vid:null};
+function scrPause(on){
+  if(!scrOn||!scrStream)return;
+  if(on===SCRP.on)return;
+  if(on){
+    var live=scrStream.getVideoTracks()[0];
+    var st=live&&live.getSettings?live.getSettings():{};
+    var W=st.width||1280, H=st.height||720;
+    var cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    var g=cv.getContext('2d');
+    var vid=document.createElement('video');vid.muted=true;vid.playsInline=true;vid.srcObject=scrStream;
+    vid.play().catch(function(){});
+    SCRP.vid=vid;SCRP.canvas=cv;
+    var first=true;
+    function paint(){
+      if(first&&vid.readyState>=2){try{g.drawImage(vid,0,0,W,H);}catch(e){}first=false;
+        g.fillStyle='rgba(0,0,0,.55)';g.fillRect(0,0,W,H);}
+      if(first){g.fillStyle='#000';g.fillRect(0,0,W,H);}
+      var fs=Math.round(H/12);
+      g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,H/2-fs*1.3,W,fs*2.6);
+      g.fillStyle='#fff';g.font='700 '+fs+'px "Segoe UI",sans-serif';g.textAlign='center';g.textBaseline='middle';
+      g.fillText('⏸  Paused — back in a moment',W/2,H/2);
+    }
+    paint();
+    SCRP.timer=setInterval(paint,400);          /* keep frames flowing so viewers do not stall */
+    var cs=cv.captureStream?cv.captureStream(5):null;
+    SCRP.track=cs?cs.getVideoTracks()[0]:null;
+    if(SCRP.track)setOut('video',SCRP.track);
+    if(scrAudioNode){try{scrAudioNode.gain.gain.setTargetAtTime(0,ctx().currentTime,0.05);}catch(e){}}
+    SCRP.on=true;
+    toast('stream paused — everyone sees a still frame; ▶ to go live again');
+  }else{
+    clearInterval(SCRP.timer);SCRP.timer=null;
+    var t=scrStream.getVideoTracks()[0];
+    if(t)setOut('video',t);
+    try{if(SCRP.track)SCRP.track.stop();}catch(e){}
+    try{if(SCRP.vid){SCRP.vid.pause();SCRP.vid.srcObject=null;}}catch(e){}
+    SCRP.track=null;SCRP.vid=null;SCRP.canvas=null;
+    if(scrAudioNode){try{scrAudioNode.gain.gain.setTargetAtTime(0.85,ctx().currentTime,0.05);}catch(e){}}
+    SCRP.on=false;
+    toast('stream is live again');
+  }
+  bc({t:'scrpause',on:SCRP.on});
+  if(inTheater())bc(tState());
+  renderTheater();
+}
 /* Stop hosting: whatever is on the stage stops for everyone, your own stream
    ends, and the theatre is left without a host so anyone can pick it up. */
 $('#tStopHost').onclick=function(){
@@ -8378,16 +8784,92 @@ function radioFinish(play){
    bitrate falls - it gives up the treble first (fullband above ~48 kbps,
    down to telephone narrowband at 6), and at the very bottom the detail goes
    too - and everyone hears the same thing: the host, the channel, Discord. */
+/* The first version only narrowed the treble, and gently: at 20 kbps it cut
+   above ~9.5 kHz, which most speakers and every Discord call cannot tell
+   apart from 128. What low-bitrate Opus actually sounds like is more than a
+   duller top end - it goes mono, it gets grainy, and at the bottom it turns
+   metallic and warbly as detail is thrown away between samples. So each step
+   of the slider now sets all four, from a table of what the codec does at
+   that rate, and the grain and smear come from a small audio worklet. */
+var CRUNCH_TABLE=[   /* kbps, top of band (Hz), bits (0 = clean), sample-hold, mono */
+  [192,20000,0,1,0],[128,20000,0,1,0],[96,17000,0,1,0],[64,13500,0,1,0],
+  [48,11000,11,1,0],[32,8500,9,2,1],[24,7000,8,2,1],[20,6000,7,3,1],
+  [16,5000,6,3,1],[12,4000,5,4,1],[8,3400,4,6,1],[6,3000,4,8,1]
+];
+function crunchAt(kb){
+  var T=CRUNCH_TABLE;
+  if(kb>=T[0][0])return T[0];
+  for(var i=0;i<T.length-1;i++){
+    var hi=T[i],lo=T[i+1];
+    if(kb<=hi[0]&&kb>=lo[0]){
+      var t=(kb-lo[0])/(hi[0]-lo[0]);
+      return [kb,lo[1]+(hi[1]-lo[1])*t,
+              (lo[2]&&hi[2])?Math.round(lo[2]+(hi[2]-lo[2])*t):(t<0.5?lo[2]:hi[2]),
+              Math.round(lo[3]+(hi[3]-lo[3])*t),t<0.5?lo[4]:hi[4]];
+    }
+  }
+  return T[T.length-1];
+}
+var CRUSH_WORKLET=[
+"class MingusCrush extends AudioWorkletProcessor{",
+"  constructor(){super();this.bits=0;this.hold=1;this.mono=0;this.c=0;this.v=[0,0];",
+"    this.port.onmessage=(e)=>{const d=e.data||{};this.bits=d.bits||0;this.hold=Math.max(1,d.hold|0);this.mono=d.mono?1:0;};}",
+"  process(inputs,outputs){",
+"    const i=inputs[0],o=outputs[0];if(!i||!i.length||!o||!o.length)return true;",
+"    const q=this.bits>0?Math.pow(2,this.bits-1):0, n=o[0].length;",
+"    const L=i[0],R=i[1]||i[0];",
+"    let c=this.c,vl=this.v[0],vr=this.v[1];",
+"    for(let k=0;k<n;k++){",
+"      if(c<=0){",
+"        let l=L[k],r=R[k];",
+"        if(this.mono){const m=(l+r)*0.5;l=m;r=m;}",
+"        if(q){l=Math.round(l*q)/q;r=Math.round(r*q)/q;}",
+"        vl=l;vr=r;c=this.hold;",
+"      }",
+"      c--;",
+"      o[0][k]=vl;if(o[1])o[1][k]=vr;",
+"    }",
+"    this.c=c;this.v[0]=vl;this.v[1]=vr;",
+"    return true;",
+"  }",
+"}",
+"registerProcessor('mingus-crush',MingusCrush);"
+].join('\n');
+var CRUSHMOD=new Map();
+/* put the worklet between the band-limit filter and the rest of the chain
+   once it has loaded; until then (or without AudioWorklet) the plain
+   waveshaper below does the grain on its own */
+function radioCrushWorklet(){
+  var c=RADIO.lp&&RADIO.lp.context;
+  if(!c||!c.audioWorklet||RADIO.cw)return;
+  if(!CRUSHMOD.has(c)){
+    var url=URL.createObjectURL(new Blob([CRUSH_WORKLET],{type:'application/javascript'}));
+    CRUSHMOD.set(c,c.audioWorklet.addModule(url).then(function(){return true;},function(){return false;}));
+  }
+  CRUSHMOD.get(c).then(function(ok){
+    if(!ok||RADIO.cw||!RADIO.lp)return;
+    try{
+      var w=new AudioWorkletNode(c,'mingus-crush',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
+      RADIO.lp.disconnect(RADIO.crush);
+      RADIO.lp.connect(w);w.connect(RADIO.crush);
+      RADIO.cw=w;
+      radioCrunch();
+    }catch(e){}
+  });
+}
 function radioCrunch(){
   if(!RADIO.lp||!RADIO.crush)return;
-  var kb=RADIO.kbps, c=RADIO.lp.context;
-  /* top of the band: 3.4 kHz at 6 kbps, rising to wide open by ~48 kbps */
-  var f=kb>=48?20000:Math.min(20000,3400*Math.pow(kb/6,0.85));
-  try{RADIO.lp.frequency.setTargetAtTime(f,c.currentTime,0.05);}catch(e){RADIO.lp.frequency.value=f;}
-  /* below 16 kbps, fewer and fewer levels: 8-bit at 16 down to 4-bit at 6 */
-  if(kb>=16){RADIO.crush.curve=null;return;}
-  var bits=4+Math.max(0,(kb-6))/10*4, levels=Math.pow(2,bits);
-  var n=4096, curve=new Float32Array(n);
+  var s=crunchAt(RADIO.kbps), c=RADIO.lp.context;
+  try{RADIO.lp.frequency.setTargetAtTime(s[1],c.currentTime,0.05);}catch(e){RADIO.lp.frequency.value=s[1];}
+  if(RADIO.cw){
+    RADIO.crush.curve=null;
+    try{RADIO.cw.port.postMessage({bits:s[2],hold:s[3],mono:s[4]});}catch(e){}
+    return;
+  }
+  radioCrushWorklet();
+  /* fallback: grain only, from a staircase curve */
+  if(!s[2]){RADIO.crush.curve=null;return;}
+  var levels=Math.pow(2,s[2]), n=8192, curve=new Float32Array(n);
   for(var i=0;i<n;i++){var x=i/(n-1)*2-1;curve[i]=Math.round(x*levels/2)/(levels/2);}
   RADIO.crush.curve=curve;
 }
@@ -12207,6 +12689,7 @@ var PRANKS={
 var prankTimer=null;
 function prankTarget(){return document.querySelector('.wrap');}
 function stopPrank(){
+  try{skelStop();}catch(e){}
   var w=prankTarget();
   if(w){w.style.animation='';w.style.transform='';w.style.filter='';w.style.transition='';}
   var ov=document.getElementById('prank');
@@ -12323,6 +12806,9 @@ function runPrank(m){
     return;
   }
 
+  /* the skeleton stacks: every trigger adds another runner rather than
+     cancelling whatever is already on screen */
+  if(fx==='skeleton'){skeletonRun(by);return;}
   stopPrank();
   var reduced=false;
   try{reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){}
@@ -12336,7 +12822,6 @@ function runPrank(m){
   else if(fx==='censor')censorBars();
   else if(fx==='banscare')banScare(by);
   else if(fx==='jpeg')jpegDamage();
-  else if(fx==='skeleton')skeletonRun(by);
   else if(spec.css){
     /* Reduced-motion is about MOTION. Pure colour and blur effects (invert,
        vaporwave, blurry) do not move anything, so they still apply for
@@ -12624,37 +13109,146 @@ function jpegFilterEnsure(){
    later a small note asks whether you noticed. No chat line up front - the
    whole joke is that he is gone before you are sure you saw him.
 
-   The GIF (a transparent Tenor sticker) already contains the run: over its
-   2.9 s loop he enters the right edge of a 200px frame and leaves by the
-   left. So the frame is scaled up and slid right-to-left across the screen
-   in step with that loop, which carries him the full width of the window. */
+   The first version slid the GIF itself across the screen. But the GIF
+   already contains its own run - he crosses its 200px frame and leaves by
+   the left edge - and it starts animating as soon as it has loaded, before
+   the slide begins. So he ran out of his own picture and vanished halfway
+   across. Now the GIF is taken apart into its frames once (ImageDecoder),
+   each frame is cropped to just the skeleton, and he is drawn on a canvas at
+   a position this code controls: edge to edge, every time.
+
+   That also makes him stackable. Every trigger adds another runner - at his
+   own height, size and pace - and each one drags a fading trail of
+   after-images. The "did you notice that?" waits until the last one is gone. */
 var SKELETON_GIF='https://media.tenor.com/4VaOWXPa6yAAAAAj/skeleton-running.gif';
+var SKEL={frames:null,loading:null,runners:[],raf:0,cv:null,by:{},last:0};
+function skelFrames(){
+  if(SKEL.frames)return Promise.resolve(SKEL.frames);
+  if(SKEL.loading)return SKEL.loading;
+  if(!window.ImageDecoder)return Promise.resolve(null);
+  SKEL.loading=fetch(SKELETON_GIF).then(function(r){return r.arrayBuffer();}).then(async function(buf){
+    var dec=new ImageDecoder({data:buf,type:'image/gif'});
+    await dec.tracks.ready;
+    var n=dec.tracks.selectedTrack.frameCount, out=[];
+    var tmp=document.createElement('canvas');tmp.width=200;tmp.height=200;
+    var tg=tmp.getContext('2d',{willReadFrequently:true});
+    for(var f=0;f<n;f++){
+      var r=await dec.decode({frameIndex:f}), img=r.image;
+      tg.clearRect(0,0,200,200);tg.drawImage(img,0,0);
+      var d=tg.getImageData(0,0,200,200).data, x0=999,x1=-1,y0=999,y1=-1;
+      for(var y=0;y<200;y++)for(var x=0;x<200;x++)if(d[(y*200+x)*4+3]>20){
+        if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+      img.close();
+      /* skip the empty frames at either end, and the ones where he is only
+         half in the picture - a runner should always be all of him */
+      if(x1<0||x0<=1||x1>=198)continue;
+      var cw=x1-x0+1, ch=y1-y0+1, c=document.createElement('canvas');
+      c.width=cw;c.height=ch;c.getContext('2d').drawImage(tmp,x0,y0,cw,ch,0,0,cw,ch);
+      out.push({c:c,w:cw,h:ch,bottom:y1});
+    }
+    SKEL.frames=out.length?out:null;
+    return SKEL.frames;
+  }).catch(function(){return null;});
+  return SKEL.loading;
+}
+function skelOverlay(){
+  var cv=document.getElementById('skelov');
+  if(!cv){
+    cv=document.createElement('canvas');cv.id='skelov';
+    cv.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:82';
+    document.body.appendChild(cv);
+  }
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  var W=Math.max(8,Math.floor(innerWidth*dpr)), H=Math.max(8,Math.floor(innerHeight*dpr));
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  SKEL.cv=cv;
+  return cv;
+}
+function skelStop(){
+  cancelAnimationFrame(SKEL.raf);SKEL.raf=0;SKEL.runners=[];
+  var cv=document.getElementById('skelov');if(cv&&cv.parentNode)cv.parentNode.removeChild(cv);
+  SKEL.cv=null;
+}
 function skeletonRun(by){
+  SKEL.by[by||'someone']=1;
+  skelFrames().then(function(frames){
+    if(!frames){skeletonRunGif(by);return;}
+    var cv=skelOverlay(), dpr=cv.width/Math.max(1,innerWidth);
+    var n=SKEL.runners.length;
+    /* each new one a little different, so a pile of them reads as a stampede */
+    var scale=(Math.min(innerHeight*0.5,440)/150)*(n?0.7+Math.random()*0.5:1);
+    var speed=(innerWidth+300)/(n?1.7+Math.random()*1.2:2.2);          /* px per second */
+    SKEL.runners.push({x:innerWidth+40, y:innerHeight-(n?Math.random()*innerHeight*0.25:0),
+      scale:scale, speed:speed, t0:performance.now(), last:performance.now(), trail:[], hue:Math.random()*360});
+    if(!SKEL.raf)SKEL.raf=requestAnimationFrame(skelTick);
+  });
+}
+function skelTick(now){
+  SKEL.raf=0;
+  var cv=SKEL.cv||document.getElementById('skelov');
+  if(!cv||!SKEL.frames){skelStop();return;}
+  var g=cv.getContext('2d'), dpr=cv.width/Math.max(1,innerWidth);
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cv.width,cv.height);
+  g.setTransform(dpr,0,0,dpr,0,0);
+  var F=SKEL.frames, FRAME_MS=110;
+  function draw(fr,x,y,sc,alpha,hue){
+    var w=fr.w*sc, h=fr.h*sc;
+    g.globalAlpha=alpha;
+    if(hue!=null){g.filter='hue-rotate('+hue+'deg) saturate(3) blur(1px)';}
+    g.drawImage(fr.c,x-w/2,y-h,w,h);
+    g.filter='none';
+  }
+  SKEL.runners=SKEL.runners.filter(function(r){
+    var dt=Math.min(0.1,(now-r.last)/1000);r.last=now;
+    r.x-=r.speed*dt;
+    var fi=Math.floor((now-r.t0)/FRAME_MS)%F.length;
+    /* the trail: where he was a moment ago, fading out */
+    if(!r.trail.length||Math.abs(r.trail[r.trail.length-1].x-r.x)>r.speed*0.045)
+      r.trail.push({x:r.x,fi:fi});
+    if(r.trail.length>7)r.trail.shift();
+    for(var t=0;t<r.trail.length-1;t++){
+      var k=(t+1)/r.trail.length;
+      draw(F[r.trail[t].fi],r.trail[t].x,r.y,r.scale,0.08+0.32*k,(r.hue+t*25)%360);
+    }
+    draw(F[fi],r.x,r.y,r.scale,1,null);
+    g.globalAlpha=1;
+    /* keep him until he and his whole trail are off the left edge */
+    var tail=r.trail.length?r.trail[r.trail.length-1].x:r.x;
+    return Math.max(r.x,tail)+F[fi].w*r.scale>-20;
+  });
+  if(SKEL.runners.length){SKEL.raf=requestAnimationFrame(skelTick);return;}
+  skelStop();
+  /* the last one is gone: now ask */
+  var who=Object.keys(SKEL.by);SKEL.by={};
+  setTimeout(function(){eyesPop(who.join(', '));},450);
+}
+/* Older browsers without ImageDecoder: the original slide-the-GIF version */
+function skeletonRunGif(by){
   var ov=prankOverlay('skel');
   var im=new Image();
   im.alt='';
   im.style.opacity='0';
   var gone=false;
-  var fail=setTimeout(function(){gone=true;},4000);   /* never loaded: skip it quietly */
+  var fail=setTimeout(function(){gone=true;},4000);
   im.onload=function(){
     clearTimeout(fail);
     if(gone||document.getElementById('prank')!==ov)return;
     var h=im.getBoundingClientRect().height||Math.min(innerHeight*0.52,460);
-    var W=h;                                   /* the GIF is square */
+    var W=h;
     var from=(innerWidth||1200)-W*0.04, to=-W*0.96;
     im.style.transform='translateX('+from+'px)';
     im.style.opacity='1';
-    void im.offsetWidth;                       /* commit the start position */
+    void im.offsetWidth;
     im.style.transition='transform 2.9s linear';
     im.style.transform='translateX('+to+'px)';
     setTimeout(function(){
       if(document.getElementById('prank')!==ov)return;
       im.style.display='none';
+      SKEL.by={};
       setTimeout(function(){eyesPop(by);},450);
     },2950);
   };
   im.onerror=function(){clearTimeout(fail);gone=true;};
-  /* a fresh URL each time so the GIF starts from its first frame */
   im.src=SKELETON_GIF+'?r='+Date.now();
   ov.appendChild(im);
 }
@@ -13177,7 +13771,11 @@ var THEMES=[
   {id:'noir',      n:'Noir',          a:'#8a8a8a', b:'#0e0e0e', c:'#dcdcdc'},
   {id:'sakura',    n:'Sakura',        a:'#f08ab4', b:'#28101e', c:'#fcdcea'},
   {id:'pumpkin',   n:'Pumpkin Patch', a:'#ff7a10', b:'#1e0a2a', c:'#fbd4b0'},
-  {id:'ocean',     n:'Deep Sea',      a:'#10c8c0', b:'#031428', c:'#c0ecf2'}
+  {id:'ocean',     n:'Deep Sea',      a:'#10c8c0', b:'#031428', c:'#c0ecf2'},
+  {id:'xp',        n:'Windows XP',    a:'#3e9c33', b:'#2a6ad8', c:'#ece9d8'},
+  {id:'aero',      n:'Frutiger Aero', a:'#23a4e8', b:'#6cc6f5', c:'#eaf9ff'},
+  {id:'aerodark',  n:'Dark Aero',     a:'#17b3d8', b:'#04142a', c:'#12385c'},
+  {id:'win95',     n:'Windows 95',    a:'#000080', b:'#008080', c:'#c0c0c0'}
 ];
 var SKIN={theme:'',orbs:true,sweep:true,glass:true,crt:false,compact:false,corner:'normal'};
 function skinSave(){try{localStorage.setItem('mc_skin',JSON.stringify(SKIN));}catch(e){}}
