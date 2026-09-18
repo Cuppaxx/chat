@@ -119,7 +119,7 @@ async function publicUrl(u) {
 // ---- resolving ---------------------------------------------------------------
 const DIRECT = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|webm|mp4)(\?|#|$)/i;
 
-function ytdlp(url) {
+function ytdlp(url, extra) {
   return new Promise((resolve, reject) => {
     const args = [
       '-J', '--no-playlist', '--no-warnings', '--no-progress',
@@ -127,11 +127,16 @@ function ytdlp(url) {
       // that directly. HLS playlists need a demuxer the browser does not have.
       '-f', 'bestaudio[protocol^=http][protocol!*=m3u8]/best[protocol^=http][protocol!*=m3u8][vcodec=none]/bestaudio[protocol^=http]/best[protocol^=http][protocol!*=m3u8]',
       '--socket-timeout', '15',
-    ];
+    ].concat(extra || []);
     if (cookiesFile) args.push('--cookies', cookiesFile);
     args.push('--', url);
     execFile(BIN, args, { timeout: 60000, maxBuffer: 32 * 1024 * 1024, windowsHide: true },
       (err, stdout, stderr) => {
+        // With -i a search still exits non-zero when some results failed
+        // (DRM, region locks) but prints the ones that worked - use those.
+        if (err && stdout && String(stdout).trim().startsWith('{')) {
+          try { return resolve(JSON.parse(stdout)); } catch (e) { /* fall through */ }
+        }
         if (err) {
           const msg = String(stderr || err.message || err).split('\n')
             .filter((l) => /ERROR/.test(l)).join(' ').replace(/^.*?ERROR:\s*/, '') ||
@@ -143,27 +148,125 @@ function ytdlp(url) {
   });
 }
 
+const BOT = /sign in to confirm|not a bot|confirm you.?re not/i;
+const YOUTUBE = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/i;
+
+function fromYtdlp(j, url) {
+  // with a merged/single format the URL is at the top level
+  const f = (j.requested_formats && j.requested_formats[0]) || j;
+  if (!f.url) throw new Error('no playable audio stream found for that link');
+  return {
+    url: f.url,
+    headers: Object.assign({}, j.http_headers || {}, f.http_headers || {}),
+    meta: {
+      title: String(j.title || j.fulltitle || 'untitled').slice(0, 120),
+      duration: Number(j.duration) || 0,
+      thumb: j.thumbnail || '',
+      source: j.extractor_key || j.extractor || 'link',
+      page: j.webpage_url || url,
+    },
+  };
+}
+
+// YouTube's public oEmbed endpoint answers with the title even when the video
+// pages themselves are bot-checking this server's address.
+async function youtubeTitle(url) {
+  try {
+    const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(url),
+      { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return '';
+    const j = await r.json();
+    return String((j && j.title) || '');
+  } catch (e) { return ''; }
+}
+
+// Search SoundCloud and return the first result that is actually PLAYABLE.
+// A plain search took the top hit, and the top hit for a popular song is very
+// often the official label upload - which is DRM-protected, cannot be played
+// by anything, and failed with "This video is DRM protected". -i skips those
+// and keeps going, so this lands on the first unlocked upload instead.
+async function searchSoundCloud(q, excludeId) {
+  const j = await ytdlp('scsearch8:' + q, ['-i']);
+  const list = (j.entries || []).filter((e) =>
+    e && (e.url || (e.requested_formats && e.requested_formats[0] && e.requested_formats[0].url)) &&
+    String(e.id) !== String(excludeId || ''));
+  return list[0] || null;
+}
+function cleanTitle(t) {
+  return String(t || '')
+    .replace(/\((official|lyric|lyrics|audio|video|music video|visualizer|hd|4k)[^)]*\)/ig, '')
+    .replace(/\[(official|lyric|lyrics|audio|video|music video|visualizer|hd|4k)[^\]]*\]/ig, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+// DRM-protected tracks (major-label uploads, SoundCloud Go+) are encrypted and
+// cannot be played by this or any other bot - and breaking that encryption is
+// not something this does. What it does instead is read the track's title,
+// which SoundCloud still gives out, and look for another upload of the same
+// song that is not locked. Popular songs nearly always have one.
+async function resolveDrm(url, original) {
+  let meta = null;
+  try { meta = await ytdlp(url, ['--ignore-no-formats-error']); } catch (e) { throw original; }
+  const title = cleanTitle(meta && (meta.title || meta.fulltitle));
+  if (!title) throw original;
+  const who = String((meta && (meta.artist || meta.uploader)) || '').trim();
+  const q = (who && title.toLowerCase().indexOf(who.toLowerCase()) < 0) ? (who + ' ' + title) : title;
+  let hit = await searchSoundCloud(q, meta.id);
+  if (!hit && q !== title) hit = await searchSoundCloud(title, meta.id);
+  if (!hit) {
+    throw new Error('"' + title.slice(0, 80) + '" is DRM-protected (a label or Go+ upload), which nothing can ' +
+      'play, and no unlocked upload of it turned up. Try a different link for the same song.');
+  }
+  const r = fromYtdlp(hit, url);
+  r.meta.fallback = 'drm';
+  r.meta.ytTitle = title.slice(0, 120);
+  return r;
+}
+
+// When YouTube will not talk to a datacentre address, two things are tried
+// before giving up, both costing nothing and needing nobody's account:
+//   1. ask as YouTube's TV and mobile-web clients, which it sometimes lets
+//      through when it is bot-checking the ordinary web one;
+//   2. look the song up by its title on SoundCloud and play that instead,
+//      saying so - the same trick music bots use to play Spotify links.
+// Cookies (YTDLP_COOKIES) remain the real fix and are tried first when set.
+async function resolveYouTube(url) {
+  try {
+    return fromYtdlp(await ytdlp(url), url);
+  } catch (e1) {
+    if (!BOT.test(String(e1.message))) throw e1;
+    try {
+      return fromYtdlp(await ytdlp(url, ['--extractor-args', 'youtube:player_client=tv,mweb']), url);
+    } catch (e2) {
+      const title = await youtubeTitle(url);
+      if (!title) throw e1;
+      let hit = null;
+      try { hit = await searchSoundCloud(cleanTitle(title)); } catch (e3) { throw e1; }
+      if (!hit) throw e1;
+      const r = fromYtdlp(hit, url);
+      r.meta.fallback = 'soundcloud';
+      r.meta.ytTitle = title.slice(0, 120);
+      return r;
+    }
+  }
+}
+
 async function resolve(url) {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.result;
 
   let result;
-  if (haveYtdlp()) {
-    const j = await ytdlp(url);
-    // with a merged/single format the URL is at the top level
-    const f = (j.requested_formats && j.requested_formats[0]) || j;
-    if (!f.url) throw new Error('no playable audio stream found for that link');
-    result = {
-      url: f.url,
-      headers: Object.assign({}, j.http_headers || {}, f.http_headers || {}),
-      meta: {
-        title: String(j.title || j.fulltitle || 'untitled').slice(0, 120),
-        duration: Number(j.duration) || 0,
-        thumb: j.thumbnail || '',
-        source: j.extractor_key || j.extractor || 'link',
-        page: j.webpage_url || url,
-      },
-    };
+  let host = '';
+  try { host = new URL(url).hostname; } catch (e) {}
+  if (haveYtdlp() && YOUTUBE.test(host)) {
+    result = await resolveYouTube(url);
+  } else if (haveYtdlp()) {
+    try {
+      result = fromYtdlp(await ytdlp(url), url);
+    } catch (e) {
+      if (!/DRM/i.test(String(e.message))) throw e;
+      result = await resolveDrm(url, e);
+    }
   } else if (DIRECT.test(url)) {
     result = {
       url, headers: {},

@@ -428,27 +428,41 @@ body.touch .cam .ctl{opacity:1}
 .tstage.share #tytwrap{display:none}
 .tstage:fullscreen #tytwrap{height:100vh}
 .tstage:-webkit-full-screen #tytwrap{height:100vh}
-/* the radio panel */
-.fold.radio{margin:8px 12px}
+/* the radio panel - kept compact so the chat still has the room */
+.fold.radio{margin:6px 12px}
+.fold.radio>summary{padding:5px 11px}
 .fold.radio .rnow{font-weight:400;letter-spacing:0;text-transform:none;font-size:12px;opacity:.85;
   max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rnowrow{display:flex;gap:10px;align-items:center;margin:4px 0 6px}
-.rart{width:54px;height:54px;flex:none;border-radius:8px;display:grid;place-items:center;font-size:26px;
+.rbody{padding:2px 10px 8px}
+.rnowrow{display:flex;gap:8px;align-items:center;margin:2px 0 4px}
+.rart{width:40px;height:40px;flex:none;border-radius:6px;display:grid;place-items:center;font-size:20px;
   background:linear-gradient(var(--btnA),var(--btnC));background-size:cover;background-position:center;
-  box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+  box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5)}
 .rinfo{flex:1;min-width:0}
-.rtitle{font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rsub{font-size:11.5px;color:var(--ink2);opacity:.85}
-.rprog{margin:5px 0 2px;cursor:default}
-.rctl .btn{padding:4px 10px}
-.radm{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
-.rqueue{max-height:180px;overflow:auto;margin-top:6px;border-radius:6px}
-.rq{display:flex;gap:8px;align-items:center;padding:4px 7px;font-size:12.5px;color:var(--ink);
+.rtitle{font-weight:700;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.rsub{font-size:11px;color:var(--ink2);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.rtime{float:right;font-variant-numeric:tabular-nums}
+.rprog{margin:3px 0 0;height:8px;cursor:default;touch-action:none}
+.rprog.scrub{cursor:pointer}
+.rviz{width:120px;height:36px;flex:none;border-radius:5px;background:rgba(10,4,34,.55);
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.5)}
+.rrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin:3px 0}
+.rrow #rUrl{flex:1;min-width:0;font-size:12.5px;padding:3px 7px}
+.rb{font:inherit;font-size:12px;padding:2px 8px;border-radius:6px;cursor:pointer;color:var(--ink);
+  border:1px solid var(--chipEdge);background-image:linear-gradient(var(--chipA),var(--chipB))}
+.rb:hover{filter:brightness(1.06)}
+.rb.rhost{margin-left:auto}
+.radm{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--ink2)}
+.radm label{display:inline-flex;gap:3px;align-items:center}
+.radm input[type=range]{width:74px}
+.radm span{min-width:30px;font-variant-numeric:tabular-nums}
+.rqueue{max-height:96px;overflow:auto;border-radius:6px}
+.rq{display:flex;gap:6px;align-items:center;padding:2px 6px;font-size:12px;color:var(--ink);
   border-bottom:1px solid rgba(80,50,160,.15)}
 .rq.cur{background:rgba(120,80,255,.16);font-weight:700}
 .rq .rqt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rq .rqb{font-size:11px;opacity:.65}
-.rq button{font:inherit;font-size:11px;padding:1px 6px;border-radius:5px;border:1px solid #9c86e0;
+.rq .rqb{font-size:10.5px;opacity:.65;white-space:nowrap}
+.rq button{font:inherit;font-size:10.5px;padding:0 5px;border-radius:5px;border:1px solid #9c86e0;
   background:#fff;color:var(--ink);cursor:pointer}
 
 /* dragging somebody onto a channel */
@@ -2077,51 +2091,39 @@ h3{
           </div>
         </div>
 
-        <details class="fold radio" id="radio">
+        <details class="fold radio" id="radio" title="Anyone can queue. Admins and mods control playback and can scrub; admins set volume, bass and bitrate. It goes out over the host's voice to this channel and to Discord — hosts, wear headphones.">
           <summary>📻 Radio <span class="rnow" id="rNowMini">off</span>
             <span class="cnt2" id="rHostLbl">nobody is hosting</span></summary>
-          <div class="foldbody">
+          <div class="foldbody rbody">
             <div class="rnowrow">
               <div class="rart" id="rArt">📻</div>
               <div class="rinfo">
                 <div class="rtitle" id="rTitle">Nothing playing</div>
-                <div class="rsub" id="rSub">Queue a YouTube, SoundCloud, Bandcamp or direct audio link below.</div>
-                <div class="tprog rprog" id="rProg"><i></i><b></b></div>
-                <div class="rsub" id="rTime"></div>
+                <div class="rsub"><span id="rSub">queue a YouTube, SoundCloud, Bandcamp or audio link</span>
+                  <span class="rtime" id="rTime"></span></div>
+                <div class="tprog rprog" id="rProg" title="drag or click to scrub (admins and mods)"><i></i><b></b></div>
               </div>
+              <canvas class="rviz" id="rViz" width="240" height="72" title="what the radio sounds like right now"></canvas>
             </div>
-            <div class="brline rctl" id="rCtl">
-              <button class="btn" id="rPlay">▶</button>
-              <button class="btn grey" id="rPause">⏸</button>
-              <button class="btn grey" id="rPrev">⏮</button>
-              <button class="btn grey" id="rSkip">⏭</button>
-              <button class="btn grey" id="rStop" title="stop the radio for everyone">⏹</button>
+            <div class="rrow" id="rCtl">
+              <button class="rb" id="rPlay" title="play">▶</button>
+              <button class="rb" id="rPause" title="pause">⏸</button>
+              <button class="rb" id="rPrev" title="back to the start of this song">⏮</button>
+              <button class="rb" id="rSkip" title="skip to the next song">⏭</button>
+              <button class="rb" id="rStop" title="stop the radio for everyone">⏹</button>
               <span class="radm" id="rAdm">
-                <span class="lab" style="font-size:12px;opacity:.75">volume</span>
-                <input type="range" id="rVol" class="vol" min="0" max="100" step="1" value="70" style="width:110px"
-                       title="how loud the radio is for EVERYONE">
-                <span id="rVolVal" style="font-size:12px;min-width:32px">70%</span>
-                <span class="lab" style="font-size:12px;opacity:.75">bitrate</span>
-                <select id="rKbps" class="sel" title="how much bandwidth the radio host sends the music at">
-                  <option value="32">32 kbps</option><option value="64">64 kbps</option>
-                  <option value="96" selected>96 kbps</option><option value="128">128 kbps</option>
-                  <option value="192">192 kbps</option>
-                </select>
+                <label title="how loud the radio is for EVERYONE">vol <input type="range" id="rVol" min="0" max="100" step="1" value="70"><span id="rVolVal">70%</span></label>
+                <label title="bass boost (or cut) for everyone">bass <input type="range" id="rBass" min="-12" max="18" step="1" value="0"><span id="rBassVal">0 dB</span></label>
+                <label title="how much bandwidth the host sends the music at — go all the way down for a laugh">kbps <input type="range" id="rKbps" min="6" max="192" step="2" value="96"><span id="rKbpsVal">96</span></label>
               </span>
+              <button class="rb rhost" id="rHost" title="play the radio from your machine — it goes out over your voice, to this channel and to Discord">📻 Host</button>
             </div>
-            <div class="brline">
-              <button class="btn blue" id="rHost" title="play the radio from your machine — it goes out over your voice, to this channel and to Discord">📻 Host the radio here</button>
-              <span class="rsub" id="rHostNote"></span>
+            <div class="rrow">
+              <input type="text" id="rUrl" maxlength="600" placeholder="paste a YouTube / SoundCloud / Bandcamp / audio link…">
+              <button class="rb" id="rAdd">＋ Queue</button>
             </div>
-            <div class="brline">
-              <input type="text" id="rUrl" maxlength="600" placeholder="paste a YouTube / SoundCloud / Bandcamp / audio link…" style="flex:1;min-width:0">
-              <button class="btn" id="rAdd">＋ Queue</button>
-            </div>
+            <div class="rsub" id="rHostNote"></div>
             <div class="rqueue" id="rQueue"></div>
-            <div class="hint2">Anyone can queue. Admins and mods control what plays and skip; admins also
-              set the volume and bitrate. The music travels over the host's voice connection, so everyone
-              in this channel and anyone in the linked Discord channel hears the same thing — if you are
-              the host, wear headphones so your mic does not pick it up twice.</div>
           </div>
         </details>
 
@@ -2486,7 +2488,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='9.1';
+var BUILD='9.3';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -5148,7 +5150,7 @@ function applyBitrate(call){
       if(s.track.kind==='audio'){
         /* the radio host sends music, at whatever an admin set the radio to */
         var ak=Q[quality].k;
-        if(typeof RADIO!=='undefined'&&RADIO.bus&&radioIsHost())ak=Math.max(ak,RADIO.kbps);
+        if(typeof RADIO!=='undefined'&&RADIO.bus&&radioIsHost())ak=RADIO.kbps;
         p.encodings[0].maxBitrate=ak*1000;
       }
       else{
@@ -6592,7 +6594,12 @@ $('#qPtt').onclick=function(){
   toast(ptt?'push-to-talk: hold V':'open mic');
 };
 window.addEventListener('keydown',function(e){
-  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||
+     e.target.tagName==='SELECT'||e.target.isContentEditable))return;
+  /* Single-letter shortcuts only. Without this, Ctrl+C (copying something from
+     the chat) toggled the webcam, Ctrl+D (bookmark) deafened you and Ctrl+M
+     muted you. A held key also auto-repeats, which flipped them back and forth. */
+  if(e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;
   var k=(e.key||'').toLowerCase();
   if(ptt&&k==='v'&&!pttDown){pttDown=true;if(localStream)localStream.getAudioTracks()[0].enabled=!muted;}
   if(k==='m')setMute(!muted);
@@ -8158,8 +8165,8 @@ setInterval(function(){
    control messages (play, pause, skip, jump, remove, stop); only admins may
    change the volume and bitrate. The host applies them and broadcasts the
    resulting state, which is all everybody else ever displays. */
-var RADIO={q:[],idx:-1,playing:false,vol:70,kbps:96,host:'',pos:0,dur:0,posAt:0,
-           el:null,src:null,gain:null,bus:null,local:null,gen:0,seekTo:0};
+var RADIO={q:[],idx:-1,playing:false,vol:70,kbps:96,bass:0,host:'',pos:0,dur:0,posAt:0,
+           el:null,src:null,gain:null,bassNode:null,an:null,bus:null,local:null,gen:0,seekTo:0};
 function radioIsHost(){return !!RADIO.host&&RADIO.host===me.name&&!!peer;}
 function radioKey(){return isAdmin()?ADMIN_PASS:(isMod()?MOD_PASS:'');}
 function radioCur(){return (RADIO.idx>=0&&RADIO.idx<RADIO.q.length)?RADIO.q[RADIO.idx]:null;}
@@ -8169,7 +8176,7 @@ function radioPosNow(){
 }
 function radioState(){
   return {t:'rstate',q:RADIO.q,idx:RADIO.idx,playing:RADIO.playing,vol:RADIO.vol,
-          kbps:RADIO.kbps,host:RADIO.host,pos:radioPosNow(),dur:RADIO.dur};
+          kbps:RADIO.kbps,bass:RADIO.bass,host:RADIO.host,pos:radioPosNow(),dur:RADIO.dur};
 }
 function radioBroadcast(){if(radioIsHost())bc(radioState());}
 function radioResolve(url){
@@ -8187,13 +8194,13 @@ function radioGraph(){
     a.crossOrigin='anonymous';          /* required, or Web Audio hears silence */
     a.preload='auto';
     RADIO.el=a;
-    a.addEventListener('ended',function(){if(radioIsHost())radioLoad(RADIO.idx+1,true);});
+    a.addEventListener('ended',function(){if(radioIsHost())radioFinish(true);});
     a.addEventListener('error',function(){
       if(!radioIsHost()||!a.getAttribute('src'))return;
       var it=radioCur();
       sys('📻 could not play <b>'+esc(it?it.title:'that track')+'</b> — skipping it',true);
       var g=RADIO.gen;
-      setTimeout(function(){if(g===RADIO.gen)radioLoad(RADIO.idx+1,true);},1500);
+      setTimeout(function(){if(g===RADIO.gen)radioFinish(true);},1500);
     });
     a.addEventListener('loadedmetadata',function(){
       if(isFinite(a.duration)&&a.duration>0)RADIO.dur=a.duration;
@@ -8206,9 +8213,15 @@ function radioGraph(){
   }
   if(!RADIO.src||RADIO.src.context!==c){
     RADIO.src=c.createMediaElementSource(RADIO.el);
+    /* bass: a low shelf, so turning it up adds weight without muddying the
+       vocals; then the volume, then an analyser for the visualiser */
+    RADIO.bassNode=c.createBiquadFilter();RADIO.bassNode.type='lowshelf';
+    RADIO.bassNode.frequency.value=110;
     RADIO.gain=c.createGain();
-    RADIO.src.connect(RADIO.gain);
+    RADIO.an=c.createAnalyser();RADIO.an.fftSize=256;RADIO.an.smoothingTimeConstant=0.7;
+    RADIO.src.connect(RADIO.bassNode);RADIO.bassNode.connect(RADIO.gain);RADIO.gain.connect(RADIO.an);
   }
+  RADIO.bassNode.gain.value=RADIO.bass;
   if(!RADIO.bus){
     RADIO.bus=c.createGain();
     RADIO.gain.connect(RADIO.bus);
@@ -8272,6 +8285,14 @@ function radioLoad(i,play,startAt){
     setTimeout(function(){if(gen===RADIO.gen)radioLoad(i+1,true);},1500);
   });
 }
+/* host: the current song is over (it ended, failed or was skipped) - take it
+   out of the queue and play whatever is now in its place */
+function radioFinish(play){
+  if(!radioIsHost())return;
+  if(RADIO.idx>=0&&RADIO.idx<RADIO.q.length)RADIO.q.splice(RADIO.idx,1);
+  if(RADIO.idx<0)RADIO.idx=0;
+  radioLoad(RADIO.idx,play);
+}
 /* host: carry out a control, whoever asked for it */
 function radioExec(cmd,arg,by){
   var a=RADIO.el, has=!!(a&&a.getAttribute('src'));
@@ -8280,9 +8301,20 @@ function radioExec(cmd,arg,by){
     if(has)a.play().catch(function(){}); else radioLoad(RADIO.idx,true,RADIO.pos);
   }
   else if(cmd==='pause'){if(has)a.pause();RADIO.playing=false;}
-  else if(cmd==='skip')radioLoad(RADIO.idx+1,true);
-  else if(cmd==='prev')radioLoad(Math.max(0,RADIO.idx-1),true);
-  else if(cmd==='jump'){var j=arg|0;if(j>=0&&j<RADIO.q.length)radioLoad(j,true);}
+  else if(cmd==='skip')radioFinish(true);
+  /* played songs leave the queue, so "back" means the start of this one */
+  else if(cmd==='prev'){if(has){try{a.currentTime=0;}catch(e){}}}
+  else if(cmd==='seek'){
+    var to=+arg;
+    if(has&&isFinite(to)){try{a.currentTime=Math.max(0,Math.min(to,(isFinite(a.duration)?a.duration-0.5:to)));}catch(e){}}
+  }
+  else if(cmd==='jump'){
+    var j=arg|0;
+    if(j<0||j>=RADIO.q.length||j===RADIO.idx)return;
+    /* jumping ahead means the current song is over too */
+    if(RADIO.idx>=0&&RADIO.idx<RADIO.q.length){RADIO.q.splice(RADIO.idx,1);if(j>RADIO.idx)j--;}
+    radioLoad(j,true);
+  }
   else if(cmd==='stop'){
     if(has){a.pause();try{a.currentTime=0;}catch(e){}}
     RADIO.playing=false;RADIO.pos=0;
@@ -8305,19 +8337,21 @@ function radioExec(cmd,arg,by){
     if(RADIO.gain)RADIO.gain.gain.setTargetAtTime(RADIO.vol/100,ctx().currentTime,0.05);
   }
   else if(cmd==='kbps'){
-    var kb=arg|0;
-    if([32,64,96,128,192].indexOf(kb)<0)return;
+    var kb=Math.max(6,Math.min(192,arg|0));
     RADIO.kbps=kb;
     for(var id in peers)applyBitrate(peers[id].call);
-    sys('📻 radio bitrate set to <b>'+kb+' kbps</b> by <b>'+esc(by)+'</b>');
   }
-  if(cmd==='skip'||cmd==='prev'||cmd==='jump'){
+  else if(cmd==='bass'){
+    RADIO.bass=Math.max(-12,Math.min(18,arg|0));
+    if(RADIO.bassNode)RADIO.bassNode.gain.setTargetAtTime(RADIO.bass,ctx().currentTime,0.05);
+  }
+  if(cmd==='skip'||cmd==='jump'){
     var cur=radioCur();
     if(by!==me.name&&cur)sys('📻 <b>'+esc(by)+'</b> '+(cmd==='skip'?'skipped':'changed the track')+' — now <b>'+esc(cur.title)+'</b>');
   }
   radioRender();radioBroadcast();
 }
-var RADIO_ADMIN_ONLY={vol:1,kbps:1};
+var RADIO_ADMIN_ONLY={vol:1,kbps:1,bass:1};
 /* anybody's button press: run it here if we are the host, otherwise ask the host */
 function radioCommand(cmd,arg){
   if(RADIO_ADMIN_ONLY[cmd]&&!isAdmin()){toast('only admins can change that');return;}
@@ -8361,8 +8395,16 @@ function radioAdd(){
   radioResolve(u).then(function(j){
     var item={url:u.slice(0,600),title:String(j.title||'untitled').slice(0,120),
               dur:+j.duration||0,thumb:String(j.thumb||'').slice(0,400),
-              src:String(j.source||'').slice(0,24),by:(me.name||'someone').slice(0,18)};
+              src:String(j.fallback?'SoundCloud match':(j.source||'')).slice(0,24),
+              by:(me.name||'someone').slice(0,18)};
     inp.value='';
+    /* the song came from somewhere other than the link - say so, because it
+       may be a different version */
+    if(j.fallback==='drm')sys('📻 <b>'+esc(j.ytTitle||'That track')+'</b> is DRM-locked (a label or Go+ '+
+      'upload), which nothing can play — so it is playing another upload of it: <b>'+esc(item.title)+'</b>.');
+    else if(j.fallback)sys('📻 YouTube blocked the server, so <b>'+esc(j.ytTitle||'that video')+
+      '</b> is playing from SoundCloud as <b>'+esc(item.title)+'</b>. (An admin can set '+
+      'YTDLP_COOKIES on the server to play YouTube directly.)');
     bc({t:'radd',item:item});
     radioGotItem(item);
     toast('queued: '+item.title);
@@ -8424,6 +8466,7 @@ function radioOnData(id,p,d){
     RADIO.playing=!!d.playing;
     RADIO.vol=(typeof d.vol==='number')?d.vol:RADIO.vol;
     RADIO.kbps=(typeof d.kbps==='number')?d.kbps:RADIO.kbps;
+    RADIO.bass=(typeof d.bass==='number')?d.bass:RADIO.bass;
     RADIO.pos=+d.pos||0;RADIO.posAt=Date.now();
     RADIO.dur=+d.dur||0;
     radioRender();
@@ -8438,21 +8481,27 @@ function radioRender(){
   $('#rNowMini').textContent=cur?((RADIO.playing?'▶ ':'⏸ ')+cur.title):(host?'on air, nothing queued':'off');
   $('#rHostLbl').textContent=host?('host: '+host+(me2?' (you)':'')):'nobody is hosting';
   $('#rTitle').textContent=cur?cur.title:'Nothing playing';
-  $('#rSub').textContent=cur?([cur.src,'queued by '+cur.by].filter(Boolean).join(' · '))
-    :'Queue a YouTube, SoundCloud, Bandcamp or direct audio link below.';
+  $('#rSub').textContent=cur?([cur.src,'by '+cur.by].filter(Boolean).join(' · '))
+    :'queue a YouTube, SoundCloud, Bandcamp or audio link';
   var art=$('#rArt');
   if(cur&&cur.thumb){art.style.backgroundImage='url("'+cur.thumb.replace(/"/g,'')+'")';art.textContent='';}
   else{art.style.backgroundImage='';art.textContent='📻';}
   $('#rCtl').style.display=isMod()?'flex':'none';
   $('#rAdm').style.display=isAdmin()?'inline-flex':'none';
+  $('#rProg').classList.toggle('scrub',isMod()&&!!cur&&!!host);
   var hb=$('#rHost');
-  hb.style.display=isMod()?'inline-flex':'none';
-  hb.textContent=me2?'⏏ Stop hosting':(host?'📻 Take over the radio':'📻 Host the radio here');
-  $('#rHostNote').textContent=me2
-    ?('it is going out over your voice'+(micOn?' — wear headphones so your mic does not pick it up':''))
-    :(host?'':'');
-  var vs=$('#rVol');if(document.activeElement!==vs){vs.value=RADIO.vol;$('#rVolVal').textContent=RADIO.vol+'%';}
-  var ks=$('#rKbps');if(document.activeElement!==ks)ks.value=String(RADIO.kbps);
+  hb.textContent=me2?'⏏ Stop hosting':(host?'📻 Take over':'📻 Host');
+  var hn=$('#rHostNote');
+  hn.textContent=me2?('📻 you are hosting — it goes out over your voice'+(micOn?'; wear headphones':'')):'';
+  hn.style.display=me2?'':'none';
+  function slider(id,val,lbl){
+    var e=$(id);if(document.activeElement===e)return;
+    e.value=val;$(id+'Val').textContent=lbl;
+  }
+  slider('#rVol',RADIO.vol,RADIO.vol+'%');
+  slider('#rBass',RADIO.bass,(RADIO.bass>0?'+':'')+RADIO.bass+' dB');
+  slider('#rKbps',RADIO.kbps,String(RADIO.kbps));
+  /* the queue is what is still to come: played songs are gone */
   var q=$('#rQueue');q.innerHTML='';
   if(!RADIO.q.length){q.appendChild(el('div','rq','<span class="rqt" style="opacity:.6">the queue is empty</span>'));}
   RADIO.q.forEach(function(it,i){
@@ -8461,19 +8510,26 @@ function radioRender(){
     r.appendChild(el('span','rqt',esc(it.title)));
     r.appendChild(el('span','rqb',(it.dur?radioFmt(it.dur)+' · ':'')+esc(it.by)));
     if(isMod()){
-      var bp=document.createElement('button');bp.textContent='play';
-      bp.onclick=function(){radioCommand('jump',i);};
-      var bx=document.createElement('button');bx.textContent='✕';
+      if(i!==RADIO.idx){
+        var bp=document.createElement('button');bp.textContent='play';bp.title='play this now';
+        bp.onclick=function(){radioCommand('jump',i);};
+        r.appendChild(bp);
+      }
+      var bx=document.createElement('button');bx.textContent='✕';bx.title='remove from the queue';
       bx.onclick=function(){radioCommand('remove',i);};
-      r.appendChild(bp);r.appendChild(bx);
+      r.appendChild(bx);
     }
     q.appendChild(r);
   });
   radioTick();
+  radioVizKick();
 }
+var RSCRUB={on:false,frac:0};
 function radioTick(){
   var bar=document.getElementById('rProg');if(!bar)return;
-  var pos=radioPosNow(), dur=RADIO.dur||((radioCur()||{}).dur)||0;
+  var dur=RADIO.dur||((radioCur()||{}).dur)||0;
+  /* while somebody drags, show where they are about to land */
+  var pos=RSCRUB.on?RSCRUB.frac*dur:radioPosNow();
   var pct=dur>0?Math.max(0,Math.min(100,pos/dur*100)):0;
   var fi=bar.querySelector('i'),kn=bar.querySelector('b');
   if(fi)fi.style.width=pct+'%';if(kn)kn.style.left=pct+'%';
@@ -8483,6 +8539,49 @@ setInterval(function(){if(RADIO.idx>=0)radioTick();},500);
 /* the host re-announces every few seconds so late joiners and drifting
    progress bars stay honest */
 setInterval(function(){if(radioIsHost()&&RADIO.idx>=0)radioBroadcast();},5000);
+/* ---- visualiser ----------------------------------------------------------
+   The host draws from the radio itself. Everyone else draws from the host's
+   voice stream as it arrives - which is where the music is for them - so the
+   bars move with exactly what they are hearing. Only runs while the panel
+   is open and something is playing. */
+var RVIZ={raf:0,data:null};
+function radioVizSource(){
+  if(radioIsHost())return RADIO.an;
+  for(var id in peers)if(peers[id].name&&peers[id].name===RADIO.host)return peers[id].analyser||null;
+  return null;
+}
+function radioVizKick(){if(!RVIZ.raf)RVIZ.raf=requestAnimationFrame(radioVizDraw);}
+function radioVizDraw(){
+  RVIZ.raf=0;
+  var cv=document.getElementById('rViz'), box=document.getElementById('radio');
+  if(!cv||!box||!box.open)return;
+  var g=cv.getContext('2d'), W=cv.width, H=cv.height;
+  g.clearRect(0,0,W,H);
+  var an=(RADIO.idx>=0&&RADIO.playing)?radioVizSource():null;
+  var N=28, gap=2, bw=(W-gap*(N-1))/N;
+  var cs=getComputedStyle(document.documentElement);
+  var top=(cs.getPropertyValue('--sel1')||'#8b5cff').trim()||'#8b5cff';
+  var bot=(cs.getPropertyValue('--sel3')||'#4b1fd0').trim()||'#4b1fd0';
+  var grad=g.createLinearGradient(0,0,0,H);grad.addColorStop(0,top);grad.addColorStop(1,bot);
+  g.fillStyle=grad;
+  if(an){
+    var n=an.frequencyBinCount;
+    if(!RVIZ.data||RVIZ.data.length!==n)RVIZ.data=new Uint8Array(n);
+    an.getByteFrequencyData(RVIZ.data);
+    /* log-spaced bands, so the bass does not get one bar and the treble twenty */
+    for(var b=0;b<N;b++){
+      var lo=Math.floor(Math.pow(n*0.8,b/N)), hi=Math.max(lo+1,Math.floor(Math.pow(n*0.8,(b+1)/N)));
+      var m=0;for(var k=lo;k<hi&&k<n;k++)if(RVIZ.data[k]>m)m=RVIZ.data[k];
+      var h=Math.max(2,(m/255)*H);
+      g.fillRect(b*(bw+gap),H-h,bw,h);
+    }
+    RVIZ.raf=requestAnimationFrame(radioVizDraw);
+  }else{
+    g.globalAlpha=0.35;
+    for(var b2=0;b2<N;b2++)g.fillRect(b2*(bw+gap),H-2,bw,2);
+    g.globalAlpha=1;
+  }
+}
 (function(){
   $('#rAdd').onclick=radioAdd;
   $('#rUrl').onkeydown=function(e){if(e.key==='Enter')radioAdd();};
@@ -8492,12 +8591,41 @@ setInterval(function(){if(radioIsHost()&&RADIO.idx>=0)radioBroadcast();},5000);
   $('#rPrev').onclick=function(){radioCommand('prev');};
   $('#rStop').onclick=function(){radioCommand('stop');};
   $('#rHost').onclick=function(){if(radioIsHost())radioDropHost();else radioTakeHost();};
-  var vs=$('#rVol'), vt=null;
-  vs.oninput=function(){
-    $('#rVolVal').textContent=vs.value+'%';
-    clearTimeout(vt);vt=setTimeout(function(){radioCommand('vol',parseInt(vs.value,10)||0);},120);
-  };
-  $('#rKbps').onchange=function(){radioCommand('kbps',parseInt(this.value,10)||96);};
+  /* sliders send shortly after you stop moving rather than on every pixel,
+     which would flood the host */
+  function wire(id,cmd,fmt){
+    var e=$(id), t=null;
+    e.oninput=function(){
+      $(id+'Val').textContent=fmt(parseInt(e.value,10)||0);
+      clearTimeout(t);t=setTimeout(function(){radioCommand(cmd,parseInt(e.value,10)||0);},150);
+    };
+  }
+  wire('#rVol','vol',function(v){return v+'%';});
+  wire('#rBass','bass',function(v){return (v>0?'+':'')+v+' dB';});
+  wire('#rKbps','kbps',function(v){return String(v);});
+  /* scrubbing: drag along the bar, it seeks when you let go */
+  var bar=$('#rProg');
+  function frac(e){var r=bar.getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));}
+  bar.addEventListener('pointerdown',function(e){
+    if(!isMod()||!radioCur()||!RADIO.host)return;
+    if(!(RADIO.dur||(radioCur()||{}).dur)){toast('this track has no length to scrub');return;}
+    RSCRUB.on=true;RSCRUB.frac=frac(e);
+    try{bar.setPointerCapture(e.pointerId);}catch(x){}
+    radioTick();
+  });
+  bar.addEventListener('pointermove',function(e){if(RSCRUB.on){RSCRUB.frac=frac(e);radioTick();}});
+  bar.addEventListener('pointerup',function(e){
+    if(!RSCRUB.on)return;
+    RSCRUB.on=false;
+    var dur=RADIO.dur||((radioCur()||{}).dur)||0;
+    var to=frac(e)*dur;
+    /* show it straight away rather than waiting for the host's next update */
+    RADIO.pos=to;RADIO.posAt=Date.now();
+    radioCommand('seek',to);
+    radioTick();
+  });
+  bar.addEventListener('pointercancel',function(){RSCRUB.on=false;radioTick();});
+  $('#radio').addEventListener('toggle',radioVizKick);
   radioRender();
 })();
 
@@ -11243,7 +11371,7 @@ function verityAsrLoad(){
   return VERITY.asrPromise;
 }
 /* pull PCM off the mix, gate it on energy, hand whole utterances to the model */
-function verityListen(on){
+function verityListenMixed(on){
   if(!on){
     try{ if(EARS.node){EARS.node.disconnect();EARS.node.onaudioprocess=null;} }catch(e){}
     EARS.node=null; EARS.buf=[]; EARS.samples=0; EARS.speaking=false;
@@ -11562,6 +11690,228 @@ function verityFlushUtterance(){
   };
   asrDispatch(id,pcm,function(){
     clearTimeout(asrGuard); delete VERITY.asrPending[id]; EARS.busy=false;
+  });
+}
+/* ============================ PER-SPEAKER EARS ============================
+   "It doesn't identify the right person" and "when people overlap it just
+   links whatever to whoever" were the same design flaw. Everything VERITY
+   heard was ONE stream - every voice summed together - cut into sentences
+   and sent to the recogniser once, then pinned on whoever was loudest. Two
+   people talking at once became one clip containing both of them, with one
+   name on it. No amount of tuning the loudness guess could fix that, because
+   the information was thrown away before anything tried to use it.
+
+   The caller's browser already receives every person as a SEPARATE stream.
+   So each one now gets its own little "ear": an AudioWorklet that finds that
+   one person's sentences on its own (level gate over a noise floor, a
+   pre-roll so the first word is not clipped, 0.9 s of quiet ends a sentence)
+   and hands back their audio alone. Every clip is transcribed separately and
+   is named after the stream it came from - no guessing at all. Overlapping
+   speech becomes two clips, two transcripts, two names. Discord users get an
+   ear each too, off the bridge's per-user streams.
+
+   The one way a voice can still arrive twice is through the caller's own
+   microphone, when someone else plays out of their speakers. That is caught
+   by text: a transcript that matches one just heard from a different source
+   is dropped. */
+var EAR_WORKLET=[
+"class MingusEar extends AudioWorkletProcessor{",
+"  constructor(){super();",
+"    this.R=sampleRate/16000;this.pos=0;this.acc=0;this.accN=0;",
+"    this.blk=new Float32Array(1600);this.bn=0;",
+"    this.pre=[];this.buf=[];this.n=0;this.on=false;this.quiet=0;",
+"    this.floor=-1;this.voiced=0;this.energy=0;",
+"    this.port.onmessage=(e)=>{if(e.data&&e.data.reset){this.buf=[];this.n=0;this.on=false;}};}",
+"  process(inputs){",
+"    const ch=inputs[0]&&inputs[0][0];if(!ch)return true;",
+"    for(let i=0;i<ch.length;i++){",
+"      this.acc+=ch[i];this.accN++;this.pos+=1;",
+"      if(this.pos>=this.R){this.pos-=this.R;",
+"        this.blk[this.bn++]=this.acc/this.accN;this.acc=0;this.accN=0;",
+"        if(this.bn===this.blk.length){this.block(this.blk.slice());this.bn=0;}}",
+"    }",
+"    return true;",
+"  }",
+"  block(b){",
+"    let s=0;for(let i=0;i<b.length;i++)s+=b[i]*b[i];",
+"    const rms=Math.sqrt(s/b.length);",
+"    if(this.floor<0)this.floor=rms;",
+"    this.floor=(rms<this.floor)?(this.floor*0.8+rms*0.2):(this.floor*0.995+rms*0.005);",
+"    const loud=rms>Math.max(0.012,this.floor*2.5);",
+"    this.pre.push(b);if(this.pre.length>4)this.pre.shift();",
+"    if(loud){",
+"      if(!this.on){this.on=true;this.buf=this.pre.slice();this.n=this.buf.length*1600;this.voiced=0;this.energy=0;}",
+"      else{this.buf.push(b);this.n+=b.length;}",
+"      this.quiet=0;this.voiced++;this.energy+=rms;",
+"    }else if(this.on){",
+"      this.buf.push(b);this.n+=b.length;this.quiet+=100;",
+"      if(this.quiet>=900)this.flush();",
+"    }",
+"    if(this.on&&this.n>=16000*11)this.flush();",
+"  }",
+"  flush(){",
+"    if(this.n>=16000*1.2&&this.voiced>=4){",
+"      const pcm=new Float32Array(this.n);let o=0;",
+"      for(const p of this.buf){pcm.set(p,o);o+=p.length;}",
+"      this.port.postMessage({pcm:pcm,rms:this.energy/this.voiced,end:currentTime},[pcm.buffer]);",
+"    }",
+"    this.buf=[];this.n=0;this.on=false;this.quiet=0;",
+"  }",
+"}",
+"registerProcessor('mingus-ear',MingusEar);"
+].join('\n');
+var EARS2={on:false,starting:false,failed:false,nodes:{},mods:new Map(),q:[],inflight:0,recent:[]};
+/* one module load per audio context - Discord audio lives in its own 48 kHz one */
+function earModule(c){
+  if(!c||!c.audioWorklet)return Promise.resolve(false);
+  if(EARS2.mods.has(c))return EARS2.mods.get(c);
+  var url=URL.createObjectURL(new Blob([EAR_WORKLET],{type:'application/javascript'}));
+  var p=c.audioWorklet.addModule(url).then(function(){return true;},function(){return false;});
+  EARS2.mods.set(c,p);
+  return p;
+}
+/* What is out there to listen to right now: key -> {node to tap, name}.
+   Every tap is an AnalyserNode, which passes its input straight through, so
+   nothing new has to be pulled off anybody's stream. */
+function earSources(){
+  var out={};
+  if(micOn&&localAnalyser&&VERITY.hearMe)out.me={tap:localAnalyser,who:function(){return me.name||'you';}};
+  for(var id in peers){
+    var p=peers[id];
+    if(p&&p.analyser&&p.stream)(function(pid){
+      out['p:'+pid]={tap:peers[pid].analyser,who:function(){return (peers[pid]&&peers[pid].name)||'someone';}};
+    })(id);
+  }
+  if(typeof BR!=='undefined'&&BR.on&&BR.rx){
+    for(var sl in BR.rx){
+      var r=BR.rx[sl];
+      if(r&&r.an)(function(slot){
+        out['d:'+slot]={tap:BR.rx[slot].an,who:function(){
+          return BR.nameBySlot[slot]||BR.names[slot]||'someone in Discord';}};
+      })(sl);
+    }
+  }
+  return out;
+}
+/* attach ears to new sources, take them off ones that have gone */
+function earsSync(){
+  if(!EARS2.on)return;
+  var want=earSources();
+  for(var k in EARS2.nodes){
+    var e=EARS2.nodes[k];
+    if(!want[k]||want[k].tap!==e.tap){
+      try{e.tap.disconnect(e.node);}catch(x){}
+      try{e.node.port.onmessage=null;}catch(x){}
+      delete EARS2.nodes[k];
+    }
+  }
+  Object.keys(want).forEach(function(k){
+    if(EARS2.nodes[k])return;
+    var src=want[k], c=src.tap.context;
+    earModule(c).then(function(ok){
+      if(!ok||!EARS2.on||EARS2.nodes[k])return;
+      try{
+        var n=new AudioWorkletNode(c,'mingus-ear',{numberOfInputs:1,numberOfOutputs:0,
+          channelCount:1,channelCountMode:'explicit'});
+        n.port.onmessage=function(ev){earClip(k,src.who(),ev.data||{});};
+        src.tap.connect(n);
+        EARS2.nodes[k]={node:n,tap:src.tap};
+      }catch(err){}
+    });
+  });
+}
+setInterval(function(){if(EARS2.on)earsSync();},2000);
+function earsStop(){
+  EARS2.on=false;EARS2.starting=false;
+  for(var k in EARS2.nodes){
+    var e=EARS2.nodes[k];
+    try{e.tap.disconnect(e.node);}catch(x){}
+    try{e.node.port.onmessage=null;}catch(x){}
+  }
+  EARS2.nodes={};EARS2.q=[];
+}
+/* a finished sentence from one person */
+function earClip(key,who,d){
+  if(!d.pcm||!VERITY.on||!VERITY.host||VERITY.leaving||!VERITY.hearMe)return;
+  /* nothing will answer it, so do not spend a transcription on it */
+  if(!VERITY.brainOk||(VERITY.rateLimitedUntil&&Date.now()<VERITY.rateLimitedUntil))return;
+  EARS2.q.push({key:key,who:who,pcm:d.pcm,rms:+d.rms||0,at:Date.now()});
+  /* stay current: if the room outruns the recogniser, drop the oldest */
+  while(EARS2.q.length>6)EARS2.q.shift();
+  earPump();
+}
+function earPump(){
+  while(EARS2.inflight<2&&EARS2.q.length)earTranscribe(EARS2.q.shift());
+}
+function earWords(t){return String(t).toLowerCase().replace(/[^a-z0-9' ]+/g,' ').split(/\s+/).filter(Boolean);}
+function earSimilar(a,b){
+  var A=earWords(a),B=earWords(b);if(!A.length||!B.length)return 0;
+  var set={};B.forEach(function(w){set[w]=1;});
+  var hit=0;A.forEach(function(w){if(set[w])hit++;});
+  return hit/Math.max(A.length,B.length);
+}
+function earTranscribe(clip){
+  EARS2.inflight++;
+  var pcm=clip.pcm, pk=0;
+  for(var i=0;i<pcm.length;i++){var av=pcm[i]<0?-pcm[i]:pcm[i];if(av>pk)pk=av;}
+  if(pk>0.004&&pk<0.72){var gain=Math.min(8,0.72/pk);for(var j=0;j<pcm.length;j++)pcm[j]*=gain;}
+  var id=++EARS.reqId, t0=Date.now(), clipSec=pcm.length/ASR_RATE, done=false;
+  function finish(){if(done)return;done=true;EARS2.inflight--;earPump();}
+  VERITY.asrPending=VERITY.asrPending||{};
+  VERITY.asrPending[id]=function(text,err){
+    clearTimeout(guard);finish();
+    VERITY.lastAsrMs=Date.now()-t0;VERITY.lastClipSec=clipSec;
+    if(err||!text)return;
+    if(!VERITY.on||VERITY.leaving||!VERITY.host)return;
+    var clean=String(text).replace(/\[.*?\]|\(.*?\)/g,'').trim();
+    if(clean.length<2)return;
+    if(/^(you|thanks for watching|thank you|thanks|bye|bye\.|okay|ok|yeah|uh|um|hmm|mm|so|and|the|[.,!?\-]*)$/i.test(clean))return;
+    if(/^(subtitles by|transcription by|amara\.org|www\.|\[.*\]|\(.*\))/i.test(clean))return;
+    if(clean.split(/\s+/).filter(Boolean).length<3)return;
+    /* the same words from a different source a moment ago: that is one
+       voice arriving twice (someone's speakers into the caller's mic) */
+    var now=Date.now();
+    EARS2.recent=EARS2.recent.filter(function(r){return now-r.at<8000;});
+    for(var r=0;r<EARS2.recent.length;r++){
+      var prev=EARS2.recent[r];
+      if(prev.key!==clip.key&&earSimilar(prev.text,clean)>=0.6)return;
+    }
+    EARS2.recent.push({key:clip.key,text:clean,at:now});
+    var who=clip.who||'someone';
+    sys('🎧 heard <b>'+esc(who)+'</b>: <i>'+esc(clean)+'</i>'+
+        ' <span style="opacity:.55;font-size:11px">('+(VERITY.lastAsrMs/1000).toFixed(1)+
+        's to transcribe '+clipSec.toFixed(1)+'s)</span>');
+    verityRespond(who,clean,true);
+  };
+  var guard=setTimeout(function(){
+    if(!VERITY.asrPending[id])return;
+    delete VERITY.asrPending[id];finish();
+  },25000);
+  asrDispatch(id,pcm,function(){
+    clearTimeout(guard);delete VERITY.asrPending[id];finish();
+  });
+}
+/* VERITY's listening, per speaker; falls back to the old single mixed ear only
+   where a browser has no AudioWorklet */
+function verityListen(on){
+  if(!on){earsStop();verityListenMixed(false);return;}
+  if(!VERITY.on||!VERITY.host||VERITY.leaving||!VERITY.hearMe||!micOn||VERITY.earsDead)return;
+  if(EARS2.on){earsSync();return;}
+  if(EARS2.starting)return;
+  if(EARS2.failed){verityListenMixed(true);return;}
+  EARS2.starting=true;
+  verityAsrLoad().then(function(ok){
+    if(!EARS2.starting)return;
+    if(!ok||!VERITY.on||!VERITY.host||VERITY.leaving||!VERITY.hearMe||!micOn){EARS2.starting=false;return;}
+    return earModule(ctx()).then(function(ok2){
+      if(!EARS2.starting)return;
+      EARS2.starting=false;
+      if(!ok2){EARS2.failed=true;verityListenMixed(true);return;}
+      EARS2.on=true;VERITY.listening=true;
+      earsSync();
+      sys('🥒 VERITY is listening — to each person separately, so people talking over each other '+
+          'are transcribed and named apart.');
+    });
   });
 }
 function verityEarsSync(){
