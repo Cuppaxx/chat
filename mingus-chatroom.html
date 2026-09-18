@@ -2488,7 +2488,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='9.3';
+var BUILD='9.4';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -4958,6 +4958,18 @@ function devFill(){
       o0.value='';o0.textContent=('System default'+(defName?(' ('+defName+')'):'')).slice(0,70);
       sel.appendChild(o0);
       var found=false;
+      /* Before access is allowed, Chrome does not just hide the names - it
+         hands back ONE placeholder per kind, with no id, however many devices
+         there really are. Showing that as "Microphone 1" looked like the list
+         was simply short. Say what it is instead. */
+      if(items.length&&items.every(function(d){return !d.deviceId;})){
+        var ph=document.createElement('option');
+        ph.value='';ph.disabled=true;
+        ph.textContent='🔒 click here to list all '+noun.toLowerCase().replace(/s?$/,'s');
+        sel.appendChild(ph);
+        sel.value='';
+        return;
+      }
       items.forEach(function(d,i){
         var o=document.createElement('option');
         o.value=d.deviceId;
@@ -8218,13 +8230,18 @@ function radioGraph(){
     RADIO.bassNode=c.createBiquadFilter();RADIO.bassNode.type='lowshelf';
     RADIO.bassNode.frequency.value=110;
     RADIO.gain=c.createGain();
+    /* the bitrate "sound": see radioCrunch() */
+    RADIO.lp=c.createBiquadFilter();RADIO.lp.type='lowpass';RADIO.lp.Q.value=0.5;
+    RADIO.crush=c.createWaveShaper();
     RADIO.an=c.createAnalyser();RADIO.an.fftSize=256;RADIO.an.smoothingTimeConstant=0.7;
-    RADIO.src.connect(RADIO.bassNode);RADIO.bassNode.connect(RADIO.gain);RADIO.gain.connect(RADIO.an);
+    RADIO.src.connect(RADIO.bassNode);RADIO.bassNode.connect(RADIO.gain);
+    RADIO.gain.connect(RADIO.lp);RADIO.lp.connect(RADIO.crush);RADIO.crush.connect(RADIO.an);
   }
   RADIO.bassNode.gain.value=RADIO.bass;
+  radioCrunch();
   if(!RADIO.bus){
     RADIO.bus=c.createGain();
-    RADIO.gain.connect(RADIO.bus);
+    RADIO.crush.connect(RADIO.bus);
     RADIO.bus.connect(fxDest);                     /* out to the channel */
     RADIO.local=c.createGain();                    /* and to the host's own ears */
     RADIO.bus.connect(RADIO.local);RADIO.local.connect(spk());
@@ -8243,7 +8260,7 @@ function radioUngraph(){
   RADIO.gen++;
   if(RADIO.el){try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}}
   if(RADIO.bus){
-    try{RADIO.gain.disconnect(RADIO.bus);}catch(e){}
+    try{RADIO.crush.disconnect(RADIO.bus);}catch(e){}
     try{RADIO.bus.disconnect();}catch(e){}
     RADIO.bus=null;MIX.rHooked=false;
   }
@@ -8293,6 +8310,28 @@ function radioFinish(play){
   if(RADIO.idx<0)RADIO.idx=0;
   radioLoad(RADIO.idx,play);
 }
+/* What the bitrate slider SOUNDS like.
+   Capping the sender's bitrate only changes what OTHER people in the channel
+   receive. The host hears the radio straight from the source, and Discord
+   gets its own copy encoded by whoever holds the bridge - so for those two
+   the slider did nothing audible, which is why it looked broken.
+   So the host's radio chain now does to the sound what Opus does as the
+   bitrate falls - it gives up the treble first (fullband above ~48 kbps,
+   down to telephone narrowband at 6), and at the very bottom the detail goes
+   too - and everyone hears the same thing: the host, the channel, Discord. */
+function radioCrunch(){
+  if(!RADIO.lp||!RADIO.crush)return;
+  var kb=RADIO.kbps, c=RADIO.lp.context;
+  /* top of the band: 3.4 kHz at 6 kbps, rising to wide open by ~48 kbps */
+  var f=kb>=48?20000:Math.min(20000,3400*Math.pow(kb/6,0.85));
+  try{RADIO.lp.frequency.setTargetAtTime(f,c.currentTime,0.05);}catch(e){RADIO.lp.frequency.value=f;}
+  /* below 16 kbps, fewer and fewer levels: 8-bit at 16 down to 4-bit at 6 */
+  if(kb>=16){RADIO.crush.curve=null;return;}
+  var bits=4+Math.max(0,(kb-6))/10*4, levels=Math.pow(2,bits);
+  var n=4096, curve=new Float32Array(n);
+  for(var i=0;i<n;i++){var x=i/(n-1)*2-1;curve[i]=Math.round(x*levels/2)/(levels/2);}
+  RADIO.crush.curve=curve;
+}
 /* host: carry out a control, whoever asked for it */
 function radioExec(cmd,arg,by){
   var a=RADIO.el, has=!!(a&&a.getAttribute('src'));
@@ -8340,6 +8379,7 @@ function radioExec(cmd,arg,by){
     var kb=Math.max(6,Math.min(192,arg|0));
     RADIO.kbps=kb;
     for(var id in peers)applyBitrate(peers[id].call);
+    radioCrunch();
   }
   else if(cmd==='bass'){
     RADIO.bass=Math.max(-12,Math.min(18,arg|0));
