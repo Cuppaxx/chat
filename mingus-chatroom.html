@@ -2380,7 +2380,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.8';
+var BUILD='8.9';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -13136,6 +13136,16 @@ function traceName(pid){
   if(p&&p.name)return p.name;
   return null;
 }
+/* The name to print for one entry of a trace. A LIVE entry is whoever holds
+   that slot right now, so their current gamertag is right. A PAST entry is
+   not: slot ids are reused, and naming an old entry after whoever sits in the
+   slot today is how addresses got pinned on the wrong people. Past entries use
+   the gamertag the server recorded when that connection was made. */
+function traceLabel(h,live){
+  var n=live?traceName(h.id):null;
+  if(!n&&h.name)n=h.name;
+  return n||('unknown ('+String(h.id||'').slice(-6)+')');
+}
 function myPeerId(){ try{return (peer&&peer.id)||'';}catch(e){return '';} }
 function traceUser(id){
   if(!isAdmin()){toast('tracing is an admin action');return;}
@@ -13172,7 +13182,7 @@ function traceAll(){
       if(!j||!j.ok){toast('could not read the address list');return;}
       var lines=[];
       j.groups.forEach(function(g){
-        var who=g.peers.map(function(x){return traceName(x.id)||('unknown ('+x.id.slice(-6)+')');});
+        var who=g.peers.map(function(x){return traceLabel(x,true);});
         lines.push((g.peers.length>1?'⚠ ':'  ')+g.ip+(g.banned?'  [BANNED]':'')+
                    '  ×'+g.peers.length+'  — '+who.join(', '));
       });
@@ -13220,7 +13230,7 @@ function tracePanel(){
     alt.innerHTML='<b style="color:#b0122a">⚠ '+others.length+' other '+
       (others.length===1?'person is':'people are')+' on this address right now:</b><br>'+
       others.map(function(h){
-        return '  • '+esc(traceName(h.id)||('unknown ('+h.id.slice(-6)+')'))+'  — joined '+esc(traceAgo(h.at));
+        return '  • '+esc(traceLabel(h,true))+'  — joined '+esc(traceAgo(h.at));
       }).join('<br>');
   }else{
     alt.innerHTML='nobody else is on this address right now';
@@ -13232,7 +13242,7 @@ function tracePanel(){
     rec.style.cssText=mono+';margin-top:6px;opacity:.85';
     rec.innerHTML='recently on this address (gone now):<br>'+
       d.recent.map(function(h){
-        return '  • '+esc(traceName(h.id)||('unknown ('+h.id.slice(-6)+')'))+'  — '+esc(traceAgo(h.at));
+        return '  • '+esc(traceLabel(h,false))+'  — '+esc(traceAgo(h.at));
       }).join('<br>');
     box.appendChild(rec);
   }

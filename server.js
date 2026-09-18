@@ -171,7 +171,7 @@ app.post('/hello', (req, res) => {
   if (clean) {
     deviceSeen(clean, ip, name, id);
     if (typeof id === 'string' && id.length < 80) {
-      helloById.set(id, { did: clean, name, at: Date.now() });
+      helloById.set(id, { did: clean, name: String(name || '').slice(0, 24), ip, at: Date.now() });
       if (helloById.size > 500) {
         const cut = Date.now() - 600000;
         for (const [k, v] of helloById) if (v.at < cut) helloById.delete(k);
@@ -376,15 +376,23 @@ app.post('/admin/ban', requireAdmin, (req, res) => {
 // ---- the tracer ------------------------------------------------------------
 // Everything below /admin/ is admin-only and answers only to the admin
 // password. None of it is ever sent to an ordinary member.
+// Every entry carries the gamertag it joined with. Slot ids are reused, so
+// "who is in slot 3 now" is not "who was in slot 3 an hour ago" - naming an
+// old log entry after the slot's current occupant pinned addresses on people
+// who had never used them.
 function traceFor(ip) {
   const here = [], recent = [];
-  for (const [id, r] of peerIps) if (r.ip === ip) here.push({ id, at: r.at });
-  const seenIds = new Set(here.map((h) => h.id));
+  for (const [id, r] of peerIps) if (r.ip === ip) here.push({ id, at: r.at, name: r.name || '' });
+  const seen = new Set(here.map((h) => h.id + '|' + h.at));
   for (let i = peerLog.length - 1; i >= 0 && recent.length < 25; i--) {
     const e = peerLog[i];
-    if (e.ip !== ip || seenIds.has(e.id)) continue;
-    seenIds.add(e.id);
-    recent.push({ id: e.id, at: e.at });
+    if (e.ip !== ip) continue;
+    const live = peerIps.get(e.id);
+    if (live && live.at === e.at) continue;          // that is a "here" entry
+    const key = (e.name || e.id) + '|' + (e.did || '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    recent.push({ id: e.id, at: e.at, name: e.name || '' });
   }
   return { here, recent };
 }
@@ -435,7 +443,7 @@ app.get('/admin/trace/all', requireAdmin, (req, res) => {
   const byIp = new Map();
   for (const [id, r] of peerIps) {
     if (!byIp.has(r.ip)) byIp.set(r.ip, []);
-    byIp.get(r.ip).push({ id, at: r.at });
+    byIp.get(r.ip).push({ id, at: r.at, name: r.name || '' });
   }
   const groups = Array.from(byIp.entries())
     .map(([ip, list]) => ({ ip, banned: bannedIps.has(ip), peers: list }))
@@ -989,20 +997,52 @@ server.prependListener('upgrade', (req, socket) => {
     try { socket.destroy(); } catch (e) {}
     return;
   }
+  // THIS is why the IP trace put addresses under the wrong people.
+  //
+  // It used to write peerIps[id] = this address right here, on the upgrade.
+  // But joining walks the slots - mingus-lobby-0, -1, -2... - opening a socket
+  // for each until one is free, and every slot already in use is refused by
+  // PeerJS with ID-TAKEN a moment AFTER this handler has run. So each newcomer
+  // overwrote the address of everybody sitting in a lower slot with their own,
+  // and the trace showed Alice on Bob's IP.
+  //
+  // Now the upgrade only labels its own socket. The record is written when
+  // PeerJS actually ACCEPTS the connection (peerServer 'connection' below),
+  // which never happens for a refused slot.
   try {
     const id = new URL(req.url, 'http://x').searchParams.get('id');
     if (id) {
       const at = Date.now();
-      // the device that announced it was about to claim this exact id
+      // the device that announced it was about to claim this exact id - only
+      // believed if it announced from this same address
       const h = helloById.get(id);
-      const did = (h && at - h.at < 120000) ? h.did : null;
-      if (did) deviceSeen(did, ip, h.name, id);
-      peerIps.set(id, { ip, at, did });
-      peerLog.push({ id, ip, at, did });
-      if (peerLog.length > PEERLOG_MAX) peerLog.splice(0, peerLog.length - PEERLOG_MAX);
+      const ok = h && at - h.at < 120000 && (!h.ip || h.ip === ip);
+      socket.__mingus = { id, ip, at, did: ok ? h.did : null, name: ok ? h.name : '' };
     }
   } catch (e) {}
 });
+// Called once PeerJS has accepted a socket for an id. Reads the label the
+// upgrade handler put on that exact socket, so the address can only ever be
+// the address of the connection that really holds the id.
+function recordAccepted(client) {
+  const id = client.getId();
+  let tag = null;
+  try {
+    const ws = client.getSocket();
+    tag = ws && ws._socket && ws._socket.__mingus;
+  } catch (e) {}
+  if (!tag || tag.id !== id) return;
+  // the /hello can land a moment after the socket opens; pick it up now
+  if (!tag.did) {
+    const h = helloById.get(id);
+    if (h && Date.now() - h.at < 120000 && h.ip === tag.ip) { tag.did = h.did; tag.name = h.name; }
+  }
+  if (tag.did) deviceSeen(tag.did, tag.ip, tag.name, id);
+  const rec = { ip: tag.ip, at: tag.at, did: tag.did, name: String(tag.name || '').slice(0, 24), client };
+  peerIps.set(id, rec);
+  peerLog.push({ id, ip: rec.ip, at: rec.at, did: rec.did, name: rec.name });
+  if (peerLog.length > PEERLOG_MAX) peerLog.splice(0, peerLog.length - PEERLOG_MAX);
+}
 
 const peerServer = ExpressPeerServer(server, {
   path: '/',
@@ -1012,10 +1052,16 @@ const peerServer = ExpressPeerServer(server, {
   concurrent_limit: 500,
 });
 
-peerServer.on('connection', (c) => console.log('+ ' + c.getId()));
+peerServer.on('connection', (c) => {
+  console.log('+ ' + c.getId());
+  recordAccepted(c);
+});
 peerServer.on('disconnect', (c) => {
   console.log('- ' + c.getId());
-  peerIps.delete(c.getId());   // don't leak the id->ip map forever
+  // only forget the record if it is THIS client's - a slot can already have
+  // been taken by somebody else by the time the old one is reaped
+  const r = peerIps.get(c.getId());
+  if (!r || !r.client || r.client === c) peerIps.delete(c.getId());
 });
 
 app.use('/', peerServer);

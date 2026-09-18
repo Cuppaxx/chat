@@ -2,3 +2,4 @@
 .edits/*.py
 !.edits/check.py
 .edits/_extracted.js
+node_modules/
