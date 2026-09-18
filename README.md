@@ -33,7 +33,7 @@ minutes with a free uptime monitor, or pay the $7 tier.
 
 | Variable | Needed for | Default |
 |---|---|---|
-| `ADMIN_PASS` | the admin panel | `MingMing67` |
+| `ADMIN_PASS` | an extra admin password of your own (optional) | — (the built-in one is a fingerprint in the code) |
 | `DISCORD_TOKEN` | anything Discord | — |
 | `DISCORD_GUILD_ID` | the *default* selection in the voice-channel picker | — |
 | `DISCORD_CHANNEL_ID` | the *default* selection in the voice-channel picker | — |
