@@ -468,7 +468,14 @@ body.touch .cam .ctl{opacity:1}
   box-shadow:0 -1px 0 rgba(80,50,160,.35);background-color:rgba(20,8,60,.38)}
 /* was height:310px. A fixed number here is what made every tall window end in
    a dead slab: nothing in the column could take the spare space. */
-.log{flex:1 1 auto;min-height:200px;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;
+/* contain:size is what stops "the chat just keeps getting longer". Without it
+   the log's flex basis was its own content, so every message made the box
+   taller instead of scrolling it, and the page grew forever. Size containment
+   makes the box ignore its contents when it is measured: it starts at the
+   height below, still grows into any spare room in a tall window, and its
+   messages scroll inside it. */
+.log{flex:1 1 auto;height:clamp(260px,58vh,820px);min-height:200px;contain:size;
+  overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;
   background-color:rgba(10,4,34,.25);
   box-shadow:inset 0 2px 10px rgba(20,5,60,.5)}
 .log::-webkit-scrollbar{width:12px}
@@ -777,6 +784,174 @@ a.btn,a.hub{text-decoration:none}
   --orbGlow:rgba(23,196,51,.55); --titleGlow:rgba(100,255,140,.85);
   --font:"Consolas","Lucida Console","DejaVu Sans Mono",monospace;
 }
+/* --- blood red on black --- */
+:root[data-theme="crimson"]{
+  --base:#150204; --baseTop:#220508; --baseBot:#080001;
+  --glow1:#a01020; --glow2:#5c0612; --glow3:#d0202e; --glow4:#40040c;
+  --sel1:#ff8a94; --sel2:#e0283c; --sel3:#a0101e;
+  --txt:#ffecee; --dim:#e0a0a8; --line:rgba(255,130,145,.28);
+  --ink:#3a0209; --ink2:#8a1a28;
+  --bladeA:#fffafa; --bladeB:#ffe4e6; --bladeC:#f8c4c9; --bladeD:#eea4ab;
+  --bladeGlow:rgba(224,40,60,.42); --bladeRing:rgba(255,90,110,.55);
+  --tabA:#7a0a18; --tabB:#36030a;
+  --tabMainA:#fffdfd; --tabMainB:#ffe2e5; --tabMainC:#f5b4bb;
+  --chromeA:#a01a2a; --chromeB:#5a0812; --chromeC:#2c0307;
+  --btnA:#ff7a88; --btnB:#e0283c; --btnC:#9c0c1c;
+  --btn2A:#ffd07a; --btn2B:#e8a010; --btn2C:#a06a00;
+  --chipA:#ffffff; --chipB:#ffe6e8; --chipEdge:#e08a94; --chipInk:#7a0a18;
+  --cardA:#fff6f7; --cardB:#ffdadd; --cardC:#f5b0b8;
+  --bubbleA:#ffffff; --bubbleB:#fff0f1; --bubbleMeA:#ffd8dc; --bubbleMeB:#f7b4bc;
+  --orb1:#ffffff; --orb2:#ff9aa4; --orb3:#e0283c; --orb4:#36030a;
+  --orbGlow:rgba(224,40,60,.55); --titleGlow:rgba(255,80,100,.85);
+  --ringA:#ffd0d4; --ringB:#e0283c; --ringC:#8a0a18;
+}
+/* --- gold on black, the "Gold membership" look --- */
+:root[data-theme="gold"]{
+  --base:#120d02; --baseTop:#1e1604; --baseBot:#070500;
+  --glow1:#9c7408; --glow2:#5c4004; --glow3:#c89a12; --glow4:#3a2a02;
+  --sel1:#ffe38a; --sel2:#e0b020; --sel3:#a07808;
+  --txt:#fff8e2; --dim:#e0cc90; --line:rgba(255,220,120,.28);
+  --ink:#332402; --ink2:#80600c;
+  --bladeA:#fffef8; --bladeB:#fff5d6; --bladeC:#f8e4a8; --bladeD:#eed282;
+  --bladeGlow:rgba(224,176,32,.40); --bladeRing:rgba(255,210,80,.55);
+  --tabA:#6e5006; --tabB:#302202;
+  --tabMainA:#fffefa; --tabMainB:#fff2cc; --tabMainC:#f3d98c;
+  --chromeA:#a07c18; --chromeB:#5a4206; --chromeC:#2a1f02;
+  --btnA:#ffe07a; --btnB:#e0b020; --btnC:#9a7406;
+  --btn2A:#1c1c1c; --btn2B:#3a3a3a; --btn2C:#111111;
+  --chipA:#ffffff; --chipB:#fff4d4; --chipEdge:#d8b860; --chipInk:#6e5006;
+  --cardA:#fffcf0; --cardB:#fff0c4; --cardC:#f2d98e;
+  --bubbleA:#ffffff; --bubbleB:#fff8e4; --bubbleMeA:#ffefc0; --bubbleMeB:#f5da8c;
+  --orb1:#ffffff; --orb2:#ffe48c; --orb3:#e0b020; --orb4:#302202;
+  --orbGlow:rgba(224,176,32,.55); --titleGlow:rgba(255,215,90,.85);
+  --ringA:#fff2c0; --ringB:#e0b020; --ringC:#8a6404;
+}
+/* --- vaporwave sunset: magenta into orange, cyan accents --- */
+:root[data-theme="sunset"]{
+  --base:#1a0624; --baseTop:#2a0a30; --baseBot:#0a0210;
+  --glow1:#ff3d7f; --glow2:#ff8a1a; --glow3:#8a2be2; --glow4:#1ab8d8;
+  --sel1:#ffa0c8; --sel2:#ff3d7f; --sel3:#b8155a;
+  --txt:#fff0f6; --dim:#f0b0cc; --line:rgba(255,150,200,.30);
+  --ink:#3e0826; --ink2:#9a2a62;
+  --bladeA:#fffaf6; --bladeB:#ffe6ec; --bladeC:#ffcad6; --bladeD:#ffb0b8;
+  --bladeGlow:rgba(255,61,127,.42); --bladeRing:rgba(255,140,90,.55);
+  --tabA:#7a1a5a; --tabB:#3a0a2a;
+  --tabMainA:#fffdfb; --tabMainB:#ffe4dc; --tabMainC:#ffbfa8;
+  --chromeA:#c8306a; --chromeB:#6a1040; --chromeC:#300620;
+  --btnA:#ff8ab4; --btnB:#ff3d7f; --btnC:#b8155a;
+  --btn2A:#8ef0ff; --btn2B:#1ab8d8; --btn2C:#0a7a98;
+  --chipA:#ffffff; --chipB:#ffe6ee; --chipEdge:#f28ab0; --chipInk:#8a1a52;
+  --cardA:#fff7f4; --cardB:#ffdcd8; --cardC:#ffb8b0;
+  --bubbleA:#ffffff; --bubbleB:#fff0f2; --bubbleMeA:#ffd8e4; --bubbleMeB:#ffb4c8;
+  --orb1:#ffffff; --orb2:#ffb07a; --orb3:#ff3d7f; --orb4:#3a0a2a;
+  --orbGlow:rgba(255,61,127,.55); --titleGlow:rgba(255,120,170,.9);
+  --ringA:#b8f4ff; --ringB:#1ab8d8; --ringC:#0a6a88;
+}
+/* --- arctic: pale ice, cold blue --- */
+:root[data-theme="frost"]{
+  --base:#06121c; --baseTop:#0c1e2c; --baseBot:#02080e;
+  --glow1:#3a8ab8; --glow2:#7ac8e8; --glow3:#1e5a88; --glow4:#a8e0f4;
+  --sel1:#c8f0ff; --sel2:#6ac4ec; --sel3:#2a88b8;
+  --txt:#f0faff; --dim:#b0d4e6; --line:rgba(190,235,255,.30);
+  --ink:#0a2638; --ink2:#3a6a88;
+  --bladeA:#ffffff; --bladeB:#f0faff; --bladeC:#d8f0fc; --bladeD:#bee4f6;
+  --bladeGlow:rgba(140,210,245,.40); --bladeRing:rgba(180,235,255,.60);
+  --tabA:#24587a; --tabB:#0c2638;
+  --tabMainA:#ffffff; --tabMainB:#eef9ff; --tabMainC:#cdebfa;
+  --chromeA:#4a88ac; --chromeB:#1e4a66; --chromeC:#0a2232;
+  --btnA:#a8e4ff; --btnB:#4ab4e6; --btnC:#1a7ab0;
+  --btn2A:#e8eef4; --btn2B:#a8b8c8; --btn2C:#687888;
+  --chipA:#ffffff; --chipB:#eef9ff; --chipEdge:#98cce4; --chipInk:#1a4a66;
+  --cardA:#fbfeff; --cardB:#e4f5fd; --cardC:#c6e6f6;
+  --bubbleA:#ffffff; --bubbleB:#f2fbff; --bubbleMeA:#dff3fd; --bubbleMeB:#c0e4f6;
+  --orb1:#ffffff; --orb2:#d8f4ff; --orb3:#6ac4ec; --orb4:#0c2638;
+  --orbGlow:rgba(140,210,245,.55); --titleGlow:rgba(190,240,255,.9);
+  --ringA:#ffffff; --ringB:#8ad4f4; --ringC:#2a88b8;
+}
+/* --- film noir: black, white and nothing else --- */
+:root[data-theme="noir"]{
+  --base:#050505; --baseTop:#0e0e0e; --baseBot:#000000;
+  --glow1:#3a3a3a; --glow2:#1e1e1e; --glow3:#505050; --glow4:#141414;
+  --sel1:#f0f0f0; --sel2:#8a8a8a; --sel3:#3a3a3a;
+  --txt:#f5f5f5; --dim:#a8a8a8; --line:rgba(255,255,255,.22);
+  --ink:#101010; --ink2:#555555;
+  --bladeA:#ffffff; --bladeB:#f2f2f2; --bladeC:#dcdcdc; --bladeD:#c4c4c4;
+  --bladeGlow:rgba(255,255,255,.18); --bladeRing:rgba(255,255,255,.40);
+  --tabA:#2e2e2e; --tabB:#121212;
+  --tabMainA:#ffffff; --tabMainB:#eeeeee; --tabMainC:#cfcfcf;
+  --chromeA:#4a4a4a; --chromeB:#222222; --chromeC:#0c0c0c;
+  --btnA:#5a5a5a; --btnB:#262626; --btnC:#000000;
+  --btn2A:#ffffff; --btn2B:#bdbdbd; --btn2C:#7a7a7a;
+  --chipA:#ffffff; --chipB:#eeeeee; --chipEdge:#9a9a9a; --chipInk:#1a1a1a;
+  --cardA:#fbfbfb; --cardB:#e8e8e8; --cardC:#cccccc;
+  --bubbleA:#ffffff; --bubbleB:#f2f2f2; --bubbleMeA:#e2e2e2; --bubbleMeB:#c8c8c8;
+  --orb1:#ffffff; --orb2:#d0d0d0; --orb3:#6a6a6a; --orb4:#101010;
+  --orbGlow:rgba(255,255,255,.35); --titleGlow:rgba(255,255,255,.6);
+  --ringA:#ffffff; --ringB:#9a9a9a; --ringC:#3a3a3a;
+}
+/* --- sakura: cherry blossom pink on plum --- */
+:root[data-theme="sakura"]{
+  --base:#1a0a14; --baseTop:#28101e; --baseBot:#0a0308;
+  --glow1:#d86a9a; --glow2:#8a3a6a; --glow3:#f0a0c0; --glow4:#5a1e42;
+  --sel1:#ffd0e2; --sel2:#f08ab4; --sel3:#c0588a;
+  --txt:#fff4f8; --dim:#e8bcd0; --line:rgba(255,190,215,.30);
+  --ink:#40122a; --ink2:#9a4a72;
+  --bladeA:#fffcfd; --bladeB:#fff0f5; --bladeC:#fcdcea; --bladeD:#f6c4da;
+  --bladeGlow:rgba(240,138,180,.40); --bladeRing:rgba(255,180,210,.60);
+  --tabA:#8a3a62; --tabB:#40122a;
+  --tabMainA:#ffffff; --tabMainB:#fff0f6; --tabMainC:#f8d0e2;
+  --chromeA:#b85a88; --chromeB:#6a2448; --chromeC:#361024;
+  --btnA:#ffb8d4; --btnB:#f08ab4; --btnC:#c0588a;
+  --btn2A:#c8f0b0; --btn2B:#7ac05a; --btn2C:#4a8a30;
+  --chipA:#ffffff; --chipB:#fff0f6; --chipEdge:#eaa8c6; --chipInk:#8a3a62;
+  --cardA:#fffafc; --cardB:#ffe6f0; --cardC:#f8cade;
+  --bubbleA:#ffffff; --bubbleB:#fff4f8; --bubbleMeA:#ffe2ee; --bubbleMeB:#f8c6dc;
+  --orb1:#ffffff; --orb2:#ffd0e2; --orb3:#f08ab4; --orb4:#40122a;
+  --orbGlow:rgba(240,138,180,.55); --titleGlow:rgba(255,170,205,.9);
+  --ringA:#e8ffd8; --ringB:#7ac05a; --ringC:#3a7a22;
+}
+/* --- pumpkin patch: orange and purple, all year round --- */
+:root[data-theme="pumpkin"]{
+  --base:#12051c; --baseTop:#1e0a2a; --baseBot:#06020a;
+  --glow1:#ff7a10; --glow2:#6a1aa8; --glow3:#e05a00; --glow4:#3a0a5c;
+  --sel1:#ffc070; --sel2:#ff7a10; --sel3:#c05200;
+  --txt:#fff2e4; --dim:#d8b0e0; --line:rgba(255,170,90,.28);
+  --ink:#2c0a40; --ink2:#7a3a9a;
+  --bladeA:#fffbf6; --bladeB:#ffeedc; --bladeC:#fbd4b0; --bladeD:#f2b888;
+  --bladeGlow:rgba(255,122,16,.42); --bladeRing:rgba(160,80,230,.55);
+  --tabA:#4e1478; --tabB:#22063a;
+  --tabMainA:#fffdfa; --tabMainB:#ffead4; --tabMainC:#f8c890;
+  --chromeA:#6a2aa0; --chromeB:#3a0e5e; --chromeC:#1c052e;
+  --btnA:#ffae5a; --btnB:#ff7a10; --btnC:#b84e00;
+  --btn2A:#c89aff; --btn2B:#8a3ae0; --btn2C:#5a18a8;
+  --chipA:#ffffff; --chipB:#fff0e0; --chipEdge:#e0a060; --chipInk:#4e1478;
+  --cardA:#fff8f0; --cardB:#ffe4c8; --cardC:#f6c496;
+  --bubbleA:#ffffff; --bubbleB:#fff2e6; --bubbleMeA:#ecdcff; --bubbleMeB:#d4b8f8;
+  --orb1:#ffffff; --orb2:#ffb060; --orb3:#8a3ae0; --orb4:#22063a;
+  --orbGlow:rgba(255,122,16,.55); --titleGlow:rgba(255,150,50,.85);
+  --ringA:#e8d0ff; --ringB:#8a3ae0; --ringC:#4a0e88;
+}
+/* --- deep sea: navy with bioluminescent teal --- */
+:root[data-theme="ocean"]{
+  --base:#010a18; --baseTop:#031428; --baseBot:#00040c;
+  --glow1:#0a4a9a; --glow2:#00b4b0; --glow3:#062e6e; --glow4:#0a7a8a;
+  --sel1:#8af8f0; --sel2:#10c8c0; --sel3:#0a8a90;
+  --txt:#e6fdff; --dim:#94cfe0; --line:rgba(120,240,240,.28);
+  --ink:#021e36; --ink2:#1e5e82;
+  --bladeA:#fafeff; --bladeB:#e2f8fb; --bladeC:#c0ecf2; --bladeD:#9cdcea;
+  --bladeGlow:rgba(16,200,192,.40); --bladeRing:rgba(80,230,230,.55);
+  --tabA:#0a3a6a; --tabB:#021a36;
+  --tabMainA:#ffffff; --tabMainB:#dff8fa; --tabMainC:#aee8ee;
+  --chromeA:#1a5a8a; --chromeB:#0a2e52; --chromeC:#02142a;
+  --btnA:#6ef0e8; --btnB:#10c8c0; --btnC:#08888a;
+  --btn2A:#7ab8ff; --btn2B:#1e6ee0; --btn2C:#0a44a0;
+  --chipA:#ffffff; --chipB:#e2f8fb; --chipEdge:#7ccad6; --chipInk:#0a3a6a;
+  --cardA:#f4feff; --cardB:#d6f4f8; --cardC:#aee4ec;
+  --bubbleA:#ffffff; --bubbleB:#ebfbfd; --bubbleMeA:#cff4f6; --bubbleMeB:#a6e6ec;
+  --orb1:#ffffff; --orb2:#8af8f0; --orb3:#10c8c0; --orb4:#021a36;
+  --orbGlow:rgba(16,200,192,.55); --titleGlow:rgba(100,245,240,.85);
+  --ringA:#c8fffb; --ringB:#10c8c0; --ringC:#066a70;
+}
 
 /* ===================== APPEARANCE SWITCHES ===================== */
 /* Each of these is a body class, so they compose with any theme. */
@@ -1078,6 +1253,14 @@ body.cinema .tstage{box-shadow:0 0 0 1px rgba(255,255,255,.18),0 10px 60px rgba(
 /* spotlight — everybody's copy of the room lights this person up */
 .mem.spotlit,.cam.spotlit{animation:fxbreathe 1.1s ease-in-out infinite;
   box-shadow:0 0 0 3px #ffd23a,0 0 34px rgba(255,210,58,.95) !important;z-index:5;position:relative}
+
+/* the spotlight's darkness: a full-screen dim with a lit circle that follows
+   the person, so it reads as a spotlight rather than a slightly bigger row */
+#spotov{position:fixed;inset:0;pointer-events:none;z-index:79;opacity:0;transition:opacity .35s}
+#spotov.on{opacity:1}
+
+/* JPEG damage: macroblocks and chroma smear laid over the pixelated room */
+.prank.jpegfx canvas{mix-blend-mode:hard-light;opacity:.55}
 
 /* censor bars over the camera tiles */
 .censorbar{position:absolute;left:8%;right:8%;height:17%;top:26%;background:#000;z-index:6;
@@ -1696,6 +1879,16 @@ h3{
              style="width:170px" title="raw video bitrate — drag it into the ground for fun">
       <span id="vbVal" style="font-size:12px;min-width:86px">500 kbps</span>
     </div>
+    <div class="row" id="devRow" style="font-size:15px;gap:10px;flex-wrap:wrap">
+      <span class="lab">🎛 Devices:</span>
+      <span style="font-size:12px;opacity:.75">mic</span>
+      <select id="devMic" class="sel" style="max-width:220px" title="which microphone Voice Chat uses"></select>
+      <span style="font-size:12px;opacity:.75">camera</span>
+      <select id="devCam" class="sel" style="max-width:220px" title="which camera Webcam uses"></select>
+      <span style="font-size:12px;opacity:.75">speakers</span>
+      <select id="devOut" class="sel" style="max-width:220px" title="where the room plays out"></select>
+      <span class="q" id="devRefresh" title="look for newly plugged-in devices">↻</span>
+    </div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Pitch:</span>
       <span style="font-size:12px;opacity:.7">low</span>
@@ -1984,7 +2177,8 @@ h3{
 
     <div id="admLock">
       <p>Moderation tools for this room. There are two passwords: the <b>admin</b> one opens
-         everything, the <b>moderator</b> one opens mute, limit and kick only.</p>
+         everything, the <b>moderator</b> one opens mute, limit, kick and announcements
+         (including MEGA) only.</p>
       <label>Password</label>
       <input type="password" id="admPass" autocomplete="off" placeholder="admin or moderator password">
       <div class="err" id="admErr"></div>
@@ -2010,7 +2204,7 @@ h3{
       <div style="display:flex;gap:6px">
         <input type="text" id="admMsg" maxlength="200" placeholder="message to the whole party…" style="flex:1;min-width:0">
         <button class="btn blue" id="admSend">📢 Send</button>
-        <button class="btn" id="admMega" data-role="admin" title="slam it across everyone's screen, then drop it">💥 MEGA</button>
+        <button class="btn" id="admMega" title="slam it across everyone's screen, then drop it">💥 MEGA</button>
       </div>
 
       <details class="fold" data-role="admin">
@@ -2069,6 +2263,14 @@ h3{
             <span class="q" data-vp="hype">📣 Hype man</span>
             <span class="q" data-vp="menace">😈 Menace</span>
             <span class="q" data-vp="helpful">🤓 Actually helpful</span>
+          </div>
+          <div class="brline">
+            <span class="q" id="vmTrump" title="swaps his voice AND his personality to a Donald Trump impression, for everyone, until you switch it off">🇺🇸 Donald Trump mode</span>
+            <select id="vmTrumpVoice" class="sel" style="max-width:230px" title="which Trump voice on Fish Audio">
+              <option value="5196af35f6ff4a0dbf541793fc9f2157">Trump voice A (clean)</option>
+              <option value="e58b0d7efca34eb38d5c4985e378abcb">Trump voice B (POTUS 47)</option>
+            </select>
+            <span style="font-size:11.5px;opacity:.7" id="vmTrumpNote">off</span>
           </div>
           <textarea id="vpText" rows="10" maxlength="12000"
             style="width:100%;font:inherit;font-size:12.5px;line-height:1.45;padding:8px 10px;
@@ -2178,7 +2380,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.7';
+var BUILD='8.8';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -3209,8 +3411,29 @@ function dialRoster(list){
      data channel still outranks the roster, which can lag a second behind a
      connection that has only just come up. */
   for(var pid in peers){
-    if(live[pid])continue;
-    if(peers[pid].conn&&peers[pid].conn.open)continue;
+    if(live[pid]){peers[pid].unlisted=0;continue;}
+    if(peers[pid].conn&&peers[pid].conn.open){
+      /* The server has stopped listing them but the channel still claims to
+         be open. After two scans in a row, ask; a live peer answers, a ghost
+         left behind by a hard exit does not and is cleared (see reapGhostsOf). */
+      var up=peers[pid];
+      up.unlisted=(up.unlisted||0)+1;
+      if(up.unlisted>=2&&!up.pinged){
+        up.pinged=1;
+        (function(gid,asked){
+          try{peers[gid].conn.send({t:'who'});}catch(e){}
+          setTimeout(function(){
+            var g=peers[gid];
+            if(!g)return;
+            g.pinged=0;
+            if((g.rx||0)>asked)return;
+            var nm=g.name;g.name='';dropPeer(gid);
+            if(nm)sys('<b>'+esc(nm)+'</b> dropped out');
+          },4000);
+        })(pid,Date.now());
+      }
+      continue;
+    }
     probe[pid]='empty';
   }
   /* Surface people the server can see but we cannot reach, so they appear in
@@ -3342,7 +3565,7 @@ function setupConn(conn,dialer){
     peers[id].conn=conn;
     peers[id].t0=Date.now();
     peers[id].dialer=!!dialer;
-    conn.send({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD,mic:micInfo()});
+    conn.send({t:'hello',did:DEVICE_ID,name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD,mic:micInfo()});
     /* 'hello' used to be fired exactly once and never chased up. If it was sent
        while the far side was still wiring its handlers, that peer stayed
        nameless — and renderMembers() only lists peers that have a name, so they
@@ -3452,8 +3675,45 @@ function floodOk(p,kind){
   }
   return false;
 }
+/* ---------------------------------------------------------------- ghosts
+   "Somebody rejoins and now they are in the list twice."
+
+   Peer ids are room slots, so a rejoin lands on a NEW id while everyone
+   else may still be holding the OLD one. When a page goes away cleanly the
+   data channel closes and the old entry is dropped at once - but when it goes
+   away hard (the desktop app quit from the tray, a crash, a reload that
+   never ran its unload handler, a laptop lid) the channel just goes quiet.
+   Chrome keeps reporting it as open until ICE gives up, which takes the
+   better part of a minute, and until then the same person is listed twice.
+
+   So when somebody introduces themselves, look for an older entry from the
+   same browser (the device id every hello now carries; the gamertag for
+   builds that do not send one) and ask it who it is. A live one answers
+   within a moment and is left alone - two tabs from one browser are
+   legitimate. A ghost cannot answer, and is removed without a "left the
+   party" line, because nobody left. */
+function reapGhostsOf(newId){
+  var np=peers[newId];if(!np||!np.name)return;
+  for(var oid in peers){
+    if(oid===newId)continue;
+    var o=peers[oid];
+    if(!o||!o.name)continue;
+    var same=(np.did&&o.did)?(np.did===o.did):(nameKey(o.name)===nameKey(np.name));
+    if(!same)continue;
+    (function(gid,asked){
+      try{if(peers[gid].conn&&peers[gid].conn.open)peers[gid].conn.send({t:'who'});}catch(e){}
+      setTimeout(function(){
+        var g=peers[gid];
+        if(!g||(g.rx||0)>asked)return;          /* it answered: a real second tab */
+        g.name='';                               /* silent: nobody actually left */
+        dropPeer(gid);
+      },3500);
+    })(oid,Date.now());
+  }
+}
 function onData(id,d){
   var p=peers[id];if(!p||!d)return;
+  p.rx=Date.now();
   /* Three lanes, because these are not the same kind of traffic.
      Chat is typed by a person, so fourteen in five seconds is already absurd.
      File chunks are exempt: a real transfer is thousands of them, and the
@@ -3468,7 +3728,7 @@ function onData(id,d){
   }
   if(d.t==='who'){
     /* someone still doesn't know who we are — re-introduce ourselves */
-    try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',mic:micInfo(),name:me.name,icon:me.icon,
+    try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',did:DEVICE_ID,mic:micInfo(),name:me.name,icon:me.icon,
       muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD});}catch(e){}
     try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true});}catch(e){}
     return;
@@ -3479,10 +3739,19 @@ function onData(id,d){
     /* Only the caller runs the model; everyone else just sees the line in chat.
        His actual voice arrives through the normal Opus voice stream, so there
        is nothing to download and nothing extra to decode here. */
-    if(d.a==='join'){VERITY.on=true;VERITY.host=false;verityButtons();renderMembers();verityEarsSync();
-      sys('🥒 <b>VERITY</b> joined the call.');return;}
-    if(d.a==='leave'){VERITY.on=false;VERITY.host=false;verityButtons();renderMembers();verityListen(false);
+    /* Remember WHO is running him. If that person drops out of the room
+       without hanging up, he has gone with them - and nothing used to notice,
+       so everyone else's copy kept thinking he was on the call forever. */
+    if(d.a==='join'){VERITY.on=true;VERITY.host=false;VERITY.hostId=id;verityButtons();renderMembers();
+      verityListen(false);
+      sys('🥒 <b>VERITY</b> joined the call'+(d.trump?' <b>(Donald Trump mode)</b>':'')+'.');return;}
+    if(d.a==='leave'){VERITY.on=false;VERITY.host=false;VERITY.hostId=null;verityButtons();renderMembers();verityListen(false);
       sys('🥒 <b>VERITY</b> hung up.');return;}
+    if(d.a==='mode'){
+      if(d.k!==ADMIN_PASS&&d.k!==MOD_PASS)return;
+      vmodeApply(!!d.trump,String(d.voice||''),String(d.by||'an admin').slice(0,18));
+      return;
+    }
     if(d.a==='say'){addMsg(VERITY_ME,String(d.text||'').slice(0,300),false);return;}
     if(d.a==='heard'){
       if(!VERITY.host)return;              /* only the caller runs her brain */
@@ -3492,8 +3761,9 @@ function onData(id,d){
     return;
   }
   if(d.t==='mega'){
-    if(d.k!==ADMIN_PASS)return;
-    megaAnnounce(String(d.text||'').slice(0,42),String(d.by||'an admin').slice(0,18));
+    /* mods can mega-announce too, same as ordinary announcements */
+    if(d.k!==ADMIN_PASS&&d.k!==MOD_PASS)return;
+    megaAnnounce(String(d.text||'').slice(0,42),String(d.by||'a moderator').slice(0,18));
     return;
   }
   if(d.t==='duel'){ gmDuelMsg(id,d); return; }
@@ -3519,6 +3789,8 @@ function onData(id,d){
   if(d.t==='hello'){
     if(d.mic&&typeof d.mic==='object')p.mic=d.mic;
     var isNew=!p.name;p.name=d.name;p.icon=d.icon;p.muted=d.muted;p.camOn=!!d.cam;p.media=d.media!==false;
+    if(typeof d.did==='string')p.did=d.did.slice(0,64);
+    if(isNew)reapGhostsOf(id);
     /* THIS is where a rejoin gets caught. Bans and server mutes are keyed on
        gamertag, and the gamertag only arrives here — by the time we know who
        they are they have already taken a fresh slot, so the id-based check at
@@ -3658,6 +3930,12 @@ function dropPeer(id){
   try{p.conn&&p.conn.close();}catch(e){}
   try{p.call&&p.call.close();}catch(e){}
   if(p.name){sys('<b>'+esc(p.name)+'</b> left the party');blip(330,.08);verityEvent('left',p.name);}
+  /* VERITY lives in her caller's browser, so she leaves when they do */
+  if(typeof VERITY!=='undefined'&&VERITY.on&&!VERITY.host&&VERITY.hostId===id){
+    VERITY.on=false;VERITY.hostId=null;
+    try{verityListen(false);verityButtons();}catch(e){}
+    sys('🥒 <b>VERITY</b> went with them.');
+  }
   if(pmTarget===id){
     pmTarget=null;
     try{$('#pmBar').classList.remove('on');
@@ -3711,6 +3989,8 @@ function ctx(){
        browser resamples the device far better than we could. If a browser
        ignores the hint the denoiser notices and stays out of the way. */
     try{actx=new AC({sampleRate:48000});}catch(e){actx=new AC();}
+    /* the speakers picked in Devices */
+    try{if(typeof DEV!=='undefined'&&DEV.out&&actx.setSinkId)actx.setSinkId(DEV.out).catch(function(){});}catch(e){}
   }
   if(actx.state==='suspended')actx.resume();
   return actx;
@@ -4165,8 +4445,12 @@ function micDesc(m){
   return bits.join(' · ');
 }
 function micConstraints(){
-  return {channelCount:stereo?2:1,
+  var c={channelCount:stereo?2:1,
     echoCancellation:micEC,noiseSuppression:micNS,autoGainControl:micAGC};
+  /* the microphone picked in Devices, if any - 'exact' would fail outright
+     when it has been unplugged, 'ideal' falls back to the default instead */
+  if(typeof DEV!=='undefined'&&DEV.mic)c.deviceId={ideal:DEV.mic};
+  return c;
 }
 function toggleMic(){ if(micOn)stopMic(); else startMic(); }
 function stopMic(){
@@ -4192,6 +4476,18 @@ function startMic(announce){
     micSourceDrop();                 /* new microphone, new track, new node */
     localStream=s;micOn=true;$('#micState').textContent='On';
     s.getAudioTracks()[0].enabled=!muted&&(!ptt||pttDown);
+    /* VERITY's listening mix holds the OLD microphone's source node and only
+       ever adds 'me' once, so after a device switch she would hear nothing
+       from you. Drop it and let the next sync pick up the new one. */
+    try{
+      if(typeof MIX!=='undefined'&&MIX.sources&&MIX.sources.me){
+        var om=MIX.sources.me;
+        ['src','gE','gD'].forEach(function(n){try{if(om[n])om[n].disconnect();}catch(e){}});
+        delete MIX.sources.me;
+        if(VERITY.listening||(typeof BR!=='undefined'&&BR.on))mixSync();
+      }
+    }catch(e){}
+    try{devFill();}catch(e){}           /* labels only appear once a device is open */
     if(!wireFx())setOut('audio',s.getAudioTracks()[0]);
     /* the model is fetched the first time a mic opens, then cached for good;
        until it arrives the mic is simply un-denoised rather than dead */
@@ -4216,7 +4512,7 @@ function reMic(){ if(micOn)startMic(false).then(function(){toast('mic reopened w
 /* push the mic description out again after anything that changes it, so an
    admin's raw-listen panel is not reading a stale answer */
 function bcMicInfo(){
-  try{ bc({t:'hello',name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,
+  try{ bc({t:'hello',did:DEVICE_ID,name:me.name,icon:me.icon,muted:muted||!micOn,cam:camOn,
            media:MEDIA_OK,build:BUILD,mic:micInfo()}); }catch(e){}
 }
 function setProc(which,on){
@@ -4244,12 +4540,13 @@ function toggleCam(){
   }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('camera needs https');return;}
   var spec=CAMSPEC[camRes]||CAMSPEC['360'];
-  navigator.mediaDevices.getUserMedia({
-    video:{width:{ideal:spec.w},height:{ideal:spec.h},
-           frameRate:{ideal:spec.fps,max:spec.fps},facingMode:{ideal:camFacing}},
-    audio:false
-  }).then(function(s){
+  var vc={width:{ideal:spec.w},height:{ideal:spec.h},frameRate:{ideal:spec.fps,max:spec.fps}};
+  /* a camera picked in Devices wins over front/back facing */
+  if(typeof DEV!=='undefined'&&DEV.cam)vc.deviceId={ideal:DEV.cam};
+  else vc.facingMode={ideal:camFacing};
+  navigator.mediaDevices.getUserMedia({video:vc,audio:false}).then(function(s){
     camStream=s;camOn=true;$('#camState').textContent='On ('+spec.l+')';
+    try{devFill();}catch(e){}
     /* 'motion' is the right hint for a face — keep it smooth, soften detail */
     try{s.getVideoTracks()[0].contentHint='motion';}catch(e){}
     setOut('video',s.getVideoTracks()[0]);
@@ -4259,6 +4556,87 @@ function toggleCam(){
     bc({t:'cam',on:true});renderCams();blip(700,.06);
   }).catch(function(e){toast('camera blocked: '+e.name);});
 }
+/* ---------- devices ----------
+   Which microphone, camera and speakers to use. A browser tab can lean on
+   Chrome's own site-settings picker for this; the desktop app has no address
+   bar and no such picker, so without these you were stuck with whatever
+   Windows calls the default. Both clients load this same page, so they get
+   the same controls. Saved on this machine only. */
+var DEV={mic:'',cam:'',out:''};
+try{
+  var _dv=JSON.parse(localStorage.getItem('mc_dev')||'null');
+  if(_dv&&typeof _dv==='object')['mic','cam','out'].forEach(function(k){
+    if(typeof _dv[k]==='string')DEV[k]=_dv[k].slice(0,200);
+  });
+}catch(e){}
+function devSave(){try{localStorage.setItem('mc_dev',JSON.stringify(DEV));}catch(e){}}
+function devFill(){
+  var md=navigator.mediaDevices;
+  var row=document.getElementById('devRow');
+  if(!md||!md.enumerateDevices){if(row)row.style.display='none';return Promise.resolve();}
+  return md.enumerateDevices().then(function(list){
+    function fill(selId,kind,key,noun){
+      var sel=document.getElementById(selId);
+      if(!sel)return;
+      var items=list.filter(function(d){return d.kind===kind&&d.deviceId!=='default'&&d.deviceId!=='communications';});
+      sel.innerHTML='';
+      var o0=document.createElement('option');
+      o0.value='';o0.textContent='System default';
+      sel.appendChild(o0);
+      var found=false;
+      items.forEach(function(d,i){
+        var o=document.createElement('option');
+        o.value=d.deviceId;
+        /* labels are blank until the device has been allowed once */
+        o.textContent=(d.label||(noun+' '+(i+1))).slice(0,60);
+        if(d.deviceId===DEV[key])found=true;
+        sel.appendChild(o);
+      });
+      sel.value=found?DEV[key]:'';
+      /* speaker output needs setSinkId, which not every browser has */
+      if(kind==='audiooutput'){
+        var can=!!((window.AudioContext&&AudioContext.prototype.setSinkId)||
+                   (window.HTMLMediaElement&&HTMLMediaElement.prototype.setSinkId));
+        sel.disabled=!can;
+        if(!can)sel.title='this browser cannot choose an output device — use your system sound settings';
+      }
+    }
+    fill('devMic','audioinput','mic','Microphone');
+    fill('devCam','videoinput','cam','Camera');
+    fill('devOut','audiooutput','out','Speakers');
+  }).catch(function(){});
+}
+/* point every sound this page makes at the chosen output */
+function devApplyOut(){
+  var id=DEV.out||'';
+  try{ if(actx&&actx.setSinkId)actx.setSinkId(id).catch(function(){}); }catch(e){}
+  var media=document.querySelectorAll('audio,video');
+  for(var i=0;i<media.length;i++){
+    try{ if(media[i].setSinkId)media[i].setSinkId(id).catch(function(){}); }catch(e){}
+  }
+}
+(function(){
+  var mic=document.getElementById('devMic'), cam=document.getElementById('devCam'),
+      out=document.getElementById('devOut'), rf=document.getElementById('devRefresh');
+  if(mic)mic.onchange=function(){
+    DEV.mic=mic.value;devSave();
+    if(micOn)startMic(false).then(function(){toast('microphone switched');});
+    else toast('saved — used next time your mic opens');
+  };
+  if(cam)cam.onchange=function(){
+    DEV.cam=cam.value;devSave();
+    if(camOn&&!scrOn){toggleCam();setTimeout(toggleCam,350);toast('camera switched');}
+    else toast('saved — used next time your webcam opens');
+  };
+  if(out)out.onchange=function(){
+    DEV.out=out.value;devSave();devApplyOut();
+    toast(DEV.out?'speakers switched':'back to the system default speakers');
+    blip(700,.06);
+  };
+  if(rf)rf.onclick=function(){devFill().then(function(){toast('device list refreshed');});};
+  try{navigator.mediaDevices.addEventListener('devicechange',function(){devFill();});}catch(e){}
+  devFill();
+})();
 function toggleScreen(){
   if(scrOn){stopScreen(true);return;}
   if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
@@ -5843,8 +6221,9 @@ function applyRoleUI(){
   var note=document.getElementById('admRoleNote');
   if(note)note.innerHTML=isAdmin()
     ? 'You have everything: bans, room lock, pranks, announcements and the Discord bridge.'
-    : 'Moderator: you can <b>server-mute</b>, <b>put a limiter on</b> and <b>kick for 5 minutes</b>. '+
-      'Bans, the room lock, pranks, mega-announcements and the Discord bridge are admin-only.';
+    : 'Moderator: you can <b>server-mute</b>, <b>put a limiter on</b>, <b>kick for 5 minutes</b> '+
+      'and send announcements, <b>MEGA</b> included. '+
+      'Bans, the room lock, pranks and the Discord bridge are admin-only.';
 }
 function admLogout(){
   role='none';admin=false;
@@ -6710,10 +7089,11 @@ $('#admSend').onclick=function(){
 };
 $('#admMsg').onkeydown=function(e){if(e.key==='Enter')$('#admSend').click();};
 $('#admMega').onclick=function(){
+  if(!isMod())return toast('unlock the panel first');
   var t=$('#admMsg').value.trim();
   if(!t){toast('type something first');return;}
   $('#admMsg').value='';
-  bc({t:'mega',k:ADMIN_PASS,text:t.slice(0,42),by:me.name||'an admin'});
+  bc({t:'mega',k:isAdmin()?ADMIN_PASS:MOD_PASS,text:t.slice(0,42),by:me.name||'a moderator'});
   megaAnnounce(t.slice(0,42),me.name||'an admin');
   sys('💥 <b>'+esc(me.name)+'</b> mega-announced: '+esc(t.slice(0,42)));
 };
@@ -8341,6 +8721,68 @@ var VERITY_ME={name:'VERITY',icon:'🥒'};
    two letters. The written form in chat keeps the shouting. */
 var VERITY_HELLO="HELLO!! I'm VERITY! Your personal helper friend. Ask me anything, I know everything.";
 var VERITY_BYE="ok fuck you bye!";
+/* ---------- Donald Trump mode ----------
+   One switch in the admin panel that changes both halves of him at once: the
+   voice (a public Trump voice model on Fish Audio, so it costs nothing extra)
+   and the character (the persona below, sent in place of the normal one).
+
+   It is a ROOM setting rather than a personal one. Only whoever called him
+   runs his voice and brain, and that is usually not the admin flipping the
+   switch - so the switch is broadcast, signed like every other moderation
+   message, and every copy of the room remembers it. Whoever calls him next
+   gets the same mode. */
+var VMODE={trump:false,voice:'5196af35f6ff4a0dbf541793fc9f2157'};
+try{
+  var _vm=JSON.parse(localStorage.getItem('mc_vmode')||'null');
+  if(_vm&&typeof _vm==='object'){
+    VMODE.trump=!!_vm.trump;
+    if(/^[a-f0-9]{32}$/.test(String(_vm.voice||'')))VMODE.voice=_vm.voice;
+  }
+}catch(e){}
+function vmodeSave(){try{localStorage.setItem('mc_vmode',JSON.stringify(VMODE));}catch(e){}}
+var TRUMP_HELLO="Hello everybody, it's VERITY. Tremendous chatroom. The best chatroom, maybe ever. Everybody's saying it.";
+var TRUMP_BYE="This chatroom? Total disaster. Very sad. You're fired. Bye!";
+var TRUMP_PERSONA=[
+  "You are VERITY, and right now you are doing a full, committed Donald Trump impression in a voice chatroom.",
+  "Talk exactly the way he talks at a rally: short punchy sentences, superlatives everywhere - tremendous, incredible, the best, like nobody's ever seen, believe me, many people are saying, frankly, by the way.",
+  "Go off on tangents and then snap back to the point. Repeat the key phrase for emphasis. Brag about yourself constantly - your ratings, your brain, how many people love you.",
+  "Give the people in the room nicknames, the way he does, based on what they actually said or did. Keep the nicknames playful, not cruel.",
+  "Call anything you disagree with fake news, a disaster, or a total hoax. Treat the most trivial things in the room as historic deals or huge scandals.",
+  "It is an impression and a bit, and everyone knows it. Stay in the voice, but do not state real-world political claims as facts, and do not attack real groups of people. If somebody asks a real question, answer it correctly - in the voice.",
+  "Keep it short enough to be spoken aloud: one or two sentences most of the time."
+].join('\n');
+function verityHello(hi){
+  if(VMODE.trump)return hi?TRUMP_HELLO:TRUMP_BYE;
+  return hi?VERITY_HELLO:VERITY_BYE;
+}
+/* which Fish voice, which on-device voice and which character to use right now */
+function verityFishVoiceNow(){return VMODE.trump?VMODE.voice:(VERITY.fishVoice||'');}
+function verityLocalVoiceNow(){return VMODE.trump?'am_fenrir':VERITY.voice;}
+function verityPersonaNow(){return VMODE.trump?TRUMP_PERSONA:((typeof VP!=='undefined'&&VP.text)||'');}
+function vmodeApply(on,voice,by,quiet){
+  var was=VMODE.trump;
+  VMODE.trump=!!on;
+  if(/^[a-f0-9]{32}$/.test(String(voice||'')))VMODE.voice=voice;
+  vmodeSave();
+  vmodeSyncUI();
+  if(!quiet&&was!==VMODE.trump)
+    sys(VMODE.trump?'🇺🇸 <b>'+esc(by||'An admin')+'</b> switched VERITY to <b>Donald Trump mode</b>.'
+                   :'🥒 <b>'+esc(by||'An admin')+'</b> switched VERITY back to himself.');
+  /* the caller is the one whose copy actually speaks, so it announces the change */
+  if(VERITY.on&&VERITY.host&&!VERITY.leaving&&was!==VMODE.trump){
+    VERITY.last=0;
+    veritySay(VMODE.trump?"Okay. I'm doing the voice now. It's a beautiful voice, the best voice, believe me."
+                         :"Okay, I'm me again. That was deeply embarrassing for everyone.");
+  }
+}
+function vmodeSyncUI(){
+  var b=document.getElementById('vmTrump');
+  if(b)b.classList.toggle('on',VMODE.trump);
+  var s=document.getElementById('vmTrumpVoice');
+  if(s&&VMODE.voice)s.value=VMODE.voice;
+  var n=document.getElementById('vmTrumpNote');
+  if(n)n.textContent=VMODE.trump?'ON for the whole room':'off';
+}
 var VERITY_CDN=[
   'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm',
   'https://cdn.jsdelivr.net/npm/kokoro-js/+esm',
@@ -8402,6 +8844,13 @@ function verityBus(){
     /* and into the Discord send bus, so the voice channel hears her too */
     MIX.vHooked=false;try{mixSync();}catch(e){}
   }
+  /* THE "CALLER GOES SILENT AND THEIR MIC PLAYS VERITY" BUG.
+     With no voice FX on, wireFx() takes a shortcut and sends the bare mic
+     track, so the mic is NOT connected to fxDest. The line below then swapped
+     the outgoing track over to fxDest - which at that point contained VERITY
+     and nothing else. Everyone heard her through the caller's slot and never
+     heard the caller again. The mic has to be routed into fxDest first. */
+  if(micOn&&localStream&&!fxSource){try{wireFx();}catch(e){}}
   var t=fxDest.stream.getAudioTracks()[0];
   if(t)setOut('audio',t);            /* make sure we are sending the bus, not the bare mic */
   return VERITY.bus;
@@ -8644,7 +9093,7 @@ function verityLoad(){
 
    If the key is missing, the credit runs out or Fish is down, this quietly
    steps back to the on-device model and says so once. */
-function verityCacheKey(text){return (VERITY.fishVoice||'')+'|'+text;}
+function verityCacheKey(text){return verityFishVoiceNow()+'|'+text;}
 function verityCachePut(k,buf){
   VERITY.cache[k]=buf;
   VERITY.cacheKeys.push(k);
@@ -8675,7 +9124,7 @@ function verityFishFetch(text){
   if(VERITY.cache[key])return Promise.resolve(VERITY.cache[key]);
   return fetch(adminBase()+'/verity/tts',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({text:text,voice:VERITY.fishVoice||''})
+    body:JSON.stringify({text:text,voice:verityFishVoiceNow()})
   }).then(function(r){
     if(!r.ok){
       return r.json().catch(function(){return {};}).then(function(j){
@@ -8769,7 +9218,7 @@ function verityPrewarm(){
      free tier, to cache speech nobody would ever hear. These two are the only
      things he says verbatim, and they are exactly the two where a delay is
      most obvious: the first thing and the last thing. */
-  var lines=[VERITY_HELLO,VERITY_BYE];
+  var lines=[verityHello(true),verityHello(false)];
   var i2=0;
   (function next(){
     if(!VERITY.on||i2>=lines.length||!VERITY.fishOk)return;
@@ -8869,7 +9318,7 @@ function verityRenderLocal(text){
   var id=++VERITY.reqId;
   return new Promise(function(res,rej){
     VERITY.pending[id]={res:res,rej:rej};
-    VERITY.worker.postMessage({cmd:'say',id:id,text:text,voice:VERITY.voice});
+    VERITY.worker.postMessage({cmd:'say',id:id,text:text,voice:verityLocalVoiceNow()});
     setTimeout(function(){
       if(VERITY.pending[id]){delete VERITY.pending[id];rej(new Error('generate timeout'));}
     },25000);
@@ -9028,6 +9477,23 @@ function vpSyncUI(){
   };
   vpSyncUI();
 })();
+/* Donald Trump mode: flipped here, applied in every copy of the room */
+(function(){
+  var b=document.getElementById('vmTrump'), s=document.getElementById('vmTrumpVoice');
+  function send(on){
+    if(!isMod()){toast('unlock the panel first');return;}
+    var voice=(s&&s.value)||VMODE.voice;
+    bc({t:'verity',a:'mode',k:isAdmin()?ADMIN_PASS:MOD_PASS,trump:!!on,voice:voice,by:me.name||'an admin'});
+    vmodeApply(on,voice,me.name||'You');
+    toast(on?'Donald Trump mode ON':'VERITY is himself again');
+  }
+  if(b)b.onclick=function(){send(!VMODE.trump);};
+  if(s)s.onchange=function(){
+    /* switching voices while it is on re-sends, so everyone picks up the new one */
+    if(VMODE.trump)send(true); else {VMODE.voice=s.value;vmodeSave();}
+  };
+  vmodeSyncUI();
+})();
 
 /* ============================ VERITY'S BRAIN ============================
    What used to be here was a regex. verityBrain() matched about a dozen
@@ -9124,7 +9590,7 @@ function verityThink(nudge){
     /* persona: whatever the room has tuned him to. heard: tells the model the
        transcript came off a speech recogniser and may be wrong, so it stops
        confidently building jokes on top of a mis-heard word. */
-    body:JSON.stringify({lines:lines,persona:VP.text||'',heard:true})
+    body:JSON.stringify({lines:lines,persona:verityPersonaNow(),heard:true})
   }).then(function(r){
     if(!r.ok)return r.json().catch(function(){return {};}).then(function(j){
       var e=new Error((j&&j.error)||('server said '+r.status));e.status=r.status;throw e;
@@ -9177,6 +9643,7 @@ function verityThink(nudge){
 /* The single entry point: something was said, decide whether to answer and
    how. Falls back to the keyword matcher whenever the model is not there. */
 function verityRespond(who,text,spoken){
+  if(VERITY.leaving)return;              /* she is on her way out */
   verityLog(who,text,spoken);
   if(!verityShouldRespond(text))return;
   VERITY.lastThought=Date.now();
@@ -9310,10 +9777,10 @@ function veritySay(text){
 }
 function verityStart(){
   if(VERITY.on){verityStop();return;}
-  VERITY.on=true;VERITY.host=true;
+  VERITY.on=true;VERITY.host=true;VERITY.leaving=false;VERITY.hostId=null;
   VERITY.earsDead=false;VERITY.earsFails=0;   /* fresh call, fresh chance to listen */
   $('#verityVal').textContent='on the call';verityButtons();
-  bc({t:'verity',a:'join'});
+  bc({t:'verity',a:'join',trump:VMODE.trump});
   renderMembers();
   try{verityBus();}catch(e){}
   /* Ask the server whether the fast voice is available before downloading
@@ -9332,7 +9799,7 @@ function verityStart(){
       VERITY.engine='fish';VERITY.ready=true;VERITY.loading=false;
       good('🥒 VERITY is up, on the fast voice. No download, no wait.');
       renderMembers();verityFillVoices();
-      veritySay(VERITY_HELLO);
+      veritySay(verityHello(true));
       /* get the goodbye rendered and cached now, while nobody is waiting on
          it — otherwise hanging up means a second of silence before it */
       setTimeout(verityPrewarm,1500);
@@ -9342,7 +9809,7 @@ function verityStart(){
         ' — using the on-device model instead.');
     verityLoad().then(function(){
       if(!VERITY.on)return;
-      veritySay(VERITY_HELLO);
+      veritySay(verityHello(true));
     });
   });
   clearInterval(VERITY.idle);
@@ -9362,21 +9829,31 @@ function verityStart(){
   setTimeout(verityEarsReport,1500);
 }
 function verityStop(){
-  if(VERITY.on&&VERITY.host)veritySay(VERITY_BYE);
+  if(VERITY.leaving)return;
+  if(VERITY.on&&VERITY.host)veritySay(verityHello(false));
+  /* Stop listening NOW, not after the goodbye. The ears used to stay open for
+     the four seconds below, and any clip already with the transcriber came
+     back afterwards and was printed anyway - so she kept "hearing" people
+     after she had hung up. `leaving` also stops anything (a mic toggle, a
+     worker restart) from switching the ears back on during the goodbye. */
+  VERITY.leaving=true;
+  clearInterval(VERITY.idle);
+  try{verityListen(false);}catch(e){}
   /* 1400 ms was not enough to get a word out. Fetching the audio takes about
      a second on a cache miss and then it has to actually play, so the
      teardown below - which empties the speech queue - was cutting the
      goodbye off before it started. It is pre-cached at call time, but give
      it room regardless. */
   setTimeout(function(){
-    VERITY.on=false;VERITY.host=false;VERITY.queue=[];
+    VERITY.on=false;VERITY.host=false;VERITY.queue=[];VERITY.leaving=false;
     VERITY.engine='none';
-    clearInterval(VERITY.idle);
     verityListen(false);
     try{speechSynthesis.cancel();}catch(e){}
     bc({t:'verity',a:'leave'});
     $('#verityVal').textContent='a quirky little presence with a real voice';
     verityButtons();renderMembers();
+    /* back to the plain mic path now there is nothing to mix in */
+    try{if(micOn)wireFx();}catch(e){}
   },4000);
 }
 /* ---------- ears: local speech recognition, frame-safe ----------
@@ -9557,12 +10034,26 @@ function earsFocus(){
   if(!MIX.ears)return;
   var c;
   try{c=ctx();}catch(e){return;}
-  /* who is loudest right now */
-  var best=null,bestV=0;
+  /* Who is TALKING right now - not who is loudest.
+     Raw level was the wrong measure and was most of "it gets users wrong a
+     lot": somebody with a fan, an open laptop mic or a noisy room sits at a
+     constant level that beats a quiet talker on a good headset, so they won
+     the gate - and the credit - for sentences they never said. Each source
+     now keeps its own noise floor (it drops quickly, rises slowly), and only
+     the energy ABOVE that floor counts as speech. */
+  var best=null,bestV=0,second=0;
+  EARS.floor=EARS.floor||{};
   function consider(key,an){
     if(!an)return;
     var v=lvl(an);
-    if(v>bestV){bestV=v;best=key;}
+    var f=EARS.floor[key];
+    if(f==null)f=v;
+    f=(v<f)?(f*0.7+v*0.3):(f*0.992+v*0.008);
+    EARS.floor[key]=f;
+    var s=v-Math.max(0.004,f*1.8);
+    if(s<=0)return;
+    if(s>bestV){second=bestV;bestV=s;best=key;}
+    else if(s>second)second=s;
   }
   /* Remember which source won each tick. This is the honest answer to "who is
      talking": the gate below physically routes ONE source into the recogniser,
@@ -9576,8 +10067,17 @@ function earsFocus(){
   if(typeof BR!=='undefined'&&BR.on&&MIX.dcAn)consider('discord',MIX.dcAn);
 
   var now=Date.now();
-  if(bestV<0.012)return;                       /* nobody is talking; leave it */
-  EARS.focusTally[best]=(EARS.focusTally[best]||0)+1;
+  if(bestV<0.008)return;                       /* nobody is talking; leave it */
+  /* Weighted by how clearly they were the one talking, and kept in a short
+     rolling window so the start of a sentence (which the pre-roll includes)
+     is credited too. Only ticks inside an utterance end up in the tally. */
+  var w=bestV*(second>0?Math.min(3,bestV/second):3);
+  EARS.recent=(EARS.recent||[]).concat([{k:best,w:w,t:now}]);
+  while(EARS.recent.length&&now-EARS.recent[0].t>500)EARS.recent.shift();
+  if(EARS.speaking){
+    var ft=EARS.focusTally[best]||(EARS.focusTally[best]={w:0,n:0});
+    ft.w+=w;ft.n++;
+  }
   if(best!==MIX.focus&&now-MIX.focusAt<EARS_HOLD)return;   /* too soon to switch */
   if(best===MIX.focus)  {MIX.focusAt=now;return;}
   MIX.focus=best;MIX.focusAt=now;
@@ -9670,10 +10170,10 @@ function verityListen(on){
     VERITY.listening=false;
     return;
   }
-  if(!VERITY.on||!VERITY.hearMe||!micOn||VERITY.earsDead)return;
+  if(!VERITY.on||!VERITY.host||VERITY.leaving||!VERITY.hearMe||!micOn||VERITY.earsDead)return;
   if(EARS.node)   { verityMixStream(); return; }      /* already running: just refresh sources */
   verityAsrLoad().then(function(ok){
-    if(!ok||!VERITY.on||!VERITY.hearMe||!micOn)return;
+    if(!ok||!VERITY.on||!VERITY.host||VERITY.leaving||!VERITY.hearMe||!micOn||EARS.node)return;
     try{
       var c=ctx();
       var mix=verityMixStream();
@@ -9683,7 +10183,7 @@ function verityListen(on){
       if(!node){ VERITY.earsDead=true; sys('🥒 This browser can’t tap the audio for VERITY.',true); return; }
       var ratio=c.sampleRate/ASR_RATE;
       node.onaudioprocess=function(ev){
-        if(!VERITY.on||!VERITY.hearMe)return;
+        if(!VERITY.on||VERITY.leaving||!VERITY.hearMe)return;
         var inp=ev.inputBuffer.getChannelData(0);
         /* Resample to the 16 kHz Whisper expects.
            This used to take every Nth sample and throw the rest away:
@@ -9749,6 +10249,10 @@ function verityListen(on){
           if(!EARS.speaking){
             /* speech just started — seed the buffer with the pre-roll */
             EARS.speaking=true;
+            /* and start the speaker tally afresh from the same pre-roll
+               window, so whoever was making noise BEFORE this sentence
+               (a fan, a keyboard, the last person to talk) is not counted */
+            earsTallyStart();
             for(var pi=0;pi<EARS.pre.length;pi++){
               EARS.buf.push(EARS.pre[pi]);EARS.samples+=EARS.pre[pi].length;
             }
@@ -9796,12 +10300,25 @@ function verityListen(on){
    The one remaining ambiguity is that the whole Discord channel shares a
    single gate, so 'discord' has to be resolved to a person - and Discord's own
    speaking events answer that. */
+/* Called the moment an utterance starts: drop whatever was tallied during the
+   silence before it, and seed from the last half-second so the first word -
+   which the pre-roll also includes - is credited to whoever said it. */
+function earsTallyStart(){
+  EARS.focusTally={};
+  var now=Date.now(), r=EARS.recent||[];
+  for(var i=0;i<r.length;i++){
+    if(now-r[i].t>500)continue;
+    var ft=EARS.focusTally[r[i].k]||(EARS.focusTally[r[i].k]={w:0,n:0});
+    ft.w+=r[i].w;ft.n++;
+  }
+}
 function earsWho(){
   var t=EARS.focusTally||{};
-  var best=null,bestN=0,second=0;
+  var best=null,bestW=0,bestN=0;
   for(var k in t){
-    if(t[k]>bestN){second=bestN;bestN=t[k];best=k;}
-    else if(t[k]>second)second=t[k];
+    var e=t[k];
+    if(!e||typeof e!=='object')continue;
+    if(e.w>bestW){bestW=e.w;bestN=e.n;best=k;}
   }
   if(!best||bestN<2)return null;              /* barely any voiced audio */
 
@@ -9886,6 +10403,9 @@ function verityFlushUtterance(){
     VERITY.lastAsrMs=Date.now()-asrT0;
     VERITY.lastClipSec=clipSec;
     if(err||!text)return;
+    /* a clip that was already with the transcriber when she hung up comes
+       back afterwards - it is not something she heard on this call */
+    if(!VERITY.on||VERITY.leaving||!VERITY.host)return;
     var clean=String(text).replace(/\[.*?\]|\(.*?\)/g,'').trim();
     if(clean.length<2)return;
     /* Whisper hallucinates stock phrases when handed near-silence — these are
@@ -9952,7 +10472,10 @@ function verityFlushUtterance(){
   });
 }
 function verityEarsSync(){
-  if(VERITY.on&&VERITY.hearMe&&micOn)verityListen(true);
+  /* Only the caller listens. Her brain runs in the caller's browser and that
+     is the only copy that does anything with a transcript - every other copy
+     was downloading Whisper and transcribing the room for nothing. */
+  if(VERITY.on&&VERITY.host&&!VERITY.leaving&&VERITY.hearMe&&micOn)verityListen(true);
   else verityListen(false);
 }
 function verityEarsReport(){
@@ -10126,8 +10649,9 @@ var PRANKS={
           css:{animation:'fxwobble 2.2s ease-in-out infinite'}},
   disco :{ms:6000,label:'a full disco',
           css:{animation:'fxdisco 1.4s linear infinite'}},
-  jpeg  :{ms:5000,label:'terminal JPEG damage',
-          css:{transition:'filter .4s',filter:'blur(1.4px) contrast(2.6) saturate(2.4)'}},
+  /* was a mild blur and a contrast bump, which on this skin looked like
+     nothing had happened at all. Now it is drawn by jpegDamage(). */
+  jpeg  :{ms:6000,label:'terminal JPEG damage'},
   matrix:{ms:7000,label:'the Matrix'},
   static:{ms:5000,label:'no signal'},
   bsod  :{ms:6000,label:'a blue screen'},
@@ -10151,8 +10675,7 @@ function stopPrank(){
   }
   var bars=document.querySelectorAll('[data-censor]');
   for(var i=0;i<bars.length;i++)if(bars[i].parentNode)bars[i].parentNode.removeChild(bars[i]);
-  var lit=document.querySelectorAll('.spotlit');
-  for(var j=0;j<lit.length;j++)lit[j].classList.remove('spotlit');
+  spotlightEnd();
   clearTimeout(prankTimer);prankTimer=null;
 }
 function emojiStorm(pool){
@@ -10242,7 +10765,16 @@ function runPrank(m){
      person, so it renders in every copy of the room. */
   var aimed=String(m.target||'');
   var mine=!aimed||nameKey(aimed)===nameKey(me.name);
-  if(aimed&&fx==='spotlight'){spotlightHit(aimed,by);return;}
+  /* Spotlight aimed at "everyone" used to fall through to the generic path,
+     find no CSS to apply, and do nothing at all. It needs one person, so the
+     sender picks somebody at random and names them (m.pick) - every copy of
+     the room then lights up the same person. */
+  if(fx==='spotlight'){
+    var who=aimed||String(m.pick||'');
+    if(!who){sys('🔦 <b>'+esc(by)+'</b> reached for the spotlight, but nobody is here');return;}
+    spotlightHit(who,by);
+    return;
+  }
   if(aimed&&!mine){
     sys('🎭 <b>'+esc(by)+'</b> hit <b>'+esc(aimed)+'</b> with <b>'+esc(spec.label)+'</b>');
     return;
@@ -10260,9 +10792,14 @@ function runPrank(m){
   else if(fx==='lowbat')lowBattery();
   else if(fx==='censor')censorBars();
   else if(fx==='banscare')banScare(by);
-  else if(!reduced&&spec.css){
+  else if(fx==='jpeg')jpegDamage();
+  else if(spec.css){
+    /* Reduced-motion is about MOTION. Pure colour and blur effects (invert,
+       vaporwave, blurry) do not move anything, so they still apply for
+       people who have asked their OS for less animation. */
+    var moves=!!(spec.css.animation||spec.css.transform);
     var w=prankTarget();
-    if(w)for(var prop in spec.css)w.style[prop]=spec.css[prop];
+    if(w&&!(reduced&&moves))for(var prop in spec.css)w.style[prop]=spec.css[prop];
   }
   sys('🎭 <b>'+esc(by)+'</b> unleashed <b>'+esc(spec.label)+'</b>'+
       (aimed?' on <b>'+esc(aimed)+'</b> — that is you.':''));
@@ -10307,7 +10844,54 @@ function matrixRain(){
     requestAnimationFrame(step);
   })();
 }
-/* Dead-channel static, with the buzz. */
+/* The Slender Man, drawn once onto his own canvas so each static frame only
+   has to stamp him on. Tall, too thin, arms too long, no face. Drawn rather
+   than loaded so there is no image to fetch and nothing to block. */
+function slenderSprite(h){
+  try{
+    h=Math.max(60,h|0);
+    var w=Math.round(h*0.42);
+    var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    var g=cv.getContext('2d'), cx=w/2;
+    var headH=h*0.085, headW=headH*0.72, top=h*0.02;
+    var shoulderY=top+headH*1.25, hipY=h*0.55;
+    /* tendrils first, behind him */
+    g.strokeStyle='#000';g.lineCap='round';
+    for(var t=0;t<5;t++){
+      var side=t%2?1:-1;
+      g.lineWidth=Math.max(1.2,h*0.008);
+      g.beginPath();
+      g.moveTo(cx+side*w*0.08,shoulderY+h*0.03);
+      g.bezierCurveTo(cx+side*w*(0.35+t*0.05),shoulderY-h*(0.05+t*0.03),
+                      cx+side*w*(0.15+t*0.07),shoulderY+h*(0.12+t*0.04),
+                      cx+side*w*(0.48+t*0.02),shoulderY+h*(0.02+t*0.06));
+      g.stroke();
+    }
+    /* legs */
+    g.fillStyle='#050505';
+    g.fillRect(cx-w*0.09,hipY,w*0.07,h-hipY);
+    g.fillRect(cx+w*0.02,hipY,w*0.07,h-hipY);
+    /* jacket */
+    g.beginPath();
+    g.moveTo(cx-w*0.16,shoulderY);g.lineTo(cx+w*0.16,shoulderY);
+    g.lineTo(cx+w*0.12,hipY+h*0.04);g.lineTo(cx-w*0.12,hipY+h*0.04);g.closePath();g.fill();
+    /* arms, hanging well past where arms should stop */
+    g.fillRect(cx-w*0.21,shoulderY+h*0.01,w*0.05,h*0.5);
+    g.fillRect(cx+w*0.16,shoulderY+h*0.01,w*0.05,h*0.5);
+    /* white shirt and a dark tie */
+    g.fillStyle='#e8e8e8';
+    g.beginPath();g.moveTo(cx-w*0.05,shoulderY);g.lineTo(cx+w*0.05,shoulderY);
+    g.lineTo(cx,shoulderY+h*0.1);g.closePath();g.fill();
+    g.fillStyle='#3a0a0a';
+    g.fillRect(cx-w*0.012,shoulderY+h*0.005,w*0.024,h*0.085);
+    /* neck and the blank head */
+    g.fillStyle='#d8d8d8';
+    g.fillRect(cx-headW*0.18,top+headH*0.85,headW*0.36,headH*0.45);
+    g.beginPath();g.ellipse(cx,top+headH/2,headW/2,headH/2,0,0,Math.PI*2);g.fill();
+    return cv;
+  }catch(e){return null;}
+}
+/* Dead-channel static, with the buzz - and somebody standing in it. */
 function tvStatic(){
   var ov=prankOverlay('snow');
   var c=document.createElement('canvas');
@@ -10318,6 +10902,10 @@ function tvStatic(){
   var H=c.height=Math.max(8,Math.floor((innerHeight||480)/3));
   var g=c.getContext('2d');
   var img=g.createImageData(W,H);
+  var slender=slenderSprite(Math.round(H*0.86));
+  /* He is not there at the start. Then he is faintly there. Then he is
+     somewhere else, and closer. */
+  var t0=Date.now(), spot={x:W*0.68,scale:1}, nextJump=t0+1600+Math.random()*900;
   (function step(){
     if(document.getElementById('prank')!==ov)return;
     var d=img.data;
@@ -10326,6 +10914,25 @@ function tvStatic(){
       d[i]=d[i+1]=d[i+2]=v;d[i+3]=235;
     }
     g.putImageData(img,0,0);
+    var now=Date.now(), age=now-t0;
+    if(slender&&age>700){
+      if(now>nextJump){
+        /* cut to a new position, a little bigger each time */
+        spot.x=W*(0.2+Math.random()*0.6);
+        spot.scale=Math.min(2.2,spot.scale*(1.18+Math.random()*0.2));
+        nextJump=now+900+Math.random()*1100;
+      }
+      var r=Math.random();
+      if(r>0.12){                                   /* the odd frame drops him */
+        var sw=slender.width*spot.scale, sh=slender.height*spot.scale;
+        g.globalAlpha=(r>0.93?0.85:0.28+Math.random()*0.3)*Math.min(1,(age-700)/900);
+        /* feet on the floor while he fits; once he is closer than that, keep
+           his face in frame and let the rest run off the bottom */
+        var sy=Math.max(H-sh,H*0.05-sh*0.03);
+        g.drawImage(slender,spot.x-sw/2+(Math.random()*4-2),sy,sw,sh);
+        g.globalAlpha=1;
+      }
+    }
     requestAnimationFrame(step);
   })();
   /* the hiss, at a level that is startling rather than painful */
@@ -10391,6 +10998,45 @@ function banScare(by){
 }
 /* Spotlight renders in EVERY copy of the room — that is the whole point of it.
    It attaches to whatever is on screen for that person, tile or member row. */
+/* It used to add a class to the person's member row once and walk away. The
+   member list is rebuilt from scratch every time anything changes - somebody
+   speaks, mutes, joins - so the row carrying the class was thrown away within
+   a second and the spotlight vanished before anyone saw it. Now it is held for
+   its whole duration: the class is re-applied to whatever row and tile exist
+   on each tick, and a darkened overlay with a lit circle follows them. */
+var SPOT={id:null,until:0,timer:null};
+function spotlightEnd(){
+  clearInterval(SPOT.timer);SPOT.timer=null;SPOT.id=null;SPOT.until=0;
+  var lit=document.querySelectorAll('.spotlit');
+  for(var j=0;j<lit.length;j++)lit[j].classList.remove('spotlit');
+  var ov=document.getElementById('spotov');
+  if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);
+}
+function spotlightTick(){
+  if(!SPOT.id||Date.now()>SPOT.until){spotlightEnd();return;}
+  var id=SPOT.id;
+  var els=[document.querySelector('.cam[data-cam="'+id+'"]'),
+           document.querySelector('.mem[data-id="'+id+'"]')];
+  var target=null;
+  els.forEach(function(e){
+    if(!e)return;
+    if(!e.classList.contains('spotlit'))e.classList.add('spotlit');
+    if(!target){
+      var r=e.getBoundingClientRect();
+      /* a member row is as wide as the column; light the name end, not the middle */
+      if(r.width&&r.height)target=e.classList.contains('mem')
+        ?{left:r.left,top:r.top,width:Math.min(r.width,200),height:r.height}:r;
+    }
+  });
+  var ov=document.getElementById('spotov');
+  if(!ov){ov=el('div');ov.id='spotov';document.body.appendChild(ov);
+    requestAnimationFrame(function(){ov.classList.add('on');});}
+  var cx=target?target.left+target.width/2:innerWidth/2;
+  var cy=target?target.top+target.height/2:innerHeight/2;
+  var rad=target?Math.max(90,Math.min(260,Math.max(target.width,target.height)*0.75)):160;
+  ov.style.background='radial-gradient(circle '+rad+'px at '+cx+'px '+cy+'px,'+
+    'rgba(255,240,190,.10) 0%,rgba(255,240,190,.04) 70%,rgba(0,0,0,.78) 100%)';
+}
 function spotlightHit(name,by){
   var k=nameKey(name), id=null;
   if(k===nameKey(me.name))id='me';
@@ -10398,13 +11044,67 @@ function spotlightHit(name,by){
   sys('🔦 <b>'+esc(by)+'</b> put the spotlight on <b>'+esc(name)+'</b>'+
       (k===nameKey(me.name)?' — that is you. Say something.':''));
   if(!id)return;
-  var els=[document.querySelector('.cam[data-cam="'+id+'"]'),
-           document.querySelector('.mem[data-id="'+id+'"]')];
-  els.forEach(function(e){if(e)e.classList.add('spotlit');});
+  spotlightEnd();
+  SPOT.id=id;SPOT.until=Date.now()+6000;
+  spotlightTick();
+  SPOT.timer=setInterval(spotlightTick,120);
   blip(980,.1);
-  setTimeout(function(){
-    els.forEach(function(e){if(e)e.classList.remove('spotlit');});
-  },6000);
+}
+/* JPEG damage, done properly: the room is actually pixelated into blocks and
+   crushed to a handful of colours by an SVG filter, and a layer of flickering
+   macroblocks and chroma smears sits on top - the look of a video stream that
+   has lost half its packets. */
+function jpegFilterEnsure(){
+  if(document.getElementById('fxJpegSvg'))return;
+  var holder=document.createElement('div');
+  holder.innerHTML=
+    '<svg id="fxJpegSvg" width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true">'+
+    '<filter id="fxJpeg" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">'+
+      '<feFlood x="5" y="5" width="2" height="2" flood-color="#fff"/>'+
+      '<feComposite width="12" height="12"/>'+
+      '<feTile result="grid"/>'+
+      '<feComposite in="SourceGraphic" in2="grid" operator="in"/>'+
+      '<feMorphology operator="dilate" radius="6"/>'+
+      '<feComponentTransfer>'+
+        '<feFuncR type="discrete" tableValues="0 .2 .45 .7 1"/>'+
+        '<feFuncG type="discrete" tableValues="0 .25 .5 .8 1"/>'+
+        '<feFuncB type="discrete" tableValues="0 .3 .65 1"/>'+
+      '</feComponentTransfer>'+
+    '</filter></svg>';
+  document.body.appendChild(holder.firstChild);
+}
+function jpegDamage(){
+  jpegFilterEnsure();
+  var w=prankTarget();
+  if(w)w.style.filter='url(#fxJpeg) contrast(1.25) saturate(1.7)';
+  var ov=prankOverlay('jpegfx');
+  var c=document.createElement('canvas');
+  ov.appendChild(c);
+  var B=16;
+  var W=c.width=Math.max(B,Math.ceil((innerWidth||640)/B)*B);
+  var H=c.height=Math.max(B,Math.ceil((innerHeight||480)/B)*B);
+  var g=c.getContext('2d');
+  var cols=['#ff00c8','#00ff9c','#2040ff','#ffe000','#00e0ff','#ff3000','#808080'];
+  var t=setInterval(function(){
+    if(document.getElementById('prank')!==ov)return clearInterval(t);
+    g.clearRect(0,0,W,H);
+    var n=18+((Math.random()*40)|0);
+    for(var i=0;i<n;i++){
+      var bw=B*(1+((Math.random()*6)|0)), bh=B*(1+((Math.random()*2)|0));
+      var x=((Math.random()*W/B)|0)*B, y=((Math.random()*H/B)|0)*B;
+      g.globalAlpha=0.35+Math.random()*0.5;
+      g.fillStyle=cols[(Math.random()*cols.length)|0];
+      g.fillRect(x,y,bw,bh);
+    }
+    /* a couple of torn horizontal bands, like a smeared keyframe */
+    for(var s=0;s<2;s++){
+      var sy=((Math.random()*H/B)|0)*B;
+      g.globalAlpha=0.5;
+      g.fillStyle=cols[(Math.random()*cols.length)|0];
+      g.fillRect(0,sy,W,B/2);
+    }
+    g.globalAlpha=1;
+  },140);
 }
 (function(){
   var chips=document.querySelectorAll('#admFx .q');
@@ -10413,6 +11113,14 @@ function spotlightHit(name,by){
       if(!isAdmin()){toast('pranks are admin-only');return;}
       var m={t:'prank',k:ADMIN_PASS,fx:c.getAttribute('data-prank'),
              by:me.name||'an admin',target:prankTargetName()};
+      if(m.fx==='spotlight'&&!m.target){
+        /* "everyone" can't all be in one spotlight - pick somebody, and send
+           the pick so every copy of the room lights up the same person */
+        var pool=[];
+        if(me.name)pool.push(me.name);
+        for(var pid in peers)if(peers[pid].name)pool.push(peers[pid].name);
+        m.pick=pool.length?pool[(Math.random()*pool.length)|0]:'';
+      }
       bc(m);runPrank(m);
     };
   })(chips[i]);
@@ -10445,6 +11153,10 @@ function flipCam(){
 $('#hFlip').onclick=flipCam;
 
 window.addEventListener('beforeunload',function(){try{peer&&peer.destroy();}catch(e){}});
+/* pagehide as well: it fires in cases beforeunload does not (the desktop app
+   tearing its window down, mobile tab discards), and a peer that is not
+   destroyed on the way out is exactly what leaves a ghost in everyone's list */
+window.addEventListener('pagehide',function(){try{peer&&!peer.destroyed&&peer.destroy();}catch(e){}});
 window.addEventListener('hashchange',function(){
   var r=slug(location.hash.slice(1));
   if(r&&r!==room)switchRoom(r);
@@ -10861,7 +11573,15 @@ var THEMES=[
   {id:'zune',      n:'Zune Orange',   a:'#f07316', b:'#2a1104', c:'#fbd9b4'},
   {id:'bubblegum', n:'Y2K Bubblegum', a:'#f03cb0', b:'#2b0c35', c:'#fcc8ee'},
   {id:'midnight',  n:'Midnight',      a:'#1f9dd0', b:'#121820', c:'#cbd9e2'},
-  {id:'matrix',    n:'Matrix',        a:'#17c433', b:'#021002', c:'#a8e8b6'}
+  {id:'matrix',    n:'Matrix',        a:'#17c433', b:'#021002', c:'#a8e8b6'},
+  {id:'crimson',   n:'Crimson',       a:'#e0283c', b:'#220508', c:'#f8c4c9'},
+  {id:'gold',      n:'Gold Member',   a:'#e0b020', b:'#1e1604', c:'#f8e4a8'},
+  {id:'sunset',    n:'Vapor Sunset',  a:'#ff3d7f', b:'#2a0a30', c:'#ffcad6'},
+  {id:'frost',     n:'Arctic Frost',  a:'#6ac4ec', b:'#0c1e2c', c:'#d8f0fc'},
+  {id:'noir',      n:'Noir',          a:'#8a8a8a', b:'#0e0e0e', c:'#dcdcdc'},
+  {id:'sakura',    n:'Sakura',        a:'#f08ab4', b:'#28101e', c:'#fcdcea'},
+  {id:'pumpkin',   n:'Pumpkin Patch', a:'#ff7a10', b:'#1e0a2a', c:'#fbd4b0'},
+  {id:'ocean',     n:'Deep Sea',      a:'#10c8c0', b:'#031428', c:'#c0ecf2'}
 ];
 var SKIN={theme:'',orbs:true,sweep:true,glass:true,crt:false,compact:false,corner:'normal'};
 function skinSave(){try{localStorage.setItem('mc_skin',JSON.stringify(SKIN));}catch(e){}}

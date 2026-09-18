@@ -140,14 +140,26 @@ function createWindow() {
     } catch (e2) {}
   });
 
+  watchLoadFailures(win);
   loadRoom();
   return win;
 }
 
+// Registered once per window. This used to be added inside loadRoom(), so every
+// Retry stacked another listener on top of the last. It also treated -3
+// (ERR_ABORTED) as "offline" - that is Chromium cancelling one navigation for
+// another, not a failure, and swapping the room out for the offline page at
+// that moment tore the call down mid-join.
+function watchLoadFailures(w) {
+  w.webContents.on('did-fail-load', (e, code, desc, url, isMainFrame) => {
+    if (!isMainFrame || code === -3) return;
+    showOffline(desc || ('error ' + code));
+  });
+}
 function loadRoom() {
-  win.loadURL(ROOM_URL).catch(() => showOffline('could not reach the server'));
-  win.webContents.on('did-fail-load', (e, code, desc, url, isMainFrame) => {
-    if (isMainFrame) showOffline(desc || ('error ' + code));
+  win.loadURL(ROOM_URL).catch((err) => {
+    if (err && err.code === 'ERR_ABORTED') return;
+    showOffline('could not reach the server');
   });
 }
 

@@ -98,8 +98,9 @@ they gate the controls against ordinary users and nothing more.
 
 - **admin** (`MingMing67`) — everything: bans, IP bans, room lock, trolls,
   mega-announcements, the Discord bridge, theatre lead.
-- **moderator** (`MingMod22`) — server mute/unmute, the forced mic limiter, and
-  a five-minute kick. Nothing else. A message signed with the mod password
+- **moderator** (`MingMod22`) — server mute/unmute, the forced mic limiter,
+  a five-minute kick, announcements (MEGA included) and VERITY's Donald Trump
+  mode. Nothing else. A message signed with the mod password
   asking for anything outside that list is ignored by every other client, so a
   mod cannot widen their own powers by editing their copy of the page.
 
