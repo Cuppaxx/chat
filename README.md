@@ -93,19 +93,23 @@ connections are relayed.
 
 ## Passwords
 
-Two tiers, both living in the page source, so neither is a security boundary —
-they gate the controls against ordinary users and nothing more.
-
-- **admin** (`MingMing67`) — everything: bans, IP bans, room lock, trolls,
-  mega-announcements, the Discord bridge, theatre lead.
+- **admin** — everything: bans, IP bans, IP tracing, room lock, trolls, the
+  Discord bridge, theatre lead. The admin password is **not in the page
+  source**: the page and `server.js` hold only a one-way PBKDF2 fingerprint
+  of it, and the server checks every admin request (IP tracing, bans, the
+  Discord bridge) against that. Wrong guesses are limited to 8 a minute per
+  address. To add a password of your own on top, set `ADMIN_PASS` in the
+  Render environment. To replace the built-in one, generate a new fingerprint
+  (salt, 150,000 rounds, SHA-256) and put it in both `ADMIN_FP` blocks.
 - **moderator** (`MingMod22`) — server mute/unmute, the forced mic limiter,
   a five-minute kick, announcements (MEGA included) and VERITY's Donald Trump
-  mode. Nothing else. A message signed with the mod password
+  mode. Nothing else - no IP tracing. A message signed with the mod password
   asking for anything outside that list is ignored by every other client, so a
   mod cannot widen their own powers by editing their copy of the page.
 
-Change them in `mingus-chatroom.html` (`ADMIN_PASS` / `MOD_PASS`) and keep
-`ADMIN_PASS` in sync with the Render environment variable.
+The old admin password (`MingMing67`, still `ADMIN_PASS` in the page) now only
+signs peer-to-peer moderation messages. It is readable by anyone, so it no
+longer unlocks the panel and the server refuses it for everything.
 
 ---
 

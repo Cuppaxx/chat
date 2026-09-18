@@ -2488,7 +2488,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='9.5';
+var BUILD='9.6';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -2744,6 +2744,42 @@ var slotMiss={};
    leave. The stock chatroom obeys it; a modified one could ignore it. Good
    enough for moderating friends, not a security boundary. */
 var ADMIN_PASS='MingMing67';
+/* ---------- the REAL admin password ----------
+   ADMIN_PASS above is only a signature for peer-to-peer moderation messages
+   now. It is readable by anyone, so the server stopped accepting it: every
+   server-side admin action (IP tracing, IP and device bans, the Discord
+   bridge) needs the password that unlocked the panel, which lives nowhere in
+   this file. What is here is a one-way PBKDF2 fingerprint of it - the same
+   one the server holds - so the panel can tell whether a typed password is
+   right. A fingerprint of a random 16-character password cannot be turned
+   back into the password. */
+var ADMIN_FP={salt:'dfd0d8b1bdc27aeae94202aca9153c2c',it:150000,
+  hash:'414d83c78a3ecc9c5ca62fb60f44c08554a24e5b3a8bf16684378e464d755df2'};
+var ADMIN_KEY='';
+try{ADMIN_KEY=sessionStorage.getItem('mc_akey')||'';}catch(e){}
+function adminFpMatch(pass){
+  try{
+    if(!window.crypto||!crypto.subtle)return Promise.resolve(false);
+    var enc=new TextEncoder(), salt=new Uint8Array(ADMIN_FP.salt.match(/../g).map(function(h){return parseInt(h,16);}));
+    return crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveBits']).then(function(k){
+      return crypto.subtle.deriveBits({name:'PBKDF2',salt:salt,iterations:ADMIN_FP.it,hash:'SHA-256'},k,256);
+    }).then(function(bits){
+      var hex=Array.prototype.map.call(new Uint8Array(bits),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');
+      return hex===ADMIN_FP.hash;
+    }).catch(function(){return false;});
+  }catch(e){return Promise.resolve(false);}
+}
+/* is this the admin password? the fingerprint first (instant, offline), then
+   the server, which also accepts an ADMIN_PASS set in the Render dashboard */
+function adminCheck(pass){
+  if(!pass)return Promise.resolve(false);
+  return adminFpMatch(pass).then(function(ok){
+    if(ok)return true;
+    return fetch(adminBase()+'/admin/check',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pass:pass})}).then(function(r){return r.json();})
+      .then(function(j){return !!(j&&j.ok);}).catch(function(){return false;});
+  });
+}
 /* ---------- moderator tier ----------
    A second, weaker password. A mod can quiet somebody down and remove them for
    five minutes; that is the whole list. They cannot ban, cannot IP-ban, cannot
@@ -5160,9 +5196,12 @@ function applyBitrate(call){
       var p=s.getParameters();
       if(!p.encodings||!p.encodings.length)p.encodings=[{}];
       if(s.track.kind==='audio'){
-        /* the radio host sends music, at whatever an admin set the radio to */
+        /* The radio host's voice and the music share one connection. The
+           slider's low end is done by radioCrunch() on the music itself, so
+           the connection only ever goes UP for the radio - capping it down
+           to 6 kbps was crunching the DJ's own voice along with the music. */
         var ak=Q[quality].k;
-        if(typeof RADIO!=='undefined'&&RADIO.bus&&radioIsHost())ak=RADIO.kbps;
+        if(typeof RADIO!=='undefined'&&RADIO.bus&&radioIsHost())ak=Math.max(ak,RADIO.kbps);
         p.encodings[0].maxBitrate=ak*1000;
       }
       else{
@@ -6636,12 +6675,30 @@ function admOpen(){
 }
 function admUnlock(){
   var v=$('#admPass').value;
-  if(v===ADMIN_PASS)role='admin';
-  else if(v===MOD_PASS)role='mod';
-  else{
-    $('#admErr').textContent='wrong password';
+  if(v===MOD_PASS){
+    role='mod';ADMIN_KEY='';
+    try{sessionStorage.removeItem('mc_akey');}catch(e){}
+    return admUnlocked();
+  }
+  if(v===ADMIN_PASS){
+    /* the old admin password is public (it is in this file), so it no longer
+       unlocks anything - say so rather than just "wrong password" */
+    $('#admErr').textContent='that admin password was retired — use the new one';
     $('#admPass').value='';blip(240,.12);return;
   }
+  $('#admErr').textContent='checking…';
+  adminCheck(v).then(function(ok){
+    if(!ok){
+      $('#admErr').textContent='wrong password';
+      $('#admPass').value='';blip(240,.12);return;
+    }
+    role='admin';ADMIN_KEY=v;
+    try{sessionStorage.setItem('mc_akey',v);}catch(e){}
+    $('#admErr').textContent='';
+    admUnlocked();
+  });
+}
+function admUnlocked(){
   admin=isAdmin();          /* the rest of the file still reads `admin` */
   try{sessionStorage.setItem('mc_role',role);}catch(e){}
   $('#admLock').style.display='none';
@@ -6676,7 +6733,8 @@ function applyRoleUI(){
 function admLogout(){
   role='none';admin=false;
   setTimeout(function(){try{radioRender();}catch(e){}},0);
-  try{sessionStorage.removeItem('mc_role');sessionStorage.removeItem('mc_admin');}catch(e){}
+  ADMIN_KEY='';
+  try{sessionStorage.removeItem('mc_role');sessionStorage.removeItem('mc_admin');sessionStorage.removeItem('mc_akey');}catch(e){}
   $('#admVal').textContent='moderation tools';
   $('#admModal').style.display='none';
   toast('panel locked');
@@ -6707,13 +6765,13 @@ function admApi(path,body){
   }
   return fetch(adminBase()+path,{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(Object.assign({pass:ADMIN_PASS},body||{}))
+    body:JSON.stringify(Object.assign({pass:ADMIN_KEY},body||{}))
   }).then(function(r){return r.json();});
 }
 function loadServerBans(){
   srvBansErr='';
   if(!isAdmin())return Promise.resolve();
-  return fetch(adminBase()+'/admin/bans?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
+  return fetch(adminBase()+'/admin/bans?pass='+encodeURIComponent(ADMIN_KEY),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(j){
       if(j&&j.ok){srvBans=j.ips||[];}
@@ -7061,7 +7119,7 @@ $('#admBansRefresh').onclick=function(){loadServerBans();toast('refreshing ban l
 var BR={ws:null,rec:null,on:false,sent:0};
 function brStat(t){var e=document.getElementById('brStat');if(e)e.textContent=t;}
 function brApi(path,body){
-  var payload={pass:ADMIN_PASS};
+  var payload={pass:ADMIN_KEY};
   if(body)for(var k in body)payload[k]=body[k];
   return fetch(adminBase()+path,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(payload)}).then(function(r){return r.json();});
@@ -7099,7 +7157,7 @@ async function brLink(){
   /* now open the audio feed */
   try{
     var base=adminBase().replace(/^http/,'ws');
-    BR.ws=new WebSocket(base+'/bridge/feed?pass='+encodeURIComponent(ADMIN_PASS));
+    BR.ws=new WebSocket(base+'/bridge/feed?pass='+encodeURIComponent(ADMIN_KEY));
     BR.ws.binaryType='arraybuffer';
     BR.ws.onmessage=brOnMessage;
   }catch(e){ sys('🔗 Could not open the audio feed: '+esc(String(e.message||e)),true); brStop(true); return; }
@@ -7563,6 +7621,7 @@ $('#admLockRoom').onclick=function(){
 };
 try{
   var sr=sessionStorage.getItem('mc_role');
+  if(sr==='admin'&&!ADMIN_KEY)sr='';
   if(sr==='admin'||sr==='mod'){
     role=sr;admin=isAdmin();
     $('#admVal').textContent='unlocked · '+(isAdmin()?'admin':'moderator');
@@ -13558,7 +13617,7 @@ function brLoadChannels(){
   BRCH.loading=true;
   if(vs)vs.innerHTML='<option value="">loading channels…</option>';
   if(ts)ts.innerHTML='<option value="">loading channels…</option>';
-  return fetch(adminBase()+'/bridge/channels?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
+  return fetch(adminBase()+'/bridge/channels?pass='+encodeURIComponent(ADMIN_KEY),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(j){
       BRCH.loading=false;
@@ -14723,7 +14782,7 @@ function traceLookup(){
 }
 function traceAll(){
   if(!isAdmin()){toast('tracing is an admin action');return;}
-  fetch(adminBase()+'/admin/trace/all?pass='+encodeURIComponent(ADMIN_PASS),{cache:'no-store'})
+  fetch(adminBase()+'/admin/trace/all?pass='+encodeURIComponent(ADMIN_KEY),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(j){
       if(!j||!j.ok){toast('could not read the address list');return;}

@@ -25,9 +25,49 @@ const bridge = require('./discord-bridge');
 const app = express();
 const PORT = process.env.PORT || 9000;
 
-// Set ADMIN_PASS in the Render dashboard to change it without editing code.
-// It must match the password in the chatroom page's admin panel.
-const ADMIN_PASS = process.env.ADMIN_PASS || 'MingMing67';
+// ---- the admin password, as far as THIS SERVER is concerned -----------------
+// The old one ('MingMing67') is written in the chatroom page, which every
+// visitor downloads - so anybody who opened View Source could call the admin
+// routes here directly and, among other things, trace every member's IP
+// address. The page still uses that string to sign peer-to-peer moderation
+// messages, but this server no longer accepts it for anything.
+//
+// What it accepts instead is a password that appears nowhere: only a PBKDF2
+// fingerprint of it is stored below, and a fingerprint of a random
+// 16-character password cannot be turned back into the password, so it is
+// safe in a public repository. Setting ADMIN_PASS in the Render dashboard
+// adds a password of your choosing on top (the old default is ignored).
+const crypto = require('crypto');
+const ADMIN_FP = {
+  salt: 'dfd0d8b1bdc27aeae94202aca9153c2c',
+  it: 150000,
+  hash: '414d83c78a3ecc9c5ca62fb60f44c08554a24e5b3a8bf16684378e464d755df2',
+};
+const ADMIN_ENV = (process.env.ADMIN_PASS && process.env.ADMIN_PASS !== 'MingMing67') ? process.env.ADMIN_PASS : '';
+// PBKDF2 is deliberately slow; remember passwords already proven right so an
+// admin's every request is not a 150,000-round hash on a 0.1-CPU box.
+const adminOk = new Set();
+const adminFails = new Map();          // ip -> { n, resetAt }: brute-force brake
+function isAdminPass(pass, ip) {
+  if (typeof pass !== 'string' || !pass || pass.length > 200) return false;
+  if (adminOk.has(pass)) return true;
+  const now = Date.now();
+  let f = ip ? adminFails.get(ip) : null;
+  if (f && now < f.resetAt && f.n >= 8) return false;          // 8 wrong guesses a minute, then stop
+  let ok = !!ADMIN_ENV && pass.length === ADMIN_ENV.length &&
+    crypto.timingSafeEqual(Buffer.from(pass), Buffer.from(ADMIN_ENV));
+  if (!ok) {
+    const h = crypto.pbkdf2Sync(pass, Buffer.from(ADMIN_FP.salt, 'hex'), ADMIN_FP.it, 32, 'sha256');
+    ok = crypto.timingSafeEqual(h, Buffer.from(ADMIN_FP.hash, 'hex'));
+  }
+  if (ok) { adminOk.add(pass); return true; }
+  if (ip) {
+    if (!f || now > f.resetAt) { f = { n: 0, resetAt: now + 60000 }; adminFails.set(ip, f); }
+    f.n++;
+    if (adminFails.size > 1000) for (const [k, v] of adminFails) if (now > v.resetAt) adminFails.delete(k);
+  }
+  return false;
+}
 
 const bannedIps = new Set();   // addresses refused at the handshake
 const peerIps = new Map();     // peerId -> { ip, at }, so the admin can ban by person
@@ -151,9 +191,15 @@ function clientIp(req) {
 
 function requireAdmin(req, res, next) {
   const pass = (req.body && req.body.pass) || req.query.pass;
-  if (pass !== ADMIN_PASS) return res.status(403).json({ ok: false, error: 'bad password' });
+  if (!isAdminPass(pass, clientIp(req))) return res.status(403).json({ ok: false, error: 'bad password' });
   next();
 }
+// The admin panel asks this when somebody types a password, so the panel only
+// opens as admin for a password this server actually accepts.
+app.post('/admin/check', (req, res) => {
+  const pass = String((req.body && req.body.pass) || '');
+  res.json({ ok: isAdminPass(pass, clientIp(req)) });
+});
 
 // Joining announces the device before the socket opens, which is what lets a
 // device ban be enforced at the socket rather than on the honour system.
@@ -965,7 +1011,7 @@ app.post('/verity/brain', async (req, res) => {
 });
 
 // ---- Discord bridge HTTP routes (must sit above the PeerJS catch-all mount) ----
-bridge.attachBridgeRoutes(app, ADMIN_PASS);
+bridge.attachBridgeRoutes(app, (pass, ip) => isAdminPass(pass, ip), clientIp);
 
 const server = app.listen(PORT, '0.0.0.0', () =>
   console.log('signaling server listening on ' + PORT)
@@ -1072,4 +1118,4 @@ app.use('/', peerServer);
 
 // Discord bridge WebSocket feed. Must come AFTER the PeerJS mount so it can
 // route /bridge/feed around PeerJS's own upgrade handler (see discord-bridge.js).
-bridge.attachBridgeFeed(server, ADMIN_PASS);
+bridge.attachBridgeFeed(server, (pass, ip) => isAdminPass(pass, ip), clientIp);

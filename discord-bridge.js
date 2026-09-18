@@ -338,10 +338,12 @@ function leaveDiscord(reason) {
 /**
  * Register the HTTP routes. Call this BEFORE app.use('/', peerServer).
  */
-function attachBridgeRoutes(app, adminPass) {
+// isAdmin(pass, ip) is the server's own check (see server.js): the password in
+// the page source is no longer good enough for anything that reaches Discord.
+function attachBridgeRoutes(app, isAdmin, ipOf) {
   function requireAdmin(req, res, next) {
     const pass = (req.body && req.body.pass) || req.query.pass;
-    if (pass !== adminPass) return res.status(403).json({ ok: false, error: 'bad password' });
+    if (!isAdmin(pass, ipOf ? ipOf(req) : '')) return res.status(403).json({ ok: false, error: 'bad password' });
     next();
   }
 
@@ -458,7 +460,7 @@ function attachBridgeRoutes(app, adminPass) {
  * would kill our socket. So we pull every existing 'upgrade' listener off,
  * and re-dispatch: /bridge/feed -> us, everything else -> them, untouched.
  */
-function attachBridgeFeed(server, adminPass) {
+function attachBridgeFeed(server, isAdmin, ipOf) {
   const WebSocket = require('ws');
   const wss = new WebSocket.Server({ noServer: true });
 
@@ -473,7 +475,7 @@ function attachBridgeFeed(server, adminPass) {
     }
     let pass = null;
     try { pass = new URL(req.url, 'http://x').searchParams.get('pass'); } catch (e) {}
-    if (pass !== adminPass) { try { socket.destroy(); } catch (e) {} return; }
+    if (!isAdmin(pass, ipOf ? ipOf(req) : '')) { try { socket.destroy(); } catch (e) {} return; }
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   });
 
