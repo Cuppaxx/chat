@@ -2462,7 +2462,7 @@ h3{
         </div>
       </details>
 
-      <label>Members <span class="q" id="admTraceAll" title="list every address in the party and flag any that more than one person is using — the quickest way to spot somebody back under a new name">🔍 Trace all addresses</span></label>
+      <label>Members <span class="q" id="admTraceAll" data-role="admin" title="list every address in the party and flag any that more than one person is using — the quickest way to spot somebody back under a new name">🔍 Trace all addresses</span></label>
       <div id="tracePanel" style="display:none;margin-bottom:8px;padding:9px 11px;border-radius:9px;
         border:1px solid rgba(25,90,160,.55);background:linear-gradient(rgba(222,238,255,.93),rgba(196,222,250,.93))"></div>
       <div id="rawPanel" style="display:none;margin-bottom:8px;padding:9px 11px;border-radius:9px;
@@ -2488,7 +2488,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='9.4';
+var BUILD='9.5';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -14746,6 +14746,8 @@ function traceClose(){TRACE.ip=null;TRACE.id=null;TRACE.data=null;tracePanel();r
 function tracePanel(){
   var box=document.getElementById('tracePanel');
   if(!box)return;
+  /* IP tracing is admin-only - a moderator must never see addresses */
+  if(!isAdmin()){box.style.display='none';box.innerHTML='';TRACE.id=null;TRACE.ip=null;TRACE.data=null;return;}
   if(!TRACE.id&&!TRACE.busy){box.style.display='none';box.innerHTML='';return;}
   box.style.display='block';
   box.innerHTML='';
