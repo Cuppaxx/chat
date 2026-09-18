@@ -195,9 +195,27 @@ async function youtubeTitle(url) {
 async function searchSoundCloud(q, excludeId) {
   let list;
   try { list = await ytdlp('scsearch8:' + q, ['--flat-playlist']); } catch (e) { return null; }
+  // Rank by how well the title matches, and skip covers / remixes / nightcore
+  // / sped-up versions unless that is what was asked for - the first live test
+  // of this played a Rick Astley COVER because it happened to be listed first.
+  const words = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
+  const want = words(q);
+  const VARIANT = /\b(cover|remix|nightcore|sped up|speed up|slowed|reverb|8d|karaoke|instrumental|mashup|bootleg|edit|flip|rework|type beat)\b/i;
+  const askedVariant = VARIANT.test(q);
+  const score = (e) => {
+    const t = words(e.title);
+    let hit = 0; for (const w of want) if (t.indexOf(w) >= 0) hit++;
+    let s = want.length ? hit / want.length : 0;
+    if (!askedVariant && VARIANT.test(String(e.title || ''))) s -= 1;
+    return s;
+  };
   const cands = (list.entries || []).filter((e) => e && e.url &&
     String(e.id) !== String(excludeId || '') &&
-    !(Number(e.duration) > 0 && Number(e.duration) <= 35));
+    !(Number(e.duration) > 0 && Number(e.duration) <= 35))
+    .map((e) => ({ e, s: score(e) }))
+    .filter((x) => x.s > 0.34)          // at least a third of the words in common
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.e);
   for (const c of cands.slice(0, 4)) {
     try {
       const r = fromYtdlp(await ytdlp(c.url), c.url);
