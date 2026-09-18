@@ -125,7 +125,9 @@ function ytdlp(url, extra) {
       '-J', '--no-playlist', '--no-warnings', '--no-progress',
       // an audio-only stream over plain HTTP(S): an <audio> element can play
       // that directly. HLS playlists need a demuxer the browser does not have.
-      '-f', 'bestaudio[protocol^=http][protocol!*=m3u8]/best[protocol^=http][protocol!*=m3u8][vcodec=none]/bestaudio[protocol^=http]/best[protocol^=http][protocol!*=m3u8]',
+      // and never a 30-second preview: SoundCloud gives non-subscribers a
+      // snippet of Go+ tracks, labelled 'preview', which would play and stop
+      '-f', 'bestaudio[format_id!*=preview][protocol^=http][protocol!*=m3u8]/best[format_id!*=preview][protocol^=http][protocol!*=m3u8][vcodec=none]/bestaudio[format_id!*=preview][protocol^=http]/best[format_id!*=preview][protocol^=http][protocol!*=m3u8]',
       '--socket-timeout', '15',
     ].concat(extra || []);
     if (cookiesFile) args.push('--cookies', cookiesFile);
@@ -155,6 +157,9 @@ function fromYtdlp(j, url) {
   // with a merged/single format the URL is at the top level
   const f = (j.requested_formats && j.requested_formats[0]) || j;
   if (!f.url) throw new Error('no playable audio stream found for that link');
+  if (f.url.indexOf('/preview/') >= 0 || /preview/.test(String(f.format_id || ''))) {
+    throw new Error('only a 30-second preview of that track is available (Requested format is not available)');
+  }
   return {
     url: f.url,
     headers: Object.assign({}, j.http_headers || {}, f.http_headers || {}),
@@ -180,17 +185,27 @@ async function youtubeTitle(url) {
   } catch (e) { return ''; }
 }
 
-// Search SoundCloud and return the first result that is actually PLAYABLE.
-// A plain search took the top hit, and the top hit for a popular song is very
-// often the official label upload - which is DRM-protected, cannot be played
-// by anything, and failed with "This video is DRM protected". -i skips those
-// and keeps going, so this lands on the first unlocked upload instead.
+// Search SoundCloud and return the first result that actually PLAYS IN FULL.
+// The top hit for a popular song is usually the official label upload, which
+// is either DRM-locked or only a 30-second preview. So: one quick "flat"
+// search for the candidates (a single request), then open them one at a time
+// and stop at the first that yields a full, unlocked stream. That is a lot
+// cheaper on Render's CPU than fully processing eight results up front, which
+// is what made queueing take the better part of a minute.
 async function searchSoundCloud(q, excludeId) {
-  const j = await ytdlp('scsearch8:' + q, ['-i']);
-  const list = (j.entries || []).filter((e) =>
-    e && (e.url || (e.requested_formats && e.requested_formats[0] && e.requested_formats[0].url)) &&
-    String(e.id) !== String(excludeId || ''));
-  return list[0] || null;
+  let list;
+  try { list = await ytdlp('scsearch8:' + q, ['--flat-playlist']); } catch (e) { return null; }
+  const cands = (list.entries || []).filter((e) => e && e.url &&
+    String(e.id) !== String(excludeId || '') &&
+    !(Number(e.duration) > 0 && Number(e.duration) <= 35));
+  for (const c of cands.slice(0, 4)) {
+    try {
+      const r = fromYtdlp(await ytdlp(c.url), c.url);
+      if (r.meta.duration && r.meta.duration <= 35) continue;   // a clip, not the song
+      return r;
+    } catch (e) { /* locked, preview-only, region-blocked: next */ }
+  }
+  return null;
 }
 function cleanTitle(t) {
   return String(t || '')
@@ -206,7 +221,7 @@ function cleanTitle(t) {
 // song that is not locked. Popular songs nearly always have one.
 async function resolveDrm(url, original) {
   let meta = null;
-  try { meta = await ytdlp(url, ['--ignore-no-formats-error']); } catch (e) { throw original; }
+  try { meta = await ytdlp(url, ['--ignore-no-formats-error', '-f', 'bestaudio/best/all']); } catch (e) { throw original; }
   const title = cleanTitle(meta && (meta.title || meta.fulltitle));
   if (!title) throw original;
   const who = String((meta && (meta.artist || meta.uploader)) || '').trim();
@@ -214,10 +229,10 @@ async function resolveDrm(url, original) {
   let hit = await searchSoundCloud(q, meta.id);
   if (!hit && q !== title) hit = await searchSoundCloud(title, meta.id);
   if (!hit) {
-    throw new Error('"' + title.slice(0, 80) + '" is DRM-protected (a label or Go+ upload), which nothing can ' +
-      'play, and no unlocked upload of it turned up. Try a different link for the same song.');
+    throw new Error('"' + title.slice(0, 80) + '" is locked on SoundCloud (a label or Go+ upload - DRM or a ' +
+      '30-second preview), and no full, unlocked upload of it turned up. Try a different link for the same song.');
   }
-  const r = fromYtdlp(hit, url);
+  const r = hit;
   r.meta.fallback = 'drm';
   r.meta.ytTitle = title.slice(0, 120);
   return r;
@@ -230,20 +245,27 @@ async function resolveDrm(url, original) {
 //   2. look the song up by its title on SoundCloud and play that instead,
 //      saying so - the same trick music bots use to play Spotify links.
 // Cookies (YTDLP_COOKIES) remain the real fix and are tried first when set.
+// Once YouTube has bot-checked this server, asking again for every link just
+// adds half a minute of waiting to each one. Remember it for a while and go
+// straight to the SoundCloud match; try YouTube itself again after that.
+let ytBlockedUntil = 0;
 async function resolveYouTube(url) {
   try {
+    if (Date.now() < ytBlockedUntil) throw new Error('Sign in to confirm you are not a bot (remembered)');
     return fromYtdlp(await ytdlp(url), url);
   } catch (e1) {
     if (!BOT.test(String(e1.message))) throw e1;
     try {
+      if (Date.now() < ytBlockedUntil) throw e1;
       return fromYtdlp(await ytdlp(url, ['--extractor-args', 'youtube:player_client=tv,mweb']), url);
     } catch (e2) {
+      if (!cookiesFile) ytBlockedUntil = Date.now() + 30 * 60 * 1000;
       const title = await youtubeTitle(url);
       if (!title) throw e1;
       let hit = null;
       try { hit = await searchSoundCloud(cleanTitle(title)); } catch (e3) { throw e1; }
       if (!hit) throw e1;
-      const r = fromYtdlp(hit, url);
+      const r = hit;
       r.meta.fallback = 'soundcloud';
       r.meta.ytTitle = title.slice(0, 120);
       return r;
@@ -264,7 +286,7 @@ async function resolve(url) {
     try {
       result = fromYtdlp(await ytdlp(url), url);
     } catch (e) {
-      if (!/DRM/i.test(String(e.message))) throw e;
+      if (!/DRM|preview|Requested format is not available/i.test(String(e.message))) throw e;
       result = await resolveDrm(url, e);
     }
   } else if (DIRECT.test(url)) {
