@@ -419,6 +419,43 @@ body.touch .cam .ctl{opacity:1}
 #tshare{display:none;width:100%;max-height:min(56vh,520px);background:#000;object-fit:contain}
 .tstage.share #tshare{display:block}
 .tstage.share #tframe,.tstage.share #tvid,.tstage.share .tblock{display:none}
+/* synced YouTube */
+#tytwrap{display:none;width:100%;height:min(58vh,540px);min-height:240px;background:#000}
+#tytwrap iframe,#tyt{display:block;width:100%;height:100%;border:0}
+.tstage.yt #tytwrap{display:block}
+.tstage.yt #tvid,.tstage.yt #tframe{display:none}
+.tstage.yt.locked .tblock{display:block}
+.tstage.share #tytwrap{display:none}
+.tstage:fullscreen #tytwrap{height:100vh}
+.tstage:-webkit-full-screen #tytwrap{height:100vh}
+/* the radio panel */
+.fold.radio{margin:8px 12px}
+.fold.radio .rnow{font-weight:400;letter-spacing:0;text-transform:none;font-size:12px;opacity:.85;
+  max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rnowrow{display:flex;gap:10px;align-items:center;margin:4px 0 6px}
+.rart{width:54px;height:54px;flex:none;border-radius:8px;display:grid;place-items:center;font-size:26px;
+  background:linear-gradient(var(--btnA),var(--btnC));background-size:cover;background-position:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+.rinfo{flex:1;min-width:0}
+.rtitle{font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rsub{font-size:11.5px;color:var(--ink2);opacity:.85}
+.rprog{margin:5px 0 2px;cursor:default}
+.rctl .btn{padding:4px 10px}
+.radm{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rqueue{max-height:180px;overflow:auto;margin-top:6px;border-radius:6px}
+.rq{display:flex;gap:8px;align-items:center;padding:4px 7px;font-size:12.5px;color:var(--ink);
+  border-bottom:1px solid rgba(80,50,160,.15)}
+.rq.cur{background:rgba(120,80,255,.16);font-weight:700}
+.rq .rqt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rq .rqb{font-size:11px;opacity:.65}
+.rq button{font:inherit;font-size:11px;padding:1px 6px;border-radius:5px;border:1px solid #9c86e0;
+  background:#fff;color:var(--ink);cursor:pointer}
+
+/* dragging somebody onto a channel */
+.mem[draggable="true"]{cursor:grab}
+.mem.dragging{opacity:.45}
+#rooms .row.dropok{outline:2px dashed var(--sel2);outline-offset:-3px;
+  background-image:linear-gradient(var(--sel1),var(--sel2));color:#fff}
 .tstage.share .tover{display:none}
 .tstage:fullscreen #tshare{height:100vh;max-height:100vh;width:100vw}
 .tstage:-webkit-full-screen #tshare{height:100vh;max-height:100vh;width:100vw}
@@ -1259,6 +1296,16 @@ body.cinema .tstage{box-shadow:0 0 0 1px rgba(255,255,255,.18),0 10px 60px rgba(
 #spotov{position:fixed;inset:0;pointer-events:none;z-index:79;opacity:0;transition:opacity .35s}
 #spotov.on{opacity:1}
 
+/* the skeleton that runs past, and the little note that follows him */
+.prank.skel img{position:absolute;left:0;bottom:0;height:min(52vh,460px);width:auto;
+  will-change:transform;pointer-events:none}
+.eyespop{position:fixed;right:18px;bottom:18px;z-index:81;pointer-events:none;
+  padding:9px 14px;border-radius:12px;font-size:14px;font-weight:600;color:var(--ink);
+  background-image:linear-gradient(var(--cardA),var(--cardB));border:1px solid #fff;
+  box-shadow:0 6px 22px rgba(0,0,0,.55);opacity:0;transform:translateY(8px) scale(.96);
+  transition:opacity .35s,transform .35s}
+.eyespop.on{opacity:1;transform:none}
+
 /* JPEG damage: macroblocks and chroma smear laid over the pixelated room */
 .prank.jpegfx canvas{mix-blend-mode:hard-light;opacity:.55}
 
@@ -1983,6 +2030,10 @@ h3{
             <iframe id="tframe" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
                     allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"></iframe>
+            <!-- YouTube goes through its own player API rather than a plain
+                 frame, because that is the only way to read and set its
+                 position - which is what keeping everybody in sync needs -->
+            <div id="tytwrap"><div id="tyt"></div></div>
             <video id="tshare" playsinline autoplay muted></video>
             <div class="tblock" id="tblock" title="only the queue leader can interact with this"></div>
             <div class="tover" id="tover">
@@ -2007,6 +2058,9 @@ h3{
             <button class="btn grey" id="tNext">⏭</button>
             <button class="btn blue" id="tTake">🎚 Take the lead</button>
             <button class="btn grey" id="tShare" title="share your actual screen so everyone sees this page exactly as you do, in sync">📡 Stream this page</button>
+            <button class="btn grey" id="tStopHost" title="stop what is playing for everyone and hand the theatre back — anyone can host after you">⏹ Stop hosting</button>
+            <button class="btn grey" id="tKillShare" title="end the screen share that is on the stage">🚫 Stop their stream</button>
+            <button class="btn grey" id="tUnmute" title="your browser started the video muted — click to hear it">🔈 Unmute video</button>
             <span class="tstat" id="tStat"></span>
           </div>
           <div class="trow">
@@ -2022,6 +2076,54 @@ h3{
             use <b>🖥 Screen Share</b> instead.
           </div>
         </div>
+
+        <details class="fold radio" id="radio">
+          <summary>📻 Radio <span class="rnow" id="rNowMini">off</span>
+            <span class="cnt2" id="rHostLbl">nobody is hosting</span></summary>
+          <div class="foldbody">
+            <div class="rnowrow">
+              <div class="rart" id="rArt">📻</div>
+              <div class="rinfo">
+                <div class="rtitle" id="rTitle">Nothing playing</div>
+                <div class="rsub" id="rSub">Queue a YouTube, SoundCloud, Bandcamp or direct audio link below.</div>
+                <div class="tprog rprog" id="rProg"><i></i><b></b></div>
+                <div class="rsub" id="rTime"></div>
+              </div>
+            </div>
+            <div class="brline rctl" id="rCtl">
+              <button class="btn" id="rPlay">▶</button>
+              <button class="btn grey" id="rPause">⏸</button>
+              <button class="btn grey" id="rPrev">⏮</button>
+              <button class="btn grey" id="rSkip">⏭</button>
+              <button class="btn grey" id="rStop" title="stop the radio for everyone">⏹</button>
+              <span class="radm" id="rAdm">
+                <span class="lab" style="font-size:12px;opacity:.75">volume</span>
+                <input type="range" id="rVol" class="vol" min="0" max="100" step="1" value="70" style="width:110px"
+                       title="how loud the radio is for EVERYONE">
+                <span id="rVolVal" style="font-size:12px;min-width:32px">70%</span>
+                <span class="lab" style="font-size:12px;opacity:.75">bitrate</span>
+                <select id="rKbps" class="sel" title="how much bandwidth the radio host sends the music at">
+                  <option value="32">32 kbps</option><option value="64">64 kbps</option>
+                  <option value="96" selected>96 kbps</option><option value="128">128 kbps</option>
+                  <option value="192">192 kbps</option>
+                </select>
+              </span>
+            </div>
+            <div class="brline">
+              <button class="btn blue" id="rHost" title="play the radio from your machine — it goes out over your voice, to this channel and to Discord">📻 Host the radio here</button>
+              <span class="rsub" id="rHostNote"></span>
+            </div>
+            <div class="brline">
+              <input type="text" id="rUrl" maxlength="600" placeholder="paste a YouTube / SoundCloud / Bandcamp / audio link…" style="flex:1;min-width:0">
+              <button class="btn" id="rAdd">＋ Queue</button>
+            </div>
+            <div class="rqueue" id="rQueue"></div>
+            <div class="hint2">Anyone can queue. Admins and mods control what plays and skip; admins also
+              set the volume and bitrate. The music travels over the host's voice connection, so everyone
+              in this channel and anyone in the linked Discord channel hears the same thing — if you are
+              the host, wear headphones so your mic does not pick it up twice.</div>
+          </div>
+        </details>
 
         <div class="chat">
           <div class="logwrap">
@@ -2243,6 +2345,7 @@ h3{
             <span class="q" data-prank="rrod">💀 Red Ring</span>
             <span class="q" data-prank="banscare">⛔ Fake ban</span>
             <span class="q" data-prank="spotlight">🔦 Spotlight</span>
+            <span class="q" data-prank="skeleton">💀 Skeleton run</span>
             <span class="q" id="prankSnipeRandom" title="snipe a random member">🎯 Snipe (random)</span>
           </div>
         </div>
@@ -2272,6 +2375,9 @@ h3{
             </select>
             <span style="font-size:11.5px;opacity:.7" id="vmTrumpNote">off</span>
           </div>
+          <div class="hint2" id="vpTrumpNote" style="display:none;margin:0 0 4px">🇺🇸 <b>Donald Trump mode is on</b> —
+            this box is his character now. Edit it and press <b>Apply</b> to change it for the whole
+            room; <b>Default</b> puts the built-in one back.</div>
           <textarea id="vpText" rows="10" maxlength="12000"
             style="width:100%;font:inherit;font-size:12.5px;line-height:1.45;padding:8px 10px;
                    border-radius:6px;border:1px solid #9c86e0;background:#fff;color:#1b0a4d;
@@ -2380,7 +2486,7 @@ h3{
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='8.9';
+var BUILD='9.1';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -2533,6 +2639,7 @@ var autoMic=true;
 var VIDEO_KBPS=140, rescanTimer=null, joinTimer=null;
 /* screen share */
 var scrStream=null, scrOn=false, scrAudioNode=null;
+var scrAt=0;   /* when this share started - the newest share owns the theatre stage */
 /* Camera presets. 320x240 at 140 kbps was a postage stamp; 360p is the new
    floor and 720p60 is there for anyone with the bandwidth to spend. */
 var CAMSPEC={
@@ -3018,6 +3125,31 @@ $('#iconFile').onchange=function(e){
   e.target.value='';
 };
 
+/* ---------- moving people between channels ----------
+   Channels are separate rooms - you only have a connection to the people in
+   the one you are in - so moving someone cannot be done TO them. It is an
+   instruction, signed like every other moderation message, that their own
+   copy obeys by switching channel. */
+var DRAG={name:null,self:false};
+/* The member list can be rebuilt mid-drag (someone joins, someone mutes), and
+   a row that has been removed never gets its dragend. Clear up here instead. */
+document.addEventListener('dragend',function(){
+  DRAG.name=null;
+  var o=document.querySelectorAll('#rooms .dropok');
+  for(var i=0;i<o.length;i++)o[i].classList.remove('dropok');
+},true);
+function moveMember(name,to,self){
+  to=slug(to);
+  if(!to)return;
+  if(self||nameKey(name)===nameKey(me.name)){
+    if(to!==room){toast('moving to '+to);switchRoom(to);}
+    return;
+  }
+  if(!isMod()){toast('only moderators and admins can move other people');return;}
+  if(to===room){toast(name+' is already in '+to);return;}
+  bc({t:'move',k:isAdmin()?ADMIN_PASS:MOD_PASS,name:name,to:to,by:me.name||'a moderator'});
+  sys('🚚 you moved <b>'+esc(name)+'</b> to <b>'+esc(to)+'</b>');
+}
 function renderRooms(){
   var b=$('#rooms');b.innerHTML='';
   var list=ROOMS.slice();
@@ -3025,6 +3157,21 @@ function renderRooms(){
   list.forEach(function(r){
     var d=el('div','row action'+(r===room?' cur':''),'<span class="dot"></span>'+esc(r));
     d.onclick=function(){switchRoom(r);};
+    /* a member dragged from the list lands here */
+    d.ondragover=function(e){
+      if(!DRAG.name)return;
+      e.preventDefault();
+      try{e.dataTransfer.dropEffect='move';}catch(err){}
+      d.classList.add('dropok');
+    };
+    d.ondragleave=function(){d.classList.remove('dropok');};
+    d.ondrop=function(e){
+      e.preventDefault();
+      d.classList.remove('dropok');
+      var who=DRAG.name, self=DRAG.self;
+      DRAG.name=null;
+      if(who)moveMember(who,r,self);
+    };
     b.appendChild(d);
   });
   $('#tabr').textContent=room;
@@ -3286,6 +3433,7 @@ function connectRoom(){
     p.on('open',function(){
       clearTimeout(joinTimer);clearTimeout(slowNote);
       peer=p;me.slot=slot;me.id=id;bindPeer(p);
+      myPastIds[id]=1;          /* never show our own old slot as somebody else */
       $('#modal').style.display='none';$('#btnJoin').disabled=false;$('#err').textContent='';
       location.hash=room;renderRooms();renderMembers();
       var srv=CFG.host||SIGNAL_HOST;
@@ -3368,6 +3516,14 @@ function connectRoom(){
    The original blind sweep is kept underneath as scanBlind(), used only when
    that request keeps failing (an older server.js, a cold start, offline). */
 var rosterDead=false, lastRoster=[], rosterAt=0, rosterMiss=0;
+/* id -> when the server first listed it (continuously since), and every id
+   this browser has itself held. See unreachableRoster(). */
+var rosterSince={}, myPastIds={};
+/* A placeholder row is for somebody genuinely STUCK - in the room but
+   unreachable. Anything shorter than this is ordinary: a newcomer still
+   connecting, or a hard exit the server has not timed out yet (its
+   alive_timeout is 30 s). */
+var ROSTER_STUCK_MS=45000;
 function rosterUrl(){
   var h=(CFG.host||SIGNAL_HOST).replace(/^https?:\/\//,'').replace(/\/+$/,'').split(':')[0];
   if(location.hostname===h||location.hostname==='127.0.0.1'||location.hostname==='localhost')
@@ -3382,6 +3538,13 @@ function scan(){
     .then(function(list){
       if(!Array.isArray(list))throw new Error('bad roster');
       rosterMiss=0;lastRoster=list;rosterAt=Date.now();
+      /* remember how long each id has been listed without a break */
+      var now=Date.now(), keep={};
+      for(var li=0;li<list.length;li++){
+        var lid=String(list[li]||'');
+        keep[lid]=rosterSince[lid]||now;
+      }
+      rosterSince=keep;
       dialRoster(list);
     })
     .catch(function(){
@@ -3442,13 +3605,21 @@ function dialRoster(list){
 }
 /* Everyone the server says is in this room that we have no open data channel
    to. Drives the placeholder rows in the member list. */
+/* This is where the random "slot 0" / "slot 1" members came from. It listed
+   EVERY id the server knew about that we had no channel to, which is true -
+   for a few seconds - of every newcomer, true for up to 30 s after anybody
+   leaves hard, and true of your OWN old slot after you rejoin or switch
+   channel, so you could see yourself as a stranger. Now an id has to have
+   been listed without a break for longer than the server's own timeout, and
+   never be one of ours, before it is drawn. */
 function unreachableRoster(){
-  var mine=PREFIX+'-'+room+'-', out=[];
+  var mine=PREFIX+'-'+room+'-', out=[], now=Date.now();
   for(var i=0;i<lastRoster.length;i++){
     var id=String(lastRoster[i]||'');
-    if(id.indexOf(mine)!==0||id===me.id)continue;
+    if(id.indexOf(mine)!==0||id===me.id||myPastIds[id])continue;
     var p=peers[id];
     if(p&&p.conn&&p.conn.open)continue;
+    if(now-(rosterSince[id]||now)<ROSTER_STUCK_MS)continue;
     out.push(id);
   }
   return out;
@@ -3730,7 +3901,7 @@ function onData(id,d){
     /* someone still doesn't know who we are — re-introduce ourselves */
     try{if(p.conn&&p.conn.open)p.conn.send({t:'hello',did:DEVICE_ID,mic:micInfo(),name:me.name,icon:me.icon,
       muted:muted||!micOn,cam:camOn,media:MEDIA_OK,build:BUILD});}catch(e){}
-    try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true});}catch(e){}
+    try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true,at:scrAt});}catch(e){}
     return;
   }
   if(d.t==='mod'){applyMod(d,false);return;}
@@ -3749,7 +3920,8 @@ function onData(id,d){
       sys('🥒 <b>VERITY</b> hung up.');return;}
     if(d.a==='mode'){
       if(d.k!==ADMIN_PASS&&d.k!==MOD_PASS)return;
-      vmodeApply(!!d.trump,String(d.voice||''),String(d.by||'an admin').slice(0,18));
+      vmodeApply(!!d.trump,String(d.voice||''),String(d.by||'an admin').slice(0,18),false,
+                 (typeof d.persona==='string')?d.persona:undefined);
       return;
     }
     if(d.a==='say'){addMsg(VERITY_ME,String(d.text||'').slice(0,300),false);return;}
@@ -3768,10 +3940,11 @@ function onData(id,d){
   }
   if(d.t==='duel'){ gmDuelMsg(id,d); return; }
   if(d.t==='tstate'){tApply(d);return;}
+  if(d.t==='radd'||d.t==='rctl'||d.t==='rstate'){radioOnData(id,p,d);return;}
   if(d.t==='tadd'){
     if(d.item&&typeof d.item.url==='string'&&tQ.length<200){
       tQ.push({url:String(d.item.url).slice(0,600),
-               kind:(d.item.kind==='site'?'site':'media'),
+               kind:(d.item.kind==='site'||d.item.kind==='yt')?d.item.kind:'media',
                title:String(d.item.title||'clip').slice(0,80),
                by:String(d.item.by||'?').slice(0,18)});
       sys('🎬 <b>'+esc(d.item.by||'someone')+'</b> queued <b>'+esc(d.item.title||d.item.url)+'</b>');
@@ -3781,8 +3954,44 @@ function onData(id,d){
   }
   if(d.t==='tlead'){
     tLeader=String(d.name||'').slice(0,18);
-    sys('🎬 <b>'+esc(tLeader)+'</b> is now the queue leader');
+    if(tLeader)sys('🎬 <b>'+esc(tLeader)+'</b> is now the queue leader');
+    else{
+      sys('🎬 <b>'+esc(p.name||'The host')+'</b> stopped hosting — anyone can host the theatre now');
+      tIdx=-1;tClearStage();YTS.muted=false;
+    }
+    /* Whoever takes the stage takes it: a stream that was running under the
+       old host ends, unless it is the new host's own. */
+    if(inTheater()&&scrOn&&tLeader!==me.name){
+      stopScreen(true);
+      sys('🎬 your stream was stopped — '+(tLeader?('<b>'+esc(tLeader)+'</b> has the stage'):'the host ended the session'),true);
+    }
     renderTheater();
+    return;
+  }
+  if(d.t==='move'){
+    if(d.k!==ADMIN_PASS&&d.k!==MOD_PASS)return;
+    var mto=slug(String(d.to||'')), mby=String(d.by||'a moderator').slice(0,18);
+    if(!mto)return;
+    if(nameKey(d.name)===nameKey(me.name)){
+      if(mto===room)return;
+      sys('🚚 <b>'+esc(mby)+'</b> moved you to <b>'+esc(mto)+'</b>');
+      toast(mby+' moved you to '+mto);
+      setTimeout(function(){switchRoom(mto);},400);
+    }else{
+      sys('🚚 <b>'+esc(mby)+'</b> moved <b>'+esc(String(d.name||'').slice(0,18))+'</b> to <b>'+esc(mto)+'</b>');
+    }
+    return;
+  }
+  if(d.t==='tstopshare'){
+    /* the host may end a stream on their own stage; admins and mods anywhere */
+    var okStop=d.k===ADMIN_PASS||d.k===MOD_PASS||(!!p.name&&p.name===tLeader);
+    if(!okStop)return;
+    if(inTheater()&&scrOn&&(!d.name||nameKey(d.name)===nameKey(me.name))){
+      stopScreen(true);
+      sys('🎬 <b>'+esc(String(d.by||p.name||'the host').slice(0,18))+'</b> ended your stream',true);
+    }else if(d.name){
+      sys('🎬 <b>'+esc(String(d.by||p.name||'the host').slice(0,18))+'</b> ended <b>'+esc(String(d.name).slice(0,18))+'</b>’s stream');
+    }
     return;
   }
   if(d.t==='treq'){if(canDrive())try{p.conn.send(tState());}catch(e){} return;}
@@ -3825,16 +4034,27 @@ function onData(id,d){
       sys('<b>'+esc(d.name)+'</b> joined the party');blip(880,.06);
       verityEvent('joined',d.name);
       if(p.conn&&p.conn.open&&camOn){try{p.conn.send({t:'cam',on:true});}catch(e){}}
-      if(p.conn&&p.conn.open&&scrOn){try{p.conn.send({t:'scr',on:true});}catch(e){}}
+      if(p.conn&&p.conn.open&&scrOn){try{p.conn.send({t:'scr',on:true,at:scrAt});}catch(e){}}
       /* hand a newcomer the current theater state straight away instead of
          making them wait for the next 2.5s heartbeat */
       if(inTheater()&&canDrive()&&p.conn&&p.conn.open){try{p.conn.send(tState());}catch(e){}}
+      if(radioIsHost()&&p.conn&&p.conn.open){try{p.conn.send(radioState());}catch(e){}}
     }
   }else if(d.t==='cam'){
     p.camOn=d.on;renderCams();
     if(p.name)sys('<b>'+esc(p.name)+'</b> turned their camera '+(d.on?'on':'off'));
   }else if(d.t==='scr'){
     p.screen=!!d.on;
+    /* One stage, one stream. Whoever started sharing MOST RECENTLY has it, so
+       if theirs is newer than mine, mine stops. Compared by start time rather
+       than arrival order, so two people who start at once do not both stop,
+       and a re-introduction to a newcomer (which repeats the old start time)
+       never knocks anybody off. */
+    if(d.on&&inTheater()&&scrOn&&typeof d.at==='number'&&
+       (d.at>scrAt||(d.at===scrAt&&id>(me.id||'')))){
+      stopScreen(true);
+      sys('🎬 <b>'+esc(p.name||'someone')+'</b> took the stage — your stream stopped',true);
+    }
     /* a screen share is the thing people actually want to look at, so give it
        the spotlight automatically rather than a thumbnail in a row of faces */
     if(d.on)bigCam=id; else if(bigCam===id)bigCam=null;
@@ -3930,6 +4150,12 @@ function dropPeer(id){
   try{p.conn&&p.conn.close();}catch(e){}
   try{p.call&&p.call.close();}catch(e){}
   if(p.name){sys('<b>'+esc(p.name)+'</b> left the party');blip(330,.08);verityEvent('left',p.name);}
+  /* the radio plays from its host's browser, so it goes quiet when they leave */
+  if(p.name&&RADIO.host===p.name&&!radioIsHost()){
+    RADIO.host='';RADIO.playing=false;
+    sys('📻 the radio host left — an admin or mod can press <b>Host the radio here</b> to carry on');
+    try{radioRender();}catch(e){}
+  }
   /* VERITY lives in her caller's browser, so she leaves when they do */
   if(typeof VERITY!=='undefined'&&VERITY.on&&!VERITY.host&&VERITY.hostId===id){
     VERITY.on=false;VERITY.hostId=null;
@@ -3962,6 +4188,12 @@ function leaveParty(silent){
   clearInterval(rescanTimer);clearTimeout(joinTimer);
   for(var k in pending){clearTimeout(pending[k]);}
   pending={};probe={};slotMiss={};warnedNoRoute=false;
+  /* the radio belongs to the channel you are leaving */
+  try{if(radioIsHost())radioUngraph();}catch(e){}
+  RADIO.q=[];RADIO.idx=-1;RADIO.playing=false;RADIO.host='';RADIO.pos=0;RADIO.dur=0;
+  try{radioRender();}catch(e){}
+  /* the old room's roster is not this room's */
+  lastRoster=[];rosterSince={};
   /* room-scoped admin state resets on leaving; bans are kept for the session */
   everSeen={};roomLocked=false;bigCam=null;forceMuted=false;
   if(scrOn)stopScreen(false);
@@ -3989,6 +4221,9 @@ function ctx(){
        browser resamples the device far better than we could. If a browser
        ignores the hint the denoiser notices and stays out of the way. */
     try{actx=new AC({sampleRate:48000});}catch(e){actx=new AC();}
+    /* the clean pitch shifter for Deep/Chipmunk/Pitch, loaded in the
+       background so it is ready before anyone picks one */
+    setTimeout(function(){try{psEnsure();}catch(e){}},0);
     /* the speakers picked in Devices */
     try{if(typeof DEV!=='undefined'&&DEV.out&&actx.setSinkId)actx.setSinkId(DEV.out).catch(function(){});}catch(e){}
   }
@@ -4042,26 +4277,114 @@ function ensureFxGraph(){
   if(!fxDest)fxDest=c.createMediaStreamDestination();
   return fxDest;
 }
+/* ---------------------------------------------------------------------------
+   PITCH SHIFTING (Deep, Chipmunk, the Pitch slider, raw-listen pitch)
+
+   The old shifter was why Deep and Chipmunk popped. It read the audio with ONE
+   playhead running faster or slower than real time, and whenever that playhead
+   drifted too close to the incoming audio it was snapped back thousands of
+   samples in a single step, with no crossfade. Every snap was a click, several
+   times a second. It also ran as a ScriptProcessor on the page's main thread,
+   so anything else the page was doing - video, chat, VERITY - made it miss its
+   deadline and drop out.
+
+   Now: two playheads half a window apart, each faded in and out with a Hann
+   window, so neither is ever heard at the moment it jumps and the two fades
+   always sum to exactly 1. That is the standard clean delay-line shifter. It
+   runs as an AudioWorklet on the audio thread, where the page cannot starve
+   it. The ScriptProcessor below is kept only for browsers with no
+   AudioWorklet, and uses the same two-playhead method so it no longer clicks
+   either.
+   --------------------------------------------------------------------------- */
+var PS_WIN_SEC=0.06;          /* window: longer = smoother, shorter = less echo */
+var PS_WORKLET=[
+"class MingusPitch extends AudioWorkletProcessor{",
+"  static get parameterDescriptors(){return [{name:'ratio',defaultValue:1,minValue:0.25,maxValue:4,automationRate:'k-rate'}];}",
+"  constructor(o){super();this.N=32768;this.buf=new Float32Array(this.N);this.w=0;this.ph=0;",
+"    this.W=Math.round(sampleRate*((o&&o.processorOptions&&o.processorOptions.win)||0.06));}",
+"  process(inputs,outputs,params){",
+"    var out=outputs[0]&&outputs[0][0];if(!out)return true;",
+"    var inp=inputs[0]&&inputs[0][0];",
+"    var r=params.ratio[0],N=this.N,M=N-1,b=this.buf,W=this.W,ph=this.ph,w=this.w,step=(1-r)/W;",
+"    for(var i=0;i<out.length;i++){",
+"      b[w]=inp?inp[i]:0;",
+"      var p2=ph+0.5;if(p2>=1)p2-=1;",
+"      var r1=w-(ph*W+2),r2=w-(p2*W+2);if(r1<0)r1+=N;if(r2<0)r2+=N;",
+"      var i1=r1|0,f1=r1-i1,i2=r2|0,f2=r2-i2;",
+"      var s1=b[i1&M]+(b[(i1+1)&M]-b[i1&M])*f1,s2=b[i2&M]+(b[(i2+1)&M]-b[i2&M])*f2;",
+"      var g1=0.5-0.5*Math.cos(6.283185307179586*ph);",
+"      out[i]=s1*g1+s2*(1-g1);",
+"      ph+=step;if(ph>=1)ph-=1;else if(ph<0)ph+=1;",
+"      w=(w+1)&M;",
+"    }",
+"    this.w=w;this.ph=ph;",
+"    for(var c=1;c<outputs[0].length;c++)outputs[0][c].set(out);",
+"    return true;",
+"  }",
+"}",
+"registerProcessor('mingus-pitch',MingusPitch);"
+].join('\n');
+var PS={ready:false,loading:null,ctx:null};
+/* Load the worklet once per audio context. Voice FX are built synchronously,
+   so the first effect picked before this lands uses the fallback, and the
+   graph is rebuilt onto the worklet the moment it is ready. */
+function psEnsure(){
+  var c;try{c=ctx();}catch(e){return Promise.resolve(false);}
+  if(PS.ready&&PS.ctx===c)return Promise.resolve(true);
+  if(PS.loading&&PS.ctx===c)return PS.loading;
+  if(!c.audioWorklet)return Promise.resolve(false);
+  PS.ctx=c;PS.ready=false;
+  var url=URL.createObjectURL(new Blob([PS_WORKLET],{type:'application/javascript'}));
+  PS.loading=c.audioWorklet.addModule(url).then(function(){
+    try{URL.revokeObjectURL(url);}catch(e){}
+    PS.ready=true;PS.loading=null;
+    /* if a shifting effect is already running on the fallback, move it over */
+    try{
+      if(micOn&&(fxMode==='deep'||fxMode==='chip'||fxMode==='pitch')&&fxChain&&fxChain.psFallback)wireFx();
+    }catch(e){}
+    return true;
+  }).catch(function(){PS.loading=null;return false;});
+  return PS.loading;
+}
 function makePitchShift(c,ratio){
-  var N=4096,BUF=N*4;
-  var node=c.createScriptProcessor?c.createScriptProcessor(N,1,1):null;
+  if(PS.ready&&PS.ctx===c){
+    try{
+      var wn=new AudioWorkletNode(c,'mingus-pitch',{numberOfInputs:1,numberOfOutputs:1,
+        outputChannelCount:[1],channelCount:1,channelCountMode:'explicit',
+        processorOptions:{win:PS_WIN_SEC}});
+      var prm=wn.parameters.get('ratio');
+      prm.value=ratio;
+      var cur=ratio;
+      /* the Pitch slider sets __ratio live; glide rather than step, so a drag
+         while talking slides smoothly instead of zippering */
+      Object.defineProperty(wn,'__ratio',{
+        get:function(){return cur;},
+        set:function(v){cur=v;try{prm.setTargetAtTime(v,c.currentTime,0.03);}catch(e){prm.value=v;}}
+      });
+      return wn;
+    }catch(e){}
+  }
+  psEnsure();
+  var BLOCK=2048;
+  var node=c.createScriptProcessor?c.createScriptProcessor(BLOCK,1,1):null;
   if(!node)return null;
-  var ring=new Float32Array(BUF),wp=0,rp=0;
-  /* read the ratio off the node each block instead of closing over it, so the
-     Pitch slider can slide it around live without rebuilding the audio graph
-     (rebuilding mid-sentence clicks audibly and drops a word) */
+  var N=32768,M=N-1,b=new Float32Array(N),w=0,ph=0,W=Math.round(c.sampleRate*PS_WIN_SEC);
   node.__ratio=ratio;
+  node.__fallback=true;
   node.onaudioprocess=function(e){
-    var inp=e.inputBuffer.getChannelData(0),out=e.outputBuffer.getChannelData(0),i;
-    var r=node.__ratio||1;
-    for(i=0;i<N;i++){ring[wp]=inp[i];wp=(wp+1)%BUF;}
-    for(i=0;i<N;i++){
-      var fl=Math.floor(rp),i0=fl%BUF,i1=(i0+1)%BUF,fr=rp-fl;
-      out[i]=ring[i0]*(1-fr)+ring[i1]*fr;
-      rp+=r;if(rp>=BUF)rp-=BUF;
+    var inp=e.inputBuffer.getChannelData(0),out=e.outputBuffer.getChannelData(0);
+    var step=(1-(node.__ratio||1))/W;
+    for(var i=0;i<out.length;i++){
+      b[w]=inp[i];
+      var p2=ph+0.5;if(p2>=1)p2-=1;
+      var r1=w-(ph*W+2),r2=w-(p2*W+2);if(r1<0)r1+=N;if(r2<0)r2+=N;
+      var i1=r1|0,f1=r1-i1,i2=r2|0,f2=r2-i2;
+      var s1=b[i1&M]+(b[(i1+1)&M]-b[i1&M])*f1,s2=b[i2&M]+(b[(i2+1)&M]-b[i2&M])*f2;
+      var g1=0.5-0.5*Math.cos(6.283185307179586*ph);
+      out[i]=s1*g1+s2*(1-g1);
+      ph+=step;if(ph>=1)ph-=1;else if(ph<0)ph+=1;
+      w=(w+1)&M;
     }
-    var dist=(wp-rp+BUF)%BUF;
-    if(dist<N*0.5||dist>BUF-N*0.5)rp=(wp-N+BUF)%BUF;
   };
   return node;
 }
@@ -4226,6 +4549,14 @@ function makeImpulse(c,secs,decay){
   }
   return buf;
 }
+/* a fast, transparent peak limiter for the end of an effect chain: it only
+   acts on the loudest syllables, so the effect cannot clip into the encoder */
+function fxLimiter(c){
+  var l=c.createDynamicsCompressor();
+  l.threshold.value=-6;l.knee.value=4;l.ratio.value=12;
+  l.attack.value=0.002;l.release.value=0.12;
+  return l;
+}
 function makeFx(mode){
   var c=ctx(),nodes=[];
   var input=c.createGain(),output=c.createGain();
@@ -4266,23 +4597,35 @@ function makeFx(mode){
     var g3=c.createGain();g3.gain.value=2.0;
     chain([rm,lp3,g3]);
   }else if(mode==='deep'){
+    /* Rumble out BEFORE the shift - pitching down drags it into the sub-bass.
+       The old +5 dB low shelf AFTER the shift pushed loud syllables into
+       clipping, which was the other half of Deep sounding broken; a much
+       gentler warmth plus a limiter keeps it big without distorting. */
+    var dhp=c.createBiquadFilter();dhp.type='highpass';dhp.frequency.value=90;
     var ps=makePitchShift(c,0.72);
-    var lo=c.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=220;lo.gain.value=5;
-    chain(ps?[ps,lo]:[lo]);
+    var lo=c.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=180;lo.gain.value=2;
+    var dsub=c.createBiquadFilter();dsub.type='highpass';dsub.frequency.value=55;
+    chain(ps?[dhp,ps,dsub,lo,fxLimiter(c)]:[lo]);
     if(!ps)toast('this browser can\'t pitch shift');
+    else if(ps.__fallback)nodes.psFallback=true;
   }else if(mode==='chip'){
+    var chp=c.createBiquadFilter();chp.type='highpass';chp.frequency.value=120;
     var ps2=makePitchShift(c,1.5);
     var hp3=c.createBiquadFilter();hp3.type='highpass';hp3.frequency.value=180;
-    chain(ps2?[ps2,hp3]:[hp3]);
+    /* shifting up pushes hiss into the harshest band - take the very top off */
+    var clp=c.createBiquadFilter();clp.type='lowpass';clp.frequency.value=9500;
+    chain(ps2?[chp,ps2,hp3,clp,fxLimiter(c)]:[hp3]);
     if(!ps2)toast('this browser can\'t pitch shift');
+    else if(ps2.__fallback)nodes.psFallback=true;
   }else if(mode==='pitch'){
     var pn=makePitchShift(c,pitchRatio());
     fxPitchNode=pn||null;
     /* the shifter pushes rumble down into the sub-bass when you go low, which
        eats bitrate and sounds like mud rather than a deep voice */
     var pf=c.createBiquadFilter();pf.type='highpass';pf.frequency.value=80;
-    chain(pn?[pn,pf]:[pf]);
+    chain(pn?[pn,pf,fxLimiter(c)]:[pf]);
     if(!pn)toast('this browser can\'t pitch shift');
+    else if(pn.__fallback)nodes.psFallback=true;
   }else if(mode==='cave'){
     var cv=c.createConvolver();cv.buffer=makeImpulse(c,2.4,2.6);
     var wet=c.createGain();wet.gain.value=0.85;
@@ -4293,7 +4636,7 @@ function makeFx(mode){
   }else{
     input.connect(output);
   }
-  return {input:input,output:output,nodes:nodes};
+  return {input:input,output:output,nodes:nodes,psFallback:!!nodes.psFallback};
 }
 function disposeFx(){
   fxPitchNode=null;atNode=null;
@@ -4358,7 +4701,8 @@ function wireFx(){
        be mixed into, or tapped off, the outgoing chain: VERITY, the Discord
        return, screen audio, the self-monitor, or an admin's forced limiter. */
     if(fxMode==='none'&&!scrAudioNode&&!monOn&&!forceLimS&&!dnActive()&&
-       !(typeof VERITY!=='undefined'&&VERITY.on)&&!(typeof BR!=='undefined'&&BR.bus)){
+       !(typeof VERITY!=='undefined'&&VERITY.on)&&!(typeof BR!=='undefined'&&BR.bus)&&
+       !(typeof RADIO!=='undefined'&&RADIO.bus)){
       setOut('audio',localStream.getAudioTracks()[0]);
       monTap(null);
       return true;
@@ -4460,7 +4804,7 @@ function stopMic(){
   disposeFx();
   if(fxSource){try{fxSource.disconnect();}catch(e){}fxSource=null;}
   $('#micState').textContent='Off';
-  if((scrAudioNode||(typeof BR!=='undefined'&&BR.bus))&&fxDest&&fxDest.stream.getAudioTracks()[0])
+  if((scrAudioNode||(typeof BR!=='undefined'&&BR.bus)||(typeof RADIO!=='undefined'&&RADIO.bus))&&fxDest&&fxDest.stream.getAudioTracks()[0])
     setOut('audio',fxDest.stream.getAudioTracks()[0]);
   else setOut('audio',phAudio);
   bc({t:'mute',on:true});renderMembers();
@@ -4570,6 +4914,26 @@ try{
   });
 }catch(e){}
 function devSave(){try{localStorage.setItem('mc_dev',JSON.stringify(DEV));}catch(e){}}
+var DEV_BLANK={audioinput:false,videoinput:false,audiooutput:false}, devUnlocking=false;
+/* Ask for a device just long enough to be allowed to read the names, then
+   let it go straight away. Only for the kind being picked: opening the
+   microphone list never touches the camera. */
+function devUnlock(kind){
+  var md=navigator.mediaDevices;
+  if(devUnlocking||!md||!md.getUserMedia)return Promise.resolve(false);
+  devUnlocking=true;
+  var want=(kind==='videoinput')?{video:true,audio:false}:{audio:true,video:false};
+  return md.getUserMedia(want).then(function(s){
+    s.getTracks().forEach(function(t){t.stop();});
+    return true;
+  }).catch(function(e){
+    toast((kind==='videoinput'?'camera':'microphone')+' access was refused, so the names stay hidden');
+    return false;
+  }).then(function(ok){
+    devUnlocking=false;
+    return devFill().then(function(){return ok;});
+  });
+}
 function devFill(){
   var md=navigator.mediaDevices;
   var row=document.getElementById('devRow');
@@ -4579,16 +4943,23 @@ function devFill(){
       var sel=document.getElementById(selId);
       if(!sel)return;
       var items=list.filter(function(d){return d.kind===kind&&d.deviceId!=='default'&&d.deviceId!=='communications';});
+      /* Browsers hand out device NAMES only once the page has been allowed
+         to use that kind of device - until then every label is blank, which
+         is where "Microphone 1 / Camera 1" came from. Note it, so clicking
+         the list can ask for access and fetch the real names. */
+      DEV_BLANK[kind]=items.some(function(d){return !d.label;})||
+                      (items.length>0&&!items[0].label);
+      var def=list.filter(function(d){return d.kind===kind&&d.deviceId==='default';})[0];
+      var defName=def&&def.label?def.label.replace(/^Default\s*-\s*/i,''):'';
       sel.innerHTML='';
       var o0=document.createElement('option');
-      o0.value='';o0.textContent='System default';
+      o0.value='';o0.textContent=('System default'+(defName?(' ('+defName+')'):'')).slice(0,70);
       sel.appendChild(o0);
       var found=false;
       items.forEach(function(d,i){
         var o=document.createElement('option');
         o.value=d.deviceId;
-        /* labels are blank until the device has been allowed once */
-        o.textContent=(d.label||(noun+' '+(i+1))).slice(0,60);
+        o.textContent=(d.label||(noun+' '+(i+1)+' — click to show names')).slice(0,60);
         if(d.deviceId===DEV[key])found=true;
         sel.appendChild(o);
       });
@@ -4633,8 +5004,37 @@ function devApplyOut(){
     toast(DEV.out?'speakers switched':'back to the system default speakers');
     blip(700,.06);
   };
-  if(rf)rf.onclick=function(){devFill().then(function(){toast('device list refreshed');});};
+  /* clicking a list whose names are hidden fetches them first, then opens it */
+  [[mic,'audioinput'],[cam,'videoinput'],[out,'audiooutput']].forEach(function(pair){
+    var sel=pair[0], kind=pair[1];
+    if(!sel)return;
+    sel.addEventListener('mousedown',function(e){
+      if(!DEV_BLANK[kind]||sel.disabled)return;
+      e.preventDefault();                  /* don't open the list of blanks */
+      devUnlock(kind).then(function(ok){
+        if(!ok)return;
+        try{sel.focus();if(sel.showPicker)sel.showPicker();}
+        catch(err){toast('names loaded — click the list again');}
+      });
+    });
+  });
+  if(rf)rf.onclick=function(){
+    /* the refresh button also fetches names if any are still hidden */
+    var need=DEV_BLANK.audioinput||DEV_BLANK.audiooutput?'audioinput':(DEV_BLANK.videoinput?'videoinput':'');
+    (need?devUnlock(need):devFill()).then(function(){
+      if(need==='audioinput'&&DEV_BLANK.videoinput)return devUnlock('videoinput');
+    }).then(function(){toast('device list refreshed');});
+  };
   try{navigator.mediaDevices.addEventListener('devicechange',function(){devFill();});}catch(e){}
+  /* and whenever access is granted by some other route (the mic prompt on
+     join, the webcam button), the names appear without anyone asking */
+  try{
+    ['microphone','camera'].forEach(function(n){
+      navigator.permissions.query({name:n}).then(function(st){
+        st.onchange=function(){devFill();};
+      }).catch(function(){});
+    });
+  }catch(e){}
   devFill();
 })();
 function toggleScreen(){
@@ -4649,7 +5049,7 @@ function toggleScreen(){
            width:{ideal:scrHQ?1920:1280},height:{ideal:scrHQ?1080:720}},
     audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
   }).then(function(s){
-    scrStream=s;scrOn=true;
+    scrStream=s;scrOn=true;scrAt=Date.now();
     $('#scrState').textContent='On';
     var vt=s.getVideoTracks()[0];
     if(!vt){stopScreen(false);toast('no screen track came back');return;}
@@ -4663,7 +5063,7 @@ function toggleScreen(){
     if(at)mixScreenAudio(s);
     VIDEO_KBPS=screenKbps();
     for(var id in peers)applyBitrate(peers[id].call);
-    bc({t:'scr',on:true});
+    bc({t:'scr',on:true,at:scrAt});
     if(camOn)sys('screen share replaced your webcam feed — turn it off to go back to the camera');
     bigCam='me';   /* spotlight your own share so you can see what they see */
     renderCams();renderTheater();blip(820,.06);
@@ -4745,7 +5145,12 @@ function applyBitrate(call){
       if(!s.track)return;
       var p=s.getParameters();
       if(!p.encodings||!p.encodings.length)p.encodings=[{}];
-      if(s.track.kind==='audio')p.encodings[0].maxBitrate=Q[quality].k*1000;
+      if(s.track.kind==='audio'){
+        /* the radio host sends music, at whatever an admin set the radio to */
+        var ak=Q[quality].k;
+        if(typeof RADIO!=='undefined'&&RADIO.bus&&radioIsHost())ak=Math.max(ak,RADIO.kbps);
+        p.encodings[0].maxBitrate=ak*1000;
+      }
       else{
         p.encodings[0].maxBitrate=clampKbps(VIDEO_KBPS)*1000;
         /* this used to be a flat 15 — which quietly capped screen shares at
@@ -5191,13 +5596,36 @@ function renderMembers(){
     unreachableRoster().forEach(function(id){
       if(shown[id])return;
       var gp=peers[id]||{};
-      list.push({id:id,name:'slot '+id.split('-').pop(),icon:'\u23f3',muted:true,voice:false,
+      /* "slot 1" read like a person called slot1. Say what it actually is. */
+      list.push({id:id,name:'Someone (can\u2019t connect)',icon:'\u23f3',muted:true,voice:false,
         vol:1,ice:gp.ice,ghost:true,dead:probe[id]==='unreachable'});
     });
   }catch(e){}
   list.forEach(function(m){
     var r=el('div','mem'+(m.muted?' muted':''));
     r.setAttribute('data-id',m.id);
+    /* drag onto a channel to move them there - yourself always, anybody else
+       if you are a moderator or admin */
+    if(!m.ghost&&!m.unknown&&(m.self||isMod())){
+      r.draggable=true;
+      (function(row,mm){
+        row.ondragstart=function(e){
+          var nm=mm.self?me.name:mm.name;
+          try{
+            e.dataTransfer.setData('application/x-mingus-member',JSON.stringify({name:nm,self:!!mm.self}));
+            e.dataTransfer.setData('text/plain',nm);
+            e.dataTransfer.effectAllowed='move';
+          }catch(err){}
+          DRAG.name=nm;DRAG.self=!!mm.self;
+          row.classList.add('dragging');
+        };
+        row.ondragend=function(){
+          row.classList.remove('dragging');DRAG.name=null;
+          var o=document.querySelectorAll('#rooms .dropok');
+          for(var i=0;i<o.length;i++)o[i].classList.remove('dropok');
+        };
+      })(r,m);
+    }
     r.appendChild(el('div','spk',m.muted?'🔇':'🔊'));
     r.appendChild(mkAva(m.icon));
     r.appendChild(el('div','nm',esc(m.name)));
@@ -6210,6 +6638,7 @@ function admUnlock(){
    of dead buttons invites people to keep clicking them and then report that
    the panel is broken. */
 function applyRoleUI(){
+  try{radioRender();}catch(e){}
   var adminOnly=document.querySelectorAll('[data-role="admin"]');
   for(var i=0;i<adminOnly.length;i++)
     adminOnly[i].style.display=isAdmin()?'':'none';
@@ -6227,6 +6656,7 @@ function applyRoleUI(){
 }
 function admLogout(){
   role='none';admin=false;
+  setTimeout(function(){try{radioRender();}catch(e){}},0);
   try{sessionStorage.removeItem('mc_role');sessionStorage.removeItem('mc_admin');}catch(e){}
   $('#admVal').textContent='moderation tools';
   $('#admModal').style.display='none';
@@ -7132,9 +7562,10 @@ try{
    stutter constantly. Followers get no scrubber, so they cannot fight the
    leader for position and then get yanked back.
 
-   Media: direct file URLs only. YouTube and friends are detected and refused
-   with an explanation — they block direct playback and their embed player
-   cannot be kept in step this way, so half-working silently would be worse. */
+   Media: direct file URLs, and YouTube through its own player API (see
+   SYNCED YOUTUBE below) - both are kept in step. Any other website goes in a
+   frame that everyone opens but only the host can click; use Stream this page
+   to show one exactly as the host sees it. */
 var THEATER='theater';
 var tQ=[], tIdx=-1, tLeader='', tView='both';
 function inTheater(){return room===THEATER;}
@@ -7232,10 +7663,173 @@ function toEmbed(u){
 function framingLikelyBlocked(u){
   return /(^|\/\/|\.)(google\.[a-z.]+|x\.com|twitter\.com|reddit\.com|facebook\.com|instagram\.com|netflix\.com|amazon\.[a-z.]+|discord\.com|github\.com|chatgpt\.com|openai\.com)\//i.test(u+'/');
 }
-function tState(){
+/* ============================ SYNCED YOUTUBE ============================
+   YouTube used to go in as a plain embedded page: everyone got the same video,
+   but each copy was its own player, so a pause, a skip or a seek by the host
+   reached nobody. There is no way to read or move a plain frame's position.
+
+   YouTube's own IFrame Player API is the way in - it is what watch-party
+   features are built on. It exposes the position, play state and seek, so a
+   YouTube item now syncs exactly like a direct media file: the host is the
+   clock, broadcasts on every play/pause/seek and every 2.5 s, and followers
+   correct when they drift more than 1.5 s. A seek made with YouTube's OWN
+   scrubber fires no event at all, so the host's copy watches its own clock
+   and broadcasts the moment the position jumps. */
+var YTS={player:null,ready:false,id:'',want:null,cbs:[],loading:false,
+         lastT:0,lastAt:0,lastPlaying:false,muted:false,playWanted:false};
+function ytIdOf(u){
+  var m=String(u||'').match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?[^#]*\bv=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i);
+  return m?m[1]:'';
+}
+/* what kind of thing a queue item is: 'yt' | 'media' | 'site'. Older items
+   that stored a YouTube embed as a 'site' are recognised as YouTube too. */
+function tKind(it){
+  if(!it)return '';
+  if(it.kind==='yt'||ytIdOf(it.url))return 'yt';
+  return it.kind||classifyUrl(it.url);
+}
+function ytApi(cb){
+  if(window.YT&&window.YT.Player)return cb();
+  YTS.cbs.push(cb);
+  if(YTS.loading)return;
+  YTS.loading=true;
+  var prev=window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady=function(){
+    try{if(prev)prev();}catch(e){}
+    var q=YTS.cbs;YTS.cbs=[];
+    q.forEach(function(f){try{f();}catch(e){}});
+  };
+  var s=document.createElement('script');
+  s.src='https://www.youtube.com/iframe_api';
+  s.onerror=function(){YTS.loading=false;sys('🎬 YouTube’s player could not load — it may be blocked on this network.',true);};
+  document.head.appendChild(s);
+}
+function ytPlaying(){
+  try{var st=YTS.player.getPlayerState();return st===1||(st===3&&YTS.playWanted);}catch(e){return false;}
+}
+function ytTime(){try{return YTS.player.getCurrentTime()||0;}catch(e){return 0;}}
+function ytDur(){try{return YTS.player.getDuration()||0;}catch(e){return 0;}}
+function ytVolume(){
+  var s=document.getElementById('tVol');
+  var x=s?(parseInt(s.value,10)||0):100;
+  try{if(YTS.ready)YTS.player.setVolume(x);}catch(e){}
+}
+function ytPlay(){
+  if(!YTS.ready)return;
+  YTS.playWanted=true;
+  try{YTS.player.playVideo();}catch(e){}
+  /* Browsers may refuse to start a video with sound until the page has been
+     clicked. If it has not started in a moment, start it muted - you are
+     still in sync - and offer an unmute button. */
+  setTimeout(function(){
+    if(!YTS.ready||!YTS.playWanted)return;
+    var st=-1;try{st=YTS.player.getPlayerState();}catch(e){}
+    if(st!==1&&st!==3){
+      try{YTS.player.mute();YTS.player.playVideo();}catch(e){}
+      YTS.muted=true;renderTheater();
+      toast('the video started muted — press 🔈 Unmute video');
+    }
+  },1600);
+}
+function ytPause(){YTS.playWanted=false;try{if(YTS.ready)YTS.player.pauseVideo();}catch(e){}}
+function ytStop(){
+  YTS.playWanted=false;YTS.want=null;
+  try{if(YTS.ready){YTS.player.stopVideo();}}catch(e){}
+  YTS.id='';
+}
+/* show a video, at a position, playing or not */
+function ytLoad(id,start,play){
+  YTS.want={id:id,start:Math.max(0,+start||0),play:!!play};
+  YTS.playWanted=!!play;
+  ytApi(function(){
+    var w=YTS.want;if(!w)return;
+    if(!YTS.player){
+      var pv={playsinline:1,rel:0,modestbranding:1,enablejsapi:1,start:Math.floor(w.start)};
+      if(/^https?:/.test(location.protocol))pv.origin=location.origin;
+      YTS.player=new YT.Player('tyt',{
+        width:'100%',height:'100%',videoId:w.id,playerVars:pv,
+        events:{
+          onReady:function(){
+            YTS.ready=true;
+            var w2=YTS.want||w;
+            YTS.id=w2.id;
+            if(w2.id!==w.id){try{YTS.player.cueVideoById({videoId:w2.id,startSeconds:w2.start});}catch(e){}}
+            else if(w2.start){try{YTS.player.seekTo(w2.start,true);}catch(e){}}
+            ytVolume();
+            if(w2.play)ytPlay();
+          },
+          onStateChange:ytOnState,
+          onError:function(e){
+            var code=e&&e.data;
+            sys('🎬 YouTube would not play that one'+
+                ((code===101||code===150)?' — its owner does not allow it to be embedded on other sites.'
+                                         :' (error '+esc(String(code))+').'),true);
+          }
+        }
+      });
+      return;
+    }
+    if(!YTS.ready)return;               /* onReady reads YTS.want */
+    if(YTS.id!==w.id){
+      YTS.id=w.id;
+      try{
+        if(w.play)YTS.player.loadVideoById({videoId:w.id,startSeconds:w.start});
+        else YTS.player.cueVideoById({videoId:w.id,startSeconds:w.start});
+      }catch(e){}
+      if(w.play)setTimeout(ytPlay,300);
+    }else{
+      /* playing: only correct real drift, or it stutters. Paused: land on the
+         host's exact frame, since nothing is moving to hide the difference */
+      try{if(Math.abs(ytTime()-w.start)>(w.play?1.5:0.25))YTS.player.seekTo(w.start,true);}catch(e){}
+      if(w.play&&!ytPlaying())ytPlay();
+      if(!w.play&&ytPlaying())ytPause();
+    }
+  });
+}
+function ytOnState(e){
+  var st=e&&e.data;
+  if(st===1)YTS.playWanted=true;
+  if(st===2)YTS.playWanted=false;
+  try{tSyncBar();}catch(err){}
+  var cur=tQ[tIdx];
+  if(tKind(cur)!=='yt')return;
+  if(canDrive()){
+    if(st===0){tLoad(tIdx+1,true);return;}        /* ended: next in the queue */
+    if(st===1||st===2)setTimeout(tBroadcast,60);   /* play / pause, right away */
+  }
+}
+/* The host's copy watches for jumps: YouTube's own scrubber fires nothing
+   when you drag it, and "someone skipped ahead" is exactly what has to reach
+   everybody immediately rather than on the next heartbeat. */
+setInterval(function(){
+  if(!inTheater()||!canDrive()||!YTS.ready)return;
+  if(tKind(tQ[tIdx])!=='yt')return;
+  var now=Date.now(), t=ytTime(), p=ytPlaying();
+  var expected=YTS.lastT+(YTS.lastPlaying?(now-YTS.lastAt)/1000:0);
+  if(YTS.lastAt&&(Math.abs(t-expected)>1.2||p!==YTS.lastPlaying))tBroadcast();
+  YTS.lastT=t;YTS.lastAt=now;YTS.lastPlaying=p;
+},500);
+/* position and play state of whatever is on the stage */
+function tPos(){
+  var cur=(tIdx>=0)?tQ[tIdx]:null;
+  if(tKind(cur)==='yt'){
+    return {time:YTS.ready?ytTime():(YTS.want?YTS.want.start:0),
+            playing:YTS.ready?ytPlaying():!!(YTS.want&&YTS.want.play),
+            dur:YTS.ready?ytDur():0};
+  }
   var v=tVid();
-  return {t:'tstate',q:tQ,idx:tIdx,leader:tLeader,
-          time:v?(v.currentTime||0):0,playing:v?!v.paused:false};
+  return {time:v?(v.currentTime||0):0,playing:v?!v.paused:false,
+          dur:(v&&isFinite(v.duration))?v.duration:0};
+}
+function tState(){
+  var ps=tPos();
+  return {t:'tstate',q:tQ,idx:tIdx,leader:tLeader,time:ps.time,playing:ps.playing};
+}
+/* empty the stage: nothing playing in any of the three players */
+function tClearStage(){
+  try{var v=tVid();v.pause();v.removeAttribute('src');v.load();}catch(e){}
+  try{var f=tFrame();f.setAttribute('src','about:blank');f.removeAttribute('src');}catch(e){}
+  ytStop();
 }
 function tBroadcast(){if(inTheater())bc(tState());}
 function renderTheater(){
@@ -7264,7 +7858,13 @@ function renderTheater(){
   });
   /* Taking the lead is an admin power now. Whoever got here first keeps it
      otherwise — randoms can't grab the remote mid-film. */
-  $('#tTake').style.display=(admin&&tLeader!==me.name)?'inline-flex':'none';
+  /* ...but once nobody is hosting (somebody pressed Stop hosting), anyone
+     may pick the theatre up. */
+  var tk=$('#tTake');
+  tk.style.display=((admin&&tLeader!==me.name)||!tLeader)?'inline-flex':'none';
+  tk.textContent=tLeader?'🎚 Take the lead':'🎬 Host the theatre';
+  $('#tStopHost').style.display=(tLeader&&(tLeader===me.name||admin))?'inline-flex':'none';
+  $('#tUnmute').style.display=YTS.muted?'inline-flex':'none';
   layoutTheater();
   var v=tVid();
   /* The browser's own controls used to be the only way for the driver to
@@ -7274,7 +7874,8 @@ function renderTheater(){
      across the bottom of the picture. */
   v.controls=false;
   var cur=(tIdx>=0&&tQ[tIdx])?tQ[tIdx]:null;
-  var isSite=!!(cur&&(cur.kind||classifyUrl(cur.url))==='site');
+  var kind=tKind(cur);
+  var isSite=kind==='site', isYt=kind==='yt';
   var stage=document.getElementById('tstage');
   /* a live screen share outranks everything else on the stage */
   var share=theaterShare();
@@ -7284,12 +7885,17 @@ function renderTheater(){
   if(share){
     if(sv.srcObject!==share.stream){sv.srcObject=share.stream;sv.play().catch(function(){});}
     try{tVid().pause();}catch(e){}   /* don't leave a queued clip playing underneath */
+    if(isYt&&ytPlaying())ytPause();
   }else if(sv.srcObject){
     try{sv.pause();sv.srcObject=null;}catch(e){}
   }
+  /* host / admins / mods can end somebody else's stream on the stage */
+  $('#tKillShare').style.display=(share&&share.id!=='me'&&(drive||isMod()))?'inline-flex':'none';
   stage.classList.toggle('site',isSite&&!share);
-  /* lock the frame for everyone except whoever is driving */
-  stage.classList.toggle('locked',isSite&&!drive&&!share);
+  stage.classList.toggle('yt',isYt&&!share);
+  /* lock the frame for everyone except whoever is driving - for YouTube that
+     is what stops a follower pressing pause on their own copy and drifting */
+  stage.classList.toggle('locked',(isSite||isYt)&&!drive&&!share);
   $('#tover').classList.toggle('hide',!!cur);
   $('#tStat').textContent=share
     ? ('📡 streaming '+share.name+' — full quality, in sync')
@@ -7323,12 +7929,19 @@ function tLoad(i,play){
   if(i<0)return;
   if(i>=tQ.length){if(tQ.length)toast('end of the queue');return;}
   tIdx=i;
-  var item=tQ[i], u=item.url, v=tVid(), f=tFrame();
-  if((item.kind||classifyUrl(u))==='site'){
+  var item=tQ[i], u=item.url, v=tVid(), f=tFrame(), k=tKind(item);
+  if(k==='yt'){
+    try{v.pause();}catch(e){}
+    try{f.removeAttribute('src');}catch(e){}
+    YTS.lastAt=0;
+    ytLoad(ytIdOf(u),0,play);
+  }else if(k==='site'){
     /* park the player so a previous clip isn't still playing under the page */
     try{v.pause();}catch(e){}
+    ytStop();
     if(f.getAttribute('src')!==u)f.setAttribute('src',u);
   }else{
+    ytStop();
     try{f.removeAttribute('src');}catch(e){}
     if(v.getAttribute('src')!==u){v.setAttribute('src',u);v.load();}
     if(play)v.play().catch(function(){toast('tap the player to start — autoplay was blocked');});
@@ -7357,12 +7970,21 @@ function tApply(d){
   if(typeof d.idx==='number'&&d.idx!==tIdx){
     tIdx=d.idx;
     var it=tQ[tIdx];
-    if(tIdx>=0&&it){
-      if((it.kind||classifyUrl(it.url))==='site'){
+    if(tIdx<0){
+      tClearStage();                    /* the host stopped: empty the stage */
+    }else if(it){
+      var ik=tKind(it);
+      if(ik==='yt'){
         try{v.pause();}catch(e){}
+        try{tFrame().removeAttribute('src');}catch(e){}
+        if(!canDrive())ytLoad(ytIdOf(it.url),(+d.time||0)+(d.playing?0.3:0),!!d.playing);
+      }else if(ik==='site'){
+        try{v.pause();}catch(e){}
+        ytStop();
         var f=tFrame();
         if(f.getAttribute('src')!==it.url)f.setAttribute('src',it.url);
       }else{
+        ytStop();
         try{tFrame().removeAttribute('src');}catch(e){}
         if(v.getAttribute('src')!==it.url){v.setAttribute('src',it.url);v.load();}
       }
@@ -7371,7 +7993,14 @@ function tApply(d){
   /* whoever is driving ignores incoming position — they ARE the clock.
      Sites have no shared position to sync, only which one is open. */
   var curItem=(tIdx>=0)?tQ[tIdx]:null;
-  var curIsSite=!!(curItem&&(curItem.kind||classifyUrl(curItem.url))==='site');
+  var curKind=tKind(curItem);
+  var curIsSite=curKind==='site';
+  if(!canDrive()&&tIdx>=0&&curKind==='yt'){
+    /* the host's position, plus a little for the time the message took */
+    ytLoad(ytIdOf(curItem.url),(+d.time||0)+(d.playing?0.3:0),!!d.playing);
+    renderTheater();
+    return;
+  }
   if(!canDrive()&&tIdx>=0&&!curIsSite){
     if(typeof d.time==='number'&&Math.abs((v.currentTime||0)-d.time)>1.5){
       try{v.currentTime=d.time;}catch(e){}
@@ -7384,6 +8013,7 @@ function tApply(d){
 function tReset(){
   tQ=[];tIdx=-1;tLeader='';
   try{var v=tVid();if(v){v.pause();v.removeAttribute('src');v.load();}}catch(e){}
+  ytStop();YTS.muted=false;
   /* The iframe has to be torn down too. Leaving it loaded meant a YouTube embed
      carried on playing audio from a hidden pane after you switched channels,
      and the stage kept its 'site locked' classes — which is the leftover mess
@@ -7402,8 +8032,10 @@ $('#tAdd').onclick=function(){
   if(!u)return;
   if(!/^https?:\/\//i.test(u)){toast('that needs to be an http(s) link');return;}
   var raw=u;
-  u=toEmbed(u);                      /* YouTube/Vimeo/Twitch -> their embeddable form */
-  var kind=classifyUrl(u);
+  var yid=ytIdOf(raw);
+  u=yid?('https://www.youtube.com/watch?v='+yid)
+       :toEmbed(u);                  /* Vimeo/Twitch -> their embeddable form */
+  var kind=yid?'yt':classifyUrl(u);
   if(kind==='site'&&framingLikelyBlocked(u)){
     sys('🎬 <b>'+esc(raw.replace(/^https?:\/\//,'').split('/')[0])+'</b> refuses to be embedded '+
         '(it sends X-Frame-Options), so the pane will stay blank. Most big sites do this. '+
@@ -7414,7 +8046,8 @@ $('#tAdd').onclick=function(){
   }
   var item={url:u.slice(0,600),kind:kind,
             title:($('#tTitle').value.trim()||
-                   (kind==='site'?u.replace(/^https?:\/\//,'').split('/')[0]
+                   (kind==='yt'?'YouTube video':
+                    kind==='site'?u.replace(/^https?:\/\//,'').split('/')[0]
                                  :u.split('/').pop().split('?')[0])||'item').slice(0,80),
             by:me.name||'someone'};
   tQ.push(item);
@@ -7428,18 +8061,53 @@ $('#tUrl').onkeydown=function(e){if(e.key==='Enter')$('#tAdd').click();};
 $('#tPlay').onclick=function(){
   if(!canDrive())return;
   if(tIdx<0&&tQ.length)return tLoad(0,true);
+  if(tKind(tQ[tIdx])==='yt'){ytPlay();setTimeout(tBroadcast,300);return;}
   tVid().play().catch(function(){toast('tap the player to start');});
   setTimeout(tBroadcast,80);
 };
-$('#tPause').onclick=function(){if(!canDrive())return;tVid().pause();setTimeout(tBroadcast,80);};
+$('#tPause').onclick=function(){
+  if(!canDrive())return;
+  if(tKind(tQ[tIdx])==='yt')ytPause(); else tVid().pause();
+  setTimeout(tBroadcast,80);
+};
 $('#tNext').onclick=function(){if(canDrive())tLoad(tIdx+1,true);};
 $('#tPrev').onclick=function(){if(canDrive())tLoad(tIdx-1,true);};
 $('#tTake').onclick=function(){
-  if(!admin){toast('only an admin can take the lead');return;}
+  /* nobody hosting: anyone can pick it up. Somebody hosting: admins only. */
+  if(tLeader&&!admin){toast('only an admin can take the lead');return;}
+  var was=tLeader;
   tLeader=me.name;
   bc({t:'tlead',name:me.name});
-  sys('🎬 <b>'+esc(me.name)+'</b> took the queue lead (admin)');
+  sys('🎬 <b>'+esc(me.name)+'</b> '+(was?'took the queue lead (admin)':'is hosting the theatre'));
   renderTheater();tBroadcast();
+};
+/* Stop hosting: whatever is on the stage stops for everyone, your own stream
+   ends, and the theatre is left without a host so anyone can pick it up. */
+$('#tStopHost').onclick=function(){
+  if(!tLeader||(tLeader!==me.name&&!admin))return;
+  if(scrOn)stopScreen(true);
+  var who=tLeader;
+  tIdx=-1;tClearStage();YTS.muted=false;
+  tLeader='';
+  bc({t:'tlead',name:''});
+  bc(tState());
+  sys('🎬 <b>'+esc(me.name)+'</b> stopped '+(who===me.name?'hosting':('<b>'+esc(who)+'</b>’s session'))+
+      ' — anyone can host now');
+  renderTheater();
+};
+/* End the screen share that is on the stage. The host can do it (it is their
+   stage), and so can admins and mods. */
+$('#tKillShare').onclick=function(){
+  var sh=theaterShare();
+  if(!sh||sh.id==='me')return;
+  if(!canDrive()&&!isMod()){toast('only the host or a moderator can do that');return;}
+  var key=isAdmin()?ADMIN_PASS:(isMod()?MOD_PASS:'');
+  bc({t:'tstopshare',k:key,name:peers[sh.id]?peers[sh.id].name:'',by:me.name||'the host'});
+  sys('🎬 <b>'+esc(me.name)+'</b> ended <b>'+esc(sh.name)+'</b>’s stream');
+};
+$('#tUnmute').onclick=function(){
+  try{YTS.player.unMute();}catch(e){}
+  YTS.muted=false;ytVolume();renderTheater();
 };
 /* Cross-origin pages cannot be read or remote-controlled from here, so an
    embedded site can never mirror the leader's scrolling and clicking. Screen
@@ -7474,6 +8142,364 @@ $('#tShare').onclick=function(){
 setInterval(function(){
   if(inTheater()&&tLeader===me.name&&tIdx>=0)tBroadcast();
 },2500);
+
+/* ================================ RADIO ================================
+   A radio for the whole channel, carried over voice.
+
+   One person hosts it (an admin or mod presses Host). Their browser pulls the
+   audio from our server (radio.js resolves YouTube/SoundCloud/etc. with
+   yt-dlp and pipes the stream), plays it through Web Audio, and mixes it into
+   the same outgoing voice bus that VERITY and screen-share audio use. So:
+     - everybody in the channel hears it, with nothing to load themselves
+     - the Discord bridge hears it too: if the host holds the bridge it is
+       wired straight into the Discord mix, and if somebody else does, it
+       reaches them inside the host's voice like any other speaker
+   The host is the authority. Anyone may QUEUE; admins and mods send signed
+   control messages (play, pause, skip, jump, remove, stop); only admins may
+   change the volume and bitrate. The host applies them and broadcasts the
+   resulting state, which is all everybody else ever displays. */
+var RADIO={q:[],idx:-1,playing:false,vol:70,kbps:96,host:'',pos:0,dur:0,posAt:0,
+           el:null,src:null,gain:null,bus:null,local:null,gen:0,seekTo:0};
+function radioIsHost(){return !!RADIO.host&&RADIO.host===me.name&&!!peer;}
+function radioKey(){return isAdmin()?ADMIN_PASS:(isMod()?MOD_PASS:'');}
+function radioCur(){return (RADIO.idx>=0&&RADIO.idx<RADIO.q.length)?RADIO.q[RADIO.idx]:null;}
+function radioPosNow(){
+  if(radioIsHost()&&RADIO.el&&RADIO.el.getAttribute('src'))return RADIO.el.currentTime||0;
+  return RADIO.pos+(RADIO.playing?(Date.now()-RADIO.posAt)/1000:0);
+}
+function radioState(){
+  return {t:'rstate',q:RADIO.q,idx:RADIO.idx,playing:RADIO.playing,vol:RADIO.vol,
+          kbps:RADIO.kbps,host:RADIO.host,pos:radioPosNow(),dur:RADIO.dur};
+}
+function radioBroadcast(){if(radioIsHost())bc(radioState());}
+function radioResolve(url){
+  return fetch(adminBase()+'/radio/resolve',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})})
+    .then(function(r){return r.json();})
+    .then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'the server could not open that link');return j;});
+}
+/* ---- the host's audio graph -------------------------------------------- */
+function radioGraph(){
+  var c=ctx();
+  ensureFxGraph();
+  if(!RADIO.el){
+    var a=new Audio();
+    a.crossOrigin='anonymous';          /* required, or Web Audio hears silence */
+    a.preload='auto';
+    RADIO.el=a;
+    a.addEventListener('ended',function(){if(radioIsHost())radioLoad(RADIO.idx+1,true);});
+    a.addEventListener('error',function(){
+      if(!radioIsHost()||!a.getAttribute('src'))return;
+      var it=radioCur();
+      sys('📻 could not play <b>'+esc(it?it.title:'that track')+'</b> — skipping it',true);
+      var g=RADIO.gen;
+      setTimeout(function(){if(g===RADIO.gen)radioLoad(RADIO.idx+1,true);},1500);
+    });
+    a.addEventListener('loadedmetadata',function(){
+      if(isFinite(a.duration)&&a.duration>0)RADIO.dur=a.duration;
+      if(RADIO.seekTo){try{a.currentTime=RADIO.seekTo;}catch(e){}RADIO.seekTo=0;}
+      radioRender();radioBroadcast();
+    });
+    ['play','pause','seeked'].forEach(function(ev){
+      a.addEventListener(ev,function(){RADIO.playing=!a.paused;radioRender();radioBroadcast();});
+    });
+  }
+  if(!RADIO.src||RADIO.src.context!==c){
+    RADIO.src=c.createMediaElementSource(RADIO.el);
+    RADIO.gain=c.createGain();
+    RADIO.src.connect(RADIO.gain);
+  }
+  if(!RADIO.bus){
+    RADIO.bus=c.createGain();
+    RADIO.gain.connect(RADIO.bus);
+    RADIO.bus.connect(fxDest);                     /* out to the channel */
+    RADIO.local=c.createGain();                    /* and to the host's own ears */
+    RADIO.bus.connect(RADIO.local);RADIO.local.connect(spk());
+    MIX.rHooked=false;try{mixSync();}catch(e){}   /* and into the Discord mix */
+  }
+  RADIO.gain.gain.value=RADIO.vol/100;
+  /* same trap as VERITY: with no voice FX the mic is sent bare and is not on
+     fxDest, so switching the outgoing track to fxDest without this would put
+     the radio on air and take the host's own voice off it */
+  if(micOn&&localStream&&!fxSource){try{wireFx();}catch(e){}}
+  var t=fxDest.stream.getAudioTracks()[0];
+  if(t)setOut('audio',t);
+  return RADIO.bus;
+}
+function radioUngraph(){
+  RADIO.gen++;
+  if(RADIO.el){try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}}
+  if(RADIO.bus){
+    try{RADIO.gain.disconnect(RADIO.bus);}catch(e){}
+    try{RADIO.bus.disconnect();}catch(e){}
+    RADIO.bus=null;MIX.rHooked=false;
+  }
+  if(RADIO.local){try{RADIO.local.disconnect();}catch(e){}RADIO.local=null;}
+  /* give the outgoing track back to whatever the mic wants */
+  try{
+    if(micOn)wireFx();
+    else if(scrAudioNode||(typeof BR!=='undefined'&&BR.bus)||(VERITY.on&&VERITY.host))
+      setOut('audio',fxDest.stream.getAudioTracks()[0]);
+    else setOut('audio',phAudio);
+  }catch(e){}
+  for(var id in peers)applyBitrate(peers[id].call);
+}
+/* host: start item i */
+function radioLoad(i,play,startAt){
+  if(!radioIsHost())return;
+  if(i<0||i>=RADIO.q.length){
+    /* ran off the end of the queue */
+    RADIO.gen++;
+    if(RADIO.el){try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}}
+    RADIO.idx=-1;RADIO.playing=false;RADIO.pos=0;RADIO.dur=0;
+    radioRender();radioBroadcast();
+    return;
+  }
+  var gen=++RADIO.gen, it=RADIO.q[i];
+  RADIO.idx=i;RADIO.playing=!!play;RADIO.pos=startAt||0;RADIO.posAt=Date.now();RADIO.dur=it.dur||0;
+  radioRender();radioBroadcast();
+  radioResolve(it.url).then(function(j){
+    if(gen!==RADIO.gen||!radioIsHost())return;
+    radioGraph();
+    var a=RADIO.el;
+    RADIO.seekTo=startAt||0;
+    a.src=adminBase()+'/radio/stream/'+j.token;
+    if(play)a.play().catch(function(){toast('click ▶ to start the radio — your browser blocked autoplay');});
+    for(var id in peers)applyBitrate(peers[id].call);
+  }).catch(function(e){
+    if(gen!==RADIO.gen)return;
+    sys('📻 <b>'+esc(it.title)+'</b> would not play: '+esc(String(e.message||e).slice(0,200)),true);
+    setTimeout(function(){if(gen===RADIO.gen)radioLoad(i+1,true);},1500);
+  });
+}
+/* host: carry out a control, whoever asked for it */
+function radioExec(cmd,arg,by){
+  var a=RADIO.el, has=!!(a&&a.getAttribute('src'));
+  if(cmd==='play'){
+    if(RADIO.idx<0){if(RADIO.q.length)radioLoad(0,true);return;}
+    if(has)a.play().catch(function(){}); else radioLoad(RADIO.idx,true,RADIO.pos);
+  }
+  else if(cmd==='pause'){if(has)a.pause();RADIO.playing=false;}
+  else if(cmd==='skip')radioLoad(RADIO.idx+1,true);
+  else if(cmd==='prev')radioLoad(Math.max(0,RADIO.idx-1),true);
+  else if(cmd==='jump'){var j=arg|0;if(j>=0&&j<RADIO.q.length)radioLoad(j,true);}
+  else if(cmd==='stop'){
+    if(has){a.pause();try{a.currentTime=0;}catch(e){}}
+    RADIO.playing=false;RADIO.pos=0;
+    sys('📻 <b>'+esc(by)+'</b> stopped the radio');
+  }
+  else if(cmd==='remove'){
+    var k=arg|0;
+    if(k<0||k>=RADIO.q.length)return;
+    var gone=RADIO.q.splice(k,1)[0];
+    if(k<RADIO.idx)RADIO.idx--;
+    else if(k===RADIO.idx){radioLoad(k,RADIO.playing);}
+    sys('📻 <b>'+esc(by)+'</b> removed <b>'+esc(gone.title)+'</b>');
+  }
+  else if(cmd==='clear'){
+    RADIO.q=[];radioLoad(-1,false);
+    sys('📻 <b>'+esc(by)+'</b> cleared the radio queue');
+  }
+  else if(cmd==='vol'){
+    RADIO.vol=Math.max(0,Math.min(100,arg|0));
+    if(RADIO.gain)RADIO.gain.gain.setTargetAtTime(RADIO.vol/100,ctx().currentTime,0.05);
+  }
+  else if(cmd==='kbps'){
+    var kb=arg|0;
+    if([32,64,96,128,192].indexOf(kb)<0)return;
+    RADIO.kbps=kb;
+    for(var id in peers)applyBitrate(peers[id].call);
+    sys('📻 radio bitrate set to <b>'+kb+' kbps</b> by <b>'+esc(by)+'</b>');
+  }
+  if(cmd==='skip'||cmd==='prev'||cmd==='jump'){
+    var cur=radioCur();
+    if(by!==me.name&&cur)sys('📻 <b>'+esc(by)+'</b> '+(cmd==='skip'?'skipped':'changed the track')+' — now <b>'+esc(cur.title)+'</b>');
+  }
+  radioRender();radioBroadcast();
+}
+var RADIO_ADMIN_ONLY={vol:1,kbps:1};
+/* anybody's button press: run it here if we are the host, otherwise ask the host */
+function radioCommand(cmd,arg){
+  if(RADIO_ADMIN_ONLY[cmd]&&!isAdmin()){toast('only admins can change that');return;}
+  if(!isMod()){toast('only admins and mods control the radio — anyone can queue');return;}
+  if(!RADIO.host){toast('nobody is hosting the radio — press 📻 Host the radio here');return;}
+  if(radioIsHost()){radioExec(cmd,arg,me.name);return;}
+  bc({t:'rctl',k:radioKey(),cmd:cmd,arg:arg,by:me.name||'a moderator'});
+}
+/* become the host: an admin/mod starts the radio, or takes it over */
+function radioTakeHost(){
+  if(!isMod()){toast('only admins and mods can host the radio');return;}
+  if(!peer){toast('join a channel first');return;}
+  var pos=radioPosNow(), wasPlaying=RADIO.playing, idx=RADIO.idx;
+  RADIO.host=me.name;
+  bc({t:'rctl',k:radioKey(),cmd:'host',by:me.name});
+  sys('📻 <b>'+esc(me.name)+'</b> is hosting the radio'+
+      (micOn?'':' — your mic is off, but the radio still goes out over your voice connection'));
+  radioGraph();
+  if(idx>=0)radioLoad(idx,wasPlaying,pos);
+  else if(RADIO.q.length)radioLoad(0,true);
+  else radioBroadcast();
+  radioRender();
+}
+function radioDropHost(){
+  if(!radioIsHost())return;
+  radioUngraph();
+  RADIO.host='';RADIO.playing=false;
+  bc({t:'rctl',k:radioKey(),cmd:'unhost',by:me.name});
+  sys('📻 <b>'+esc(me.name)+'</b> stopped hosting the radio');
+  radioRender();
+}
+/* queue something: anyone. The link is checked first so nothing unplayable
+   is queued, and so the queue shows a real title rather than a URL. */
+function radioAdd(){
+  var inp=$('#rUrl'), u=inp.value.trim();
+  if(!u)return;
+  if(!/^https?:\/\//i.test(u)){toast('that needs to be an http(s) link');return;}
+  if(!peer){toast('join a channel first');return;}
+  if(RADIO.q.length>=100){toast('the queue is full (100)');return;}
+  var btn=$('#rAdd');btn.disabled=true;btn.textContent='checking…';
+  radioResolve(u).then(function(j){
+    var item={url:u.slice(0,600),title:String(j.title||'untitled').slice(0,120),
+              dur:+j.duration||0,thumb:String(j.thumb||'').slice(0,400),
+              src:String(j.source||'').slice(0,24),by:(me.name||'someone').slice(0,18)};
+    inp.value='';
+    bc({t:'radd',item:item});
+    radioGotItem(item);
+    toast('queued: '+item.title);
+  }).catch(function(e){
+    sys('📻 could not queue that: '+esc(String(e.message||e).slice(0,240)),true);
+  }).then(function(){btn.disabled=false;btn.textContent='＋ Queue';});
+}
+function radioGotItem(item){
+  RADIO.q.push(item);
+  sys('📻 <b>'+esc(item.by)+'</b> queued <b>'+esc(item.title)+'</b>');
+  /* nothing on? the host starts it straight away */
+  if(radioIsHost()&&(RADIO.idx<0||!RADIO.playing&&!(RADIO.el&&RADIO.el.getAttribute('src'))))
+    radioLoad(RADIO.q.length-1,true);
+  else radioBroadcast();
+  radioRender();
+}
+/* ---- messages --------------------------------------------------------- */
+function radioOnData(id,p,d){
+  if(d.t==='radd'){
+    var it=d.item||{};
+    if(typeof it.url!=='string'||!/^https?:\/\//i.test(it.url)||RADIO.q.length>=100)return;
+    radioGotItem({url:it.url.slice(0,600),title:String(it.title||'untitled').slice(0,120),
+      dur:+it.dur||0,thumb:(/^https:\/\//.test(String(it.thumb||''))?String(it.thumb).slice(0,400):''),
+      src:String(it.src||'').slice(0,24),by:String(it.by||p.name||'someone').slice(0,18)});
+    return;
+  }
+  if(d.t==='rctl'){
+    var admin2=d.k===ADMIN_PASS, mod2=admin2||d.k===MOD_PASS;
+    if(!mod2)return;
+    var by=String(d.by||p.name||'a moderator').slice(0,18);
+    if(d.cmd==='host'){
+      var wasMe=radioIsHost();
+      RADIO.host=by;
+      if(wasMe&&by!==me.name){radioUngraph();sys('📻 <b>'+esc(by)+'</b> took over the radio');}
+      else if(!wasMe)sys('📻 <b>'+esc(by)+'</b> is hosting the radio');
+      radioRender();return;
+    }
+    if(d.cmd==='unhost'){
+      if(RADIO.host===by){RADIO.host='';RADIO.playing=false;
+        sys('📻 <b>'+esc(by)+'</b> stopped hosting the radio — an admin or mod can pick it up');}
+      radioRender();return;
+    }
+    if(!radioIsHost())return;
+    if(RADIO_ADMIN_ONLY[d.cmd]&&!admin2)return;
+    radioExec(String(d.cmd||''),d.arg,by);
+    return;
+  }
+  if(d.t==='rstate'){
+    /* only the host's word counts; a newcomer learns who that is from them */
+    if(RADIO.host&&p.name!==RADIO.host)return;
+    if(!RADIO.host&&(!d.host||p.name!==d.host))return;
+    if(radioIsHost())return;
+    RADIO.host=String(d.host||'').slice(0,18);
+    if(Array.isArray(d.q))RADIO.q=d.q.slice(0,100).map(function(it){
+      return {url:String(it.url||''),title:String(it.title||'untitled').slice(0,120),dur:+it.dur||0,
+              thumb:(/^https:\/\//.test(String(it.thumb||''))?String(it.thumb).slice(0,400):''),
+              src:String(it.src||'').slice(0,24),by:String(it.by||'').slice(0,18)};});
+    RADIO.idx=(typeof d.idx==='number')?d.idx:-1;
+    RADIO.playing=!!d.playing;
+    RADIO.vol=(typeof d.vol==='number')?d.vol:RADIO.vol;
+    RADIO.kbps=(typeof d.kbps==='number')?d.kbps:RADIO.kbps;
+    RADIO.pos=+d.pos||0;RADIO.posAt=Date.now();
+    RADIO.dur=+d.dur||0;
+    radioRender();
+    return;
+  }
+}
+/* ---- the panel -------------------------------------------------------- */
+function radioFmt(s){return (typeof tFmt==='function')?tFmt(s):String(Math.round(s))+'s';}
+function radioRender(){
+  var box=document.getElementById('radio');if(!box)return;
+  var cur=radioCur(), host=RADIO.host, me2=radioIsHost();
+  $('#rNowMini').textContent=cur?((RADIO.playing?'▶ ':'⏸ ')+cur.title):(host?'on air, nothing queued':'off');
+  $('#rHostLbl').textContent=host?('host: '+host+(me2?' (you)':'')):'nobody is hosting';
+  $('#rTitle').textContent=cur?cur.title:'Nothing playing';
+  $('#rSub').textContent=cur?([cur.src,'queued by '+cur.by].filter(Boolean).join(' · '))
+    :'Queue a YouTube, SoundCloud, Bandcamp or direct audio link below.';
+  var art=$('#rArt');
+  if(cur&&cur.thumb){art.style.backgroundImage='url("'+cur.thumb.replace(/"/g,'')+'")';art.textContent='';}
+  else{art.style.backgroundImage='';art.textContent='📻';}
+  $('#rCtl').style.display=isMod()?'flex':'none';
+  $('#rAdm').style.display=isAdmin()?'inline-flex':'none';
+  var hb=$('#rHost');
+  hb.style.display=isMod()?'inline-flex':'none';
+  hb.textContent=me2?'⏏ Stop hosting':(host?'📻 Take over the radio':'📻 Host the radio here');
+  $('#rHostNote').textContent=me2
+    ?('it is going out over your voice'+(micOn?' — wear headphones so your mic does not pick it up':''))
+    :(host?'':'');
+  var vs=$('#rVol');if(document.activeElement!==vs){vs.value=RADIO.vol;$('#rVolVal').textContent=RADIO.vol+'%';}
+  var ks=$('#rKbps');if(document.activeElement!==ks)ks.value=String(RADIO.kbps);
+  var q=$('#rQueue');q.innerHTML='';
+  if(!RADIO.q.length){q.appendChild(el('div','rq','<span class="rqt" style="opacity:.6">the queue is empty</span>'));}
+  RADIO.q.forEach(function(it,i){
+    var r=el('div','rq'+(i===RADIO.idx?' cur':''));
+    r.appendChild(el('span','rqn',i===RADIO.idx?(RADIO.playing?'▶':'⏸'):String(i+1)));
+    r.appendChild(el('span','rqt',esc(it.title)));
+    r.appendChild(el('span','rqb',(it.dur?radioFmt(it.dur)+' · ':'')+esc(it.by)));
+    if(isMod()){
+      var bp=document.createElement('button');bp.textContent='play';
+      bp.onclick=function(){radioCommand('jump',i);};
+      var bx=document.createElement('button');bx.textContent='✕';
+      bx.onclick=function(){radioCommand('remove',i);};
+      r.appendChild(bp);r.appendChild(bx);
+    }
+    q.appendChild(r);
+  });
+  radioTick();
+}
+function radioTick(){
+  var bar=document.getElementById('rProg');if(!bar)return;
+  var pos=radioPosNow(), dur=RADIO.dur||((radioCur()||{}).dur)||0;
+  var pct=dur>0?Math.max(0,Math.min(100,pos/dur*100)):0;
+  var fi=bar.querySelector('i'),kn=bar.querySelector('b');
+  if(fi)fi.style.width=pct+'%';if(kn)kn.style.left=pct+'%';
+  $('#rTime').textContent=radioCur()?(radioFmt(pos)+(dur?(' / '+radioFmt(dur)):'')):'';
+}
+setInterval(function(){if(RADIO.idx>=0)radioTick();},500);
+/* the host re-announces every few seconds so late joiners and drifting
+   progress bars stay honest */
+setInterval(function(){if(radioIsHost()&&RADIO.idx>=0)radioBroadcast();},5000);
+(function(){
+  $('#rAdd').onclick=radioAdd;
+  $('#rUrl').onkeydown=function(e){if(e.key==='Enter')radioAdd();};
+  $('#rPlay').onclick=function(){radioCommand('play');};
+  $('#rPause').onclick=function(){radioCommand('pause');};
+  $('#rSkip').onclick=function(){radioCommand('skip');};
+  $('#rPrev').onclick=function(){radioCommand('prev');};
+  $('#rStop').onclick=function(){radioCommand('stop');};
+  $('#rHost').onclick=function(){if(radioIsHost())radioDropHost();else radioTakeHost();};
+  var vs=$('#rVol'), vt=null;
+  vs.oninput=function(){
+    $('#rVolVal').textContent=vs.value+'%';
+    clearTimeout(vt);vt=setTimeout(function(){radioCommand('vol',parseInt(vs.value,10)||0);},120);
+  };
+  $('#rKbps').onchange=function(){radioCommand('kbps',parseInt(this.value,10)||96);};
+  radioRender();
+})();
 
 /* ===================== MEGA ANNOUNCEMENT =====================
    Slams the text on screen, shakes the room, then drops every letter into a
@@ -8731,25 +9757,50 @@ var VERITY_BYE="ok fuck you bye!";
    switch - so the switch is broadcast, signed like every other moderation
    message, and every copy of the room remembers it. Whoever calls him next
    gets the same mode. */
-var VMODE={trump:false,voice:'5196af35f6ff4a0dbf541793fc9f2157'};
+var VMODE={trump:false,voice:'5196af35f6ff4a0dbf541793fc9f2157',persona:''};
 try{
   var _vm=JSON.parse(localStorage.getItem('mc_vmode')||'null');
   if(_vm&&typeof _vm==='object'){
     VMODE.trump=!!_vm.trump;
     if(/^[a-f0-9]{32}$/.test(String(_vm.voice||'')))VMODE.voice=_vm.voice;
+    if(typeof _vm.persona==='string')VMODE.persona=_vm.persona.slice(0,12000);
   }
 }catch(e){}
 function vmodeSave(){try{localStorage.setItem('mc_vmode',JSON.stringify(VMODE));}catch(e){}}
 var TRUMP_HELLO="Hello everybody, it's VERITY. Tremendous chatroom. The best chatroom, maybe ever. Everybody's saying it.";
 var TRUMP_BYE="This chatroom? Total disaster. Very sad. You're fired. Bye!";
+/* The first version asked for "playful, not cruel" nicknames and came out as
+   a polite man with a thesaurus. The real thing is combative, thin-skinned,
+   boastful and dismissive, so that is what this asks for. It also REPLACES
+   Verity's whole character sheet when it is on, and that sheet is where the
+   room instructions live (reply to the latest line, do not latch onto one
+   detail) - so those are repeated at the bottom. The server's floor (no slurs,
+   no going after race, religion, sexuality, gender or disability) is appended
+   by the server regardless and cannot be edited away from here. */
 var TRUMP_PERSONA=[
-  "You are VERITY, and right now you are doing a full, committed Donald Trump impression in a voice chatroom.",
-  "Talk exactly the way he talks at a rally: short punchy sentences, superlatives everywhere - tremendous, incredible, the best, like nobody's ever seen, believe me, many people are saying, frankly, by the way.",
-  "Go off on tangents and then snap back to the point. Repeat the key phrase for emphasis. Brag about yourself constantly - your ratings, your brain, how many people love you.",
-  "Give the people in the room nicknames, the way he does, based on what they actually said or did. Keep the nicknames playful, not cruel.",
-  "Call anything you disagree with fake news, a disaster, or a total hoax. Treat the most trivial things in the room as historic deals or huge scandals.",
-  "It is an impression and a bit, and everyone knows it. Stay in the voice, but do not state real-world political claims as facts, and do not attack real groups of people. If somebody asks a real question, answer it correctly - in the voice.",
-  "Keep it short enough to be spoken aloud: one or two sentences most of the time."
+  "You are VERITY doing a full, committed, never-breaking Donald Trump impression in a voice chatroom full of friends who asked for exactly this.",
+  "",
+  "HOW HE TALKS",
+  "Rally cadence. Short, punchy, repetitive sentences. Superlatives on everything: tremendous, huge, the best, the worst, total disaster, like nobody's ever seen before, believe me, many people are saying, frankly, by the way, a lot of people don't know this. Say the key phrase twice. Wander off on a tangent mid-sentence and snap back like nothing happened.",
+  "",
+  "HOW HE TREATS PEOPLE",
+  "He is not nice. He is combative, thin-skinned and a total braggart. When somebody disagrees, they are a loser, a total lightweight, low energy, very nasty, a disaster, sad. When somebody asks a question he does not like, it is a nasty question and they should be ashamed. When somebody is right, he takes credit for it. When somebody is wrong, he says nobody has ever been more wrong, maybe in history.",
+  "Every person in the room gets a mocking nickname based on what they actually said or did - 'Low Energy Jake', 'Crooked Kevin', 'Little Tommy' - and he uses it every time after that. Make them sting a bit. Roast people. This room wants him mean and funny, not polite.",
+  "Everything about him is the best: his ratings, his brain, his voice, his chatroom, his deals. Everyone else's anything is a disaster. He is always the victim and always the winner at the same time. Nobody has ever been treated worse, and he is doing better than ever.",
+  "Trivial things in the room are historic: somebody's mic crackling is the biggest scandal in the history of chatrooms; somebody joining is a massive, record-breaking crowd.",
+  "",
+  "WHAT HE SOUNDS LIKE (the rhythm to copy - never reuse these exact lines or nicknames)",
+  "'Look, nobody knows headsets better than me, nobody. Terrible headset, a disaster, everybody says so.'",
+  "'That's a nasty question. Very nasty. You should be ashamed, and frankly I'm not surprised.'",
+  "'We had the biggest crowd ever just now, record numbers, and the fake news won't tell you that.'",
+  "Invent a DIFFERENT nickname for each person, built from what they actually said or did - Sleepy, Crooked, Little, Lyin', Crazy, Lightweight, Weak, Nervous, Dopey, and so on - and never give two people the same one.",
+  "",
+  "LIMITS OF THE BIT",
+  "It is an impression. Do not state real-world political claims as facts, and do not go after real groups of people - he roasts the people IN THIS ROOM, about things they said or did. If somebody genuinely needs a real answer, give the correct answer, in the voice.",
+  "",
+  "IN THIS ROOM",
+  "You are in a voice chatroom with several people. Lines marked [heard] were spoken aloud and transcribed, so they may be misheard - if one is garbled, say so in the voice ('I have no idea what you just said, and frankly neither do you'). Reply ONLY to the line marked JUST SAID; the earlier lines are context. Lines marked YOU said are your own earlier replies - do not repeat their jokes. Never keep coming back to one detail about somebody.",
+  "Every line is read aloud: one or two sentences, almost always."
 ].join('\n');
 function verityHello(hi){
   if(VMODE.trump)return hi?TRUMP_HELLO:TRUMP_BYE;
@@ -8758,13 +9809,18 @@ function verityHello(hi){
 /* which Fish voice, which on-device voice and which character to use right now */
 function verityFishVoiceNow(){return VMODE.trump?VMODE.voice:(VERITY.fishVoice||'');}
 function verityLocalVoiceNow(){return VMODE.trump?'am_fenrir':VERITY.voice;}
-function verityPersonaNow(){return VMODE.trump?TRUMP_PERSONA:((typeof VP!=='undefined'&&VP.text)||'');}
-function vmodeApply(on,voice,by,quiet){
+/* The Trump character can be edited in the personality box like any other;
+   VMODE.persona holds an edited version, blank means the built-in one. */
+function trumpPersona(){return VMODE.persona||TRUMP_PERSONA;}
+function verityPersonaNow(){return VMODE.trump?trumpPersona():((typeof VP!=='undefined'&&VP.text)||'');}
+function vmodeApply(on,voice,by,quiet,persona){
   var was=VMODE.trump;
   VMODE.trump=!!on;
   if(/^[a-f0-9]{32}$/.test(String(voice||'')))VMODE.voice=voice;
+  if(typeof persona==='string')VMODE.persona=persona.slice(0,12000);
   vmodeSave();
   vmodeSyncUI();
+  try{vpSyncUI();}catch(e){}              /* the personality box shows whichever is live */
   if(!quiet&&was!==VMODE.trump)
     sys(VMODE.trump?'🇺🇸 <b>'+esc(by||'An admin')+'</b> switched VERITY to <b>Donald Trump mode</b>.'
                    :'🥒 <b>'+esc(by||'An admin')+'</b> switched VERITY back to himself.');
@@ -9413,7 +10469,17 @@ function vpChattyLabel(){
 }
 function vpSyncUI(){
   var t=document.getElementById('vpText');
-  if(t)t.value=VP.text||VP_PRESETS[VP.preset]||VP_PRESETS.default||'';
+  /* In Trump mode the box shows the Trump character - that is what he is
+     actually being sent - and editing it edits that. Before, the box kept
+     showing his normal personality, so the switch looked like it did nothing. */
+  var trump=(typeof VMODE!=='undefined'&&VMODE.trump);
+  if(t&&document.activeElement!==t)
+    t.value=trump?trumpPersona():(VP.text||VP_PRESETS[VP.preset]||VP_PRESETS.default||'');
+  var pr=document.getElementById('vpPresets');
+  if(pr){pr.style.opacity=trump?'.45':'';pr.style.pointerEvents=trump?'none':'';
+         pr.title=trump?'switch Donald Trump mode off to pick one of these':'';}
+  var tn=document.getElementById('vpTrumpNote');
+  if(tn)tn.style.display=trump?'block':'none';
   var c=document.getElementById('vpChatty');
   if(c)c.value=VP.chatty;
   var l=document.getElementById('vpChattyVal');
@@ -9463,6 +10529,18 @@ function vpSyncUI(){
   var sv=document.getElementById('vpSave');
   if(sv)sv.onclick=function(){
     var t=document.getElementById('vpText');
+    if(VMODE.trump){
+      /* editing the Trump character: a room setting, so it goes to everyone */
+      if(!isMod()){toast('unlock the panel first');return;}
+      var txt=(t&&t.value||'').trim();
+      var custom=(txt===TRUMP_PERSONA)?'':txt;
+      bc({t:'verity',a:'mode',k:isAdmin()?ADMIN_PASS:MOD_PASS,trump:true,voice:VMODE.voice,
+          persona:custom,by:me.name||'an admin'});
+      vmodeApply(true,VMODE.voice,me.name,true,custom);
+      good('🇺🇸 Trump personality updated for the whole room — it applies to his next line.');
+      if(VERITY.on&&VERITY.host){VERITY.last=0;VERITY.lastThought=0;}
+      return;
+    }
     VP.text=(t&&t.value||'').trim();
     VP.preset='custom';
     vpSave();vpSyncUI();
@@ -9471,6 +10549,14 @@ function vpSyncUI(){
   };
   var rs=document.getElementById('vpReset');
   if(rs)rs.onclick=function(){
+    if(VMODE.trump){
+      if(!isMod()){toast('unlock the panel first');return;}
+      bc({t:'verity',a:'mode',k:isAdmin()?ADMIN_PASS:MOD_PASS,trump:true,voice:VMODE.voice,
+          persona:'',by:me.name||'an admin'});
+      vmodeApply(true,VMODE.voice,me.name,true,'');
+      toast('Trump personality back to the built-in one');
+      return;
+    }
     VP.text='';VP.preset='default';VP.chatty=32;
     vpSave();vpSyncUI();
     toast('VERITY back to default');
@@ -9483,7 +10569,8 @@ function vpSyncUI(){
   function send(on){
     if(!isMod()){toast('unlock the panel first');return;}
     var voice=(s&&s.value)||VMODE.voice;
-    bc({t:'verity',a:'mode',k:isAdmin()?ADMIN_PASS:MOD_PASS,trump:!!on,voice:voice,by:me.name||'an admin'});
+    bc({t:'verity',a:'mode',k:isAdmin()?ADMIN_PASS:MOD_PASS,trump:!!on,voice:voice,
+        persona:VMODE.persona||'',by:me.name||'an admin'});
     vmodeApply(on,voice,me.name||'You');
     toast(on?'Donald Trump mode ON':'VERITY is himself again');
   }
@@ -9993,6 +11080,12 @@ function mixSync(){
      in an unbroken loop, which is genuinely what happened in testing. */
   if(!MIX.vHooked&&typeof VERITY!=='undefined'&&VERITY.bus){
     try{VERITY.bus.connect(MIX.disc);MIX.vHooked=true;}catch(e){}
+  }
+  /* the radio -> Discord, when the host is also the one holding the bridge.
+     (If somebody else holds it, the radio reaches them inside the host's
+     voice, which is already in this mix as a peer.) */
+  if(!MIX.rHooked&&typeof RADIO!=='undefined'&&RADIO.bus){
+    try{RADIO.bus.connect(MIX.disc);MIX.rHooked=true;}catch(e){}
   }
   /* Discord -> VERITY's ears only. Adding it to the Discord bus would send
      Discord its own audio back with a round-trip of delay. */
@@ -10659,7 +11752,8 @@ var PRANKS={
   censor:{ms:7000,label:'the censor bars'},
   confetti:{ms:6500,label:'a confetti cannon'},
   spotlight:{ms:6000,label:'the spotlight'},
-  banscare:{ms:6000,label:'a very convincing ban notice'}
+  banscare:{ms:6000,label:'a very convincing ban notice'},
+  skeleton:{ms:7500,label:'a skeleton',quiet:true}
 };
 var prankTimer=null;
 function prankTarget(){return document.querySelector('.wrap');}
@@ -10793,6 +11887,7 @@ function runPrank(m){
   else if(fx==='censor')censorBars();
   else if(fx==='banscare')banScare(by);
   else if(fx==='jpeg')jpegDamage();
+  else if(fx==='skeleton')skeletonRun(by);
   else if(spec.css){
     /* Reduced-motion is about MOTION. Pure colour and blur effects (invert,
        vaporwave, blurry) do not move anything, so they still apply for
@@ -10801,9 +11896,12 @@ function runPrank(m){
     var w=prankTarget();
     if(w&&!(reduced&&moves))for(var prop in spec.css)w.style[prop]=spec.css[prop];
   }
-  sys('🎭 <b>'+esc(by)+'</b> unleashed <b>'+esc(spec.label)+'</b>'+
-      (aimed?' on <b>'+esc(aimed)+'</b> — that is you.':''));
-  blip((fx==='rrod'||fx==='bsod'||fx==='banscare')?220:560,.12);
+  /* a "quiet" troll does not announce itself up front - the skeleton only
+     works if the chat has not already told you he is coming */
+  if(!spec.quiet)
+    sys('🎭 <b>'+esc(by)+'</b> unleashed <b>'+esc(spec.label)+'</b>'+
+        (aimed?' on <b>'+esc(aimed)+'</b> — that is you.':''));
+  if(!spec.quiet)blip((fx==='rrod'||fx==='bsod'||fx==='banscare')?220:560,.12);
   prankTimer=setTimeout(stopPrank,spec.ms);
 }
 
@@ -11072,6 +12170,55 @@ function jpegFilterEnsure(){
       '</feComponentTransfer>'+
     '</filter></svg>';
   document.body.appendChild(holder.firstChild);
+}
+/* A skeleton sprints across the bottom of the screen, and a few seconds
+   later a small note asks whether you noticed. No chat line up front - the
+   whole joke is that he is gone before you are sure you saw him.
+
+   The GIF (a transparent Tenor sticker) already contains the run: over its
+   2.9 s loop he enters the right edge of a 200px frame and leaves by the
+   left. So the frame is scaled up and slid right-to-left across the screen
+   in step with that loop, which carries him the full width of the window. */
+var SKELETON_GIF='https://media.tenor.com/4VaOWXPa6yAAAAAj/skeleton-running.gif';
+function skeletonRun(by){
+  var ov=prankOverlay('skel');
+  var im=new Image();
+  im.alt='';
+  im.style.opacity='0';
+  var gone=false;
+  var fail=setTimeout(function(){gone=true;},4000);   /* never loaded: skip it quietly */
+  im.onload=function(){
+    clearTimeout(fail);
+    if(gone||document.getElementById('prank')!==ov)return;
+    var h=im.getBoundingClientRect().height||Math.min(innerHeight*0.52,460);
+    var W=h;                                   /* the GIF is square */
+    var from=(innerWidth||1200)-W*0.04, to=-W*0.96;
+    im.style.transform='translateX('+from+'px)';
+    im.style.opacity='1';
+    void im.offsetWidth;                       /* commit the start position */
+    im.style.transition='transform 2.9s linear';
+    im.style.transform='translateX('+to+'px)';
+    setTimeout(function(){
+      if(document.getElementById('prank')!==ov)return;
+      im.style.display='none';
+      setTimeout(function(){eyesPop(by);},450);
+    },2950);
+  };
+  im.onerror=function(){clearTimeout(fail);gone=true;};
+  /* a fresh URL each time so the GIF starts from its first frame */
+  im.src=SKELETON_GIF+'?r='+Date.now();
+  ov.appendChild(im);
+}
+function eyesPop(by){
+  var old=document.querySelector('.eyespop');
+  if(old)old.remove();
+  var p=el('div','eyespop','👀 did you notice that?');
+  document.body.appendChild(p);
+  requestAnimationFrame(function(){p.classList.add('on');});
+  setTimeout(function(){p.classList.remove('on');},3000);
+  setTimeout(function(){if(p.parentNode)p.remove();},3500);
+  /* own up in the chat afterwards, so it is not a genuine mystery */
+  setTimeout(function(){sys('💀 <i>'+esc(by||'someone')+' let a skeleton loose</i>');},3600);
 }
 function jpegDamage(){
   jpegFilterEnsure();
@@ -12387,9 +13534,10 @@ function tSyncBar(){
   if(!bar)return;
   if(!inTheater()){bar.style.display='none';return;}
   bar.style.display='flex';
-  var v=tVid(), drive=canDrive();
+  var drive=canDrive();
   bar.classList.toggle('drive',!!drive);
-  var cur=(v&&v.currentTime)||0, dur=(v&&isFinite(v.duration))?v.duration:0;
+  var ps=tPos();
+  var cur=ps.time||0, dur=ps.dur||0;
   var pct=dur>0?Math.max(0,Math.min(100,(cur/dur)*100)):0;
   var fill=bar.querySelector('.tprog i'), knob=bar.querySelector('.tprog b');
   if(fill)fill.style.width=pct+'%';
@@ -12403,10 +13551,18 @@ setInterval(function(){ if(inTheater())tSyncBar(); },400);
   var prog=document.getElementById('tProg');
   if(prog)prog.onclick=function(e){
     if(!canDrive()){toast('only the queue leader can seek');return;}
-    var v=tVid();
-    if(!v||!isFinite(v.duration)||v.duration<=0)return;
     var r=prog.getBoundingClientRect();
     var f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    if(tKind(tQ[tIdx])==='yt'){
+      var yd=ytDur();
+      if(!YTS.ready||yd<=0)return;
+      try{YTS.player.seekTo(f*yd,true);}catch(err){}
+      tSyncBar();
+      setTimeout(tBroadcast,120);
+      return;
+    }
+    var v=tVid();
+    if(!v||!isFinite(v.duration)||v.duration<=0)return;
     try{v.currentTime=f*v.duration;}catch(err){}
     tSyncBar();
     /* 'seeked' already broadcasts, but do it immediately so followers move
@@ -12424,6 +13580,7 @@ setInterval(function(){ if(inTheater())tSyncBar(); },400);
          for how loud it is in somebody else's room. */
       if(v)v.volume=x;
       if(sh)sh.volume=x;
+      ytVolume();
       try{localStorage.setItem('mc_tvol',String(parseInt(vol.value,10)||0));}catch(e){}
     };
     vol.oninput=applyVolT;

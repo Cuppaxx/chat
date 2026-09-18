@@ -634,6 +634,10 @@ app.post('/verity/tts', async (req, res) => {
   }
 });
 
+// The radio: yt-dlp resolves YouTube/SoundCloud/etc. links and the audio is
+// piped through to whoever is hosting the radio. See radio.js.
+require('./radio').attach(app, clientIp);
+
 // ============================================================================
 // VERITY'S BRAIN
 //

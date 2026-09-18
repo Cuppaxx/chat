@@ -194,8 +194,17 @@ function wirePermissions() {
                      'notifications', 'fullscreen', 'pointerLock'];
     callback(ok && allowed.includes(permission));
   });
-  ses.setPermissionCheckHandler((wc, permission, origin) => {
-    try { return origin === ORIGIN || String(origin).startsWith('file://'); } catch (e) { return false; }
+  // Chromium hands the check an origin WITH a trailing slash
+  // ("https://host/"), and this compared it to ORIGIN without one - so every
+  // permission CHECK failed. Using the mic still worked (that goes through
+  // the request handler above), but reading device NAMES is a check, which is
+  // why the device lists only ever said "Microphone 1" in the desktop app.
+  ses.setPermissionCheckHandler((wc, permission, origin, details) => {
+    try {
+      const o = String(origin || (details && details.requestingUrl) || '');
+      if (o.startsWith('file://')) return true;
+      return new URL(o).origin === ORIGIN;
+    } catch (e) { return false; }
   });
 
   // Screen sharing. In a browser this is the tab picker; here it can offer
