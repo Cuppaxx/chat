@@ -345,6 +345,94 @@ ipcMain.handle('shell:setUnread', (e, n) => {
   } catch (err) {}
 });
 ipcMain.handle('shell:setMuted', (e, muted) => { refreshTrayMenu({ muted: !!muted }); });
+ipcMain.handle('shell:checkUpdate', () => { checkForUpdate(); });
+
+// ---------------------------------------------------------------- self-update
+// The page updates itself on every deploy because it is loaded live. This
+// file and preload.js are the only parts that are not, and until 1.1.0 the
+// only way to get a new copy was to notice, download and run the installer by
+// hand. Now the shell checks the release the desktop workflow publishes,
+// downloads the new installer, checks it against the sha512 electron-builder
+// wrote into latest.yml, and runs it silently; --force-run opens the new
+// version as soon as it is in place.
+//
+// BUMP "version" IN desktop/package.json WHENEVER THIS FILE OR preload.js
+// CHANGES - that number is the only thing that tells installed copies to update.
+const https = require('https');
+const os = require('os');
+const crypto = require('crypto');
+const { spawn } = require('child_process');
+const UPDATE_BASE = 'https://github.com/Cuppaxx/chat/releases/download/desktop-latest/';
+let updating = false, lastCheck = 0;
+
+function sendUpdate(u) {
+  if (win && !win.isDestroyed()) win.webContents.send('shell:update', u);
+}
+function newer(a, b) {
+  a = String(a).split('.').map(Number); b = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); }
+  return false;
+}
+// GitHub answers release downloads with a redirect to its CDN, so follow them.
+function download(url, onProgress, hops = 0) {
+  return new Promise((resolve, reject) => {
+    if (hops > 6) return reject(new Error('too many redirects'));
+    const req = https.get(url, { headers: { 'User-Agent': 'MingusChatroom/' + app.getVersion() } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.resume();
+        return resolve(download(new URL(res.headers.location, url).toString(), onProgress, hops + 1));
+      }
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); }
+      const total = Number(res.headers['content-length']) || 0;
+      const parts = []; let got = 0, lastPct = -1;
+      res.on('data', (c) => {
+        parts.push(c); got += c.length;
+        if (onProgress && total) {
+          const pct = Math.floor(got / total * 100);
+          if (pct !== lastPct) { lastPct = pct; onProgress(pct); }
+        }
+      });
+      res.on('end', () => resolve(Buffer.concat(parts)));
+      res.on('error', reject);
+    });
+    req.setTimeout(60000, () => req.destroy(new Error('timed out')));
+    req.on('error', reject);
+  });
+}
+async function checkForUpdate() {
+  // a developer running `electron .` is not an installed copy
+  if (updating || DEV || !app.isPackaged) return;
+  if (Date.now() - lastCheck < 60000) return;
+  lastCheck = Date.now();
+  let version = '';
+  try {
+    const yml = (await download(UPDATE_BASE + 'latest.yml')).toString('utf8');
+    version = (yml.match(/^version:\s*['"]?([\d.]+)/m) || [])[1];
+    const file = ((yml.match(/^path:\s*(.+)$/m) || [])[1] || '').trim();
+    const sha512 = ((yml.match(/^sha512:\s*(.+)$/m) || [])[1] || '').trim();
+    if (!version || !newer(version, app.getVersion())) return;
+    // The portable exe is the installer-less build: it cannot replace itself
+    // while it is running, so it can only be pointed at the new one.
+    if (process.env.PORTABLE_EXECUTABLE_FILE) {
+      sendUpdate({ phase: 'manual', version, url: UPDATE_BASE + 'Mingus-Chatroom-Portable.exe' });
+      return;
+    }
+    if (!file || !sha512) throw new Error('latest.yml is missing the installer details');
+    updating = true;
+    sendUpdate({ phase: 'found', version });
+    const buf = await download(UPDATE_BASE + file, (pct) => sendUpdate({ phase: 'downloading', version, pct }));
+    const got = crypto.createHash('sha512').update(buf).digest('base64');
+    if (got !== sha512) throw new Error('the download did not match its checksum');
+    const exe = path.join(os.tmpdir(), 'Mingus-Chatroom-Setup-' + version + '.exe');
+    fs.writeFileSync(exe, buf);
+    sendUpdate({ phase: 'installing', version });
+    spawn(exe, ['/S', '--force-run'], { detached: true, stdio: 'ignore' }).unref();
+    setTimeout(() => { quitting = true; app.quit(); }, 1200);
+  } catch (e) {
+    updating = false;
+    if (version) sendUpdate({ phase: 'error', version, msg: String((e && e.message) || e) });
+  }
+}
 ipcMain.handle('shell:flash', () => { if (win && !win.isFocused()) win.flashFrame(true); });
 ipcMain.handle('shell:minimizeToTray', () => { if (win) win.hide(); });
 ipcMain.handle('shell:quit', () => { quitting = true; app.quit(); });
@@ -369,6 +457,10 @@ if (!gotLock) {
     const st = loadState();
     if (st.hotkey) setHotkey(st.hotkey);
     if (process.argv.includes('--hidden') && win) win.hide();
+    // once shortly after start (the page is up by then, so it can show the
+    // progress), then every half hour for copies left running for days
+    setTimeout(checkForUpdate, 8000);
+    setInterval(() => { lastCheck = 0; checkForUpdate(); }, 30 * 60000);
   });
 
   app.on('window-all-closed', () => { /* stay in the tray */ });

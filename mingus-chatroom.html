@@ -2000,6 +2000,164 @@ h3{
 :root[data-theme="aero"] .msg .b{border-radius:14px;border:1px solid #fff;box-shadow:0 2px 8px rgba(0,60,120,.25),inset 0 1px 0 #fff}
 :root[data-theme="aero"] .fold{background:rgba(255,255,255,.45);border-color:rgba(255,255,255,.85);border-radius:12px}
 
+/* ---- Frutiger Aero, the full version (10.3) ----
+   It was a blue-sky Vista with a flat slate chat log, which is most of why it
+   did not look like anything in particular. The real thing is optimism made
+   of glass and water: a bright sky with the sun burning through, a swoosh of
+   light across it, glossy green hills, soap bubbles drifting up past
+   everything, clear panels you can see the world through, and gel buttons
+   that look wet. All of that, below. The bubbles are a separate layer
+   (#aeroFx, built in JS) so they rise BEHIND the frosted panels and blur as
+   they pass. */
+:root[data-theme="aero"]{
+  --ink:#053a63; --ink2:#1470ad;
+  --bladeA:rgba(255,255,255,.5); --bladeB:rgba(235,250,255,.34); --bladeC:rgba(220,246,255,.3); --bladeD:rgba(205,240,255,.38);
+  --bubbleA:#ffffff; --bubbleB:#e9f8ff; --bubbleMeA:#f1ffe6; --bubbleMeB:#c4efa6;
+  --radius:18px;
+}
+:root[data-theme="aero"] #bg{
+  background-color:#3fb2f0;
+  background-image:
+    /* the sun, burning through */
+    radial-gradient(16% 22% at 16% 10%, #fffef4 0 18%, rgba(255,255,230,.85) 30%, rgba(255,255,220,0) 72%),
+    /* lens flare dots down the diagonal */
+    radial-gradient(2.6% 3.6% at 29% 24%, rgba(255,255,255,.55), transparent 70%),
+    radial-gradient(1.6% 2.2% at 37% 33%, rgba(190,255,220,.55), transparent 70%),
+    radial-gradient(4.5% 6% at 47% 45%, rgba(170,230,255,.28), transparent 70%),
+    /* the Vista swoosh: two ribbons of light across the sky */
+    radial-gradient(95% 16% at 62% 34%, transparent 58%, rgba(255,255,255,.55) 63%, rgba(255,255,255,0) 70%),
+    radial-gradient(80% 12% at 55% 40%, transparent 60%, rgba(160,255,240,.45) 65%, rgba(160,255,240,0) 72%),
+    /* far hill, near hill, and the gloss running along the near one's crest */
+    radial-gradient(90% 30% at 12% 104%, #a6ec5a 0 55%, #5cc238 70%, transparent 71%),
+    radial-gradient(160% 44% at 70% 122%, rgba(255,255,255,.55) 0 49.2%, transparent 49.8%),
+    radial-gradient(160% 44% at 70% 122%, #8fe04c 0 38%, #3fae2c 49%, transparent 50%),
+    /* sky */
+    linear-gradient(#0f86dc 0%, #3fb2f0 30%, #93d9ff 58%, #dff6ff 78%, #f4fdff 88%);
+}
+/* sun rays, turning very slowly */
+:root[data-theme="aero"] #bg::after{
+  left:-60%;right:-60%;top:-60%;bottom:-60%;
+  background:repeating-conic-gradient(from 0deg at 34% 38%, rgba(255,255,255,.10) 0 6deg, rgba(255,255,255,0) 6deg 18deg);
+  -webkit-mask-image:radial-gradient(40% 40% at 34% 38%, #000, transparent 75%);
+          mask-image:radial-gradient(40% 40% at 34% 38%, #000, transparent 75%);
+  animation:aeroRays 140s linear infinite}
+@keyframes aeroRays{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){:root[data-theme="aero"] #bg::after{animation:none}}
+
+/* the bubbles */
+#aeroFx{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+#aeroFx i{position:absolute;bottom:-12vh;border-radius:50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0 9%, rgba(255,255,255,0) 22%),
+    radial-gradient(circle at 70% 76%, rgba(255,255,255,.5) 0 5%, rgba(255,255,255,0) 14%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 58%, rgba(170,240,255,.35) 72%, rgba(255,190,250,.45) 84%, rgba(255,255,255,.85) 97%, rgba(255,255,255,0) 100%);
+  box-shadow:inset 0 0 10px rgba(255,255,255,.35),0 0 12px rgba(120,220,255,.25);
+  animation:aeroRise linear infinite}
+#aeroFx i::after{content:"";position:absolute;inset:0;border-radius:50%;animation:aeroWobble ease-in-out infinite alternate;
+  animation-duration:inherit;background:radial-gradient(circle at 40% 35%,rgba(210,255,250,.18),transparent 60%)}
+@keyframes aeroRise{
+  0%{transform:translate(0,0) scale(.85);opacity:0}
+  8%{opacity:1}
+  50%{transform:translate(var(--dx,30px),-60vh) scale(1)}
+  92%{opacity:.9}
+  100%{transform:translate(calc(var(--dx,30px) * -.4),-122vh) scale(1.08);opacity:0}}
+@keyframes aeroWobble{to{transform:scale(1.06,.95)}}
+@media (prefers-reduced-motion:reduce){#aeroFx{display:none}}
+/* the gutter orbs would be a second, different kind of bubble */
+:root[data-theme="aero"] #orbs{display:none}
+
+/* the title: wet, with its reflection underneath */
+:root[data-theme="aero"] .top h1{letter-spacing:.2px;text-shadow:0 2px 8px rgba(0,70,150,.55),0 0 18px rgba(255,255,255,.6)}
+:root[data-theme="aero"] .top h1 b{background:linear-gradient(#7fdcff,#1c9ef0 48%,#0a62c0 52%,#2aa8f5);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 1px #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 2px 6px rgba(0,60,130,.4))}
+:root[data-theme="aero"] .orb{box-shadow:0 0 26px rgba(120,220,255,.9),0 6px 16px rgba(0,80,150,.35),inset 0 -6px 12px rgba(0,60,140,.35)}
+
+/* glass: clearer, with a real sheen across it */
+:root[data-theme="aero"] .blade{
+  -webkit-backdrop-filter:blur(14px) saturate(1.7) brightness(1.06);backdrop-filter:blur(14px) saturate(1.7) brightness(1.06);
+  border:1px solid rgba(255,255,255,.95);border-radius:0 0 22px 22px;
+  box-shadow:0 18px 50px rgba(0,70,140,.3),0 0 0 1px rgba(120,210,255,.35),0 0 40px rgba(120,220,255,.35),
+             inset 0 1px 0 #fff,inset 0 0 22px rgba(255,255,255,.35)}
+:root[data-theme="aero"] .blade::after{display:block;left:-30%;top:-40%;width:75%;height:180%;opacity:1;
+  background:linear-gradient(105deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.22) 44%,rgba(255,255,255,.05) 52%,rgba(255,255,255,0) 60%)}
+:root[data-theme="aero"] .tabs .tab{border-radius:14px 14px 0 0;
+  background-image:linear-gradient(rgba(120,210,255,.75),rgba(20,140,220,.7));color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 -2px 12px rgba(80,200,255,.35)}
+:root[data-theme="aero"] .tabs .tab.main{background-image:linear-gradient(rgba(255,255,255,.96),rgba(225,247,255,.9) 50%,rgba(195,236,255,.9));
+  color:var(--ink);box-shadow:inset 0 1px 0 #fff,0 -3px 18px rgba(140,230,255,.55)}
+
+/* settings rows: glass slats that light up aqua */
+:root[data-theme="aero"] .blade>.setbox>.row{border-bottom:1px solid rgba(255,255,255,.55);color:var(--ink)}
+:root[data-theme="aero"] .row.action:hover,:root[data-theme="aero"] .row.action.hl{
+  background-image:linear-gradient(rgba(150,230,255,.95),rgba(40,170,240,.9) 52%,rgba(20,140,225,.92));color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 16px rgba(60,190,255,.6);text-shadow:0 1px 2px rgba(0,60,120,.5)}
+
+/* the channel list and member list */
+:root[data-theme="aero"] .side{background:linear-gradient(rgba(255,255,255,.28),rgba(210,242,255,.18))}
+:root[data-theme="aero"] .side .row.cur{border-radius:999px;margin:1px 6px;
+  background-image:linear-gradient(#8fe3ff,#27aef0 50%,#0c86d6 51%,#39c2ff);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -3px 8px rgba(160,240,255,.6),0 2px 8px rgba(0,110,190,.45)}
+
+/* the chat: clear water instead of a slate */
+:root[data-theme="aero"] .chat{background:transparent;border-top:1px solid rgba(255,255,255,.85)}
+:root[data-theme="aero"] .log{
+  background:
+    radial-gradient(60% 40% at 20% 0%,rgba(255,255,255,.35),transparent 70%),
+    radial-gradient(40% 30% at 85% 100%,rgba(140,255,230,.25),transparent 70%),
+    linear-gradient(rgba(120,210,255,.28),rgba(20,120,200,.34));
+  box-shadow:inset 0 2px 14px rgba(0,70,140,.25),inset 0 0 0 1px rgba(255,255,255,.4)}
+:root[data-theme="aero"] .msg .b{border-radius:18px;border:1px solid #fff;color:#07375c;
+  background-image:linear-gradient(#ffffff,#eefaff 48%,#d8f1ff 52%,#eefaff);
+  box-shadow:0 3px 10px rgba(0,70,140,.25),inset 0 1px 0 #fff,inset 0 -2px 6px rgba(120,200,255,.35)}
+:root[data-theme="aero"] .msg.me .b{background-image:linear-gradient(#f7fff0,#e2fbd0 48%,#c8f0a8 52%,#e6fbd6)}
+:root[data-theme="aero"] .compose{background:linear-gradient(rgba(255,255,255,.55),rgba(210,242,255,.45));
+  box-shadow:inset 0 1px 0 #fff}
+:root[data-theme="aero"] .compose input[type=text]{border-radius:999px;border:1px solid rgba(120,190,230,.9);
+  background:linear-gradient(#f4fbff,#fff);box-shadow:inset 0 2px 4px rgba(0,80,150,.18)}
+
+/* gel buttons - wet: a bright cap on top, light pooling at the bottom */
+:root[data-theme="aero"] .btn{border-radius:999px;border:1px solid rgba(255,255,255,.95);
+  background-image:linear-gradient(#a6ecff,#34b4f2 48%,#0a8ae0 50%,#46c8ff);
+  box-shadow:0 3px 10px rgba(0,90,170,.4),inset 0 1px 0 #fff,inset 0 -5px 10px rgba(170,245,255,.55)}
+:root[data-theme="aero"] .btn.go,:root[data-theme="aero"] #btnSend,:root[data-theme="aero"] #btnJoin{
+  background-image:linear-gradient(#d4ffb4,#6fd347 48%,#3aae1f 50%,#7fe85a);
+  box-shadow:0 3px 10px rgba(30,120,20,.4),inset 0 1px 0 #fff,inset 0 -5px 10px rgba(220,255,190,.6)}
+:root[data-theme="aero"] .btn::before{height:48%;border-radius:999px 999px 45% 45%;
+  background:linear-gradient(rgba(255,255,255,.95),rgba(255,255,255,.2))}
+:root[data-theme="aero"] .btn:hover{filter:brightness(1.1) saturate(1.1);box-shadow:0 0 16px rgba(80,210,255,.8),inset 0 1px 0 #fff,inset 0 -5px 10px rgba(170,245,255,.6)}
+:root[data-theme="aero"] .q.on{background-image:linear-gradient(#b4f0ff,#3cbcf5 50%,#16a0ea 51%,#5fd0ff);color:#fff;
+  box-shadow:0 0 12px rgba(40,180,245,.75),inset 0 1px 0 rgba(255,255,255,.95)}
+
+/* aqua gel scrollbars */
+:root[data-theme="aero"] ::-webkit-scrollbar-track{background:rgba(255,255,255,.25);border-radius:8px}
+:root[data-theme="aero"] ::-webkit-scrollbar-thumb{border-radius:8px;border:1px solid #fff;
+  background:linear-gradient(90deg,#8fe1ff,#2eaef0 50%,#1592e0 51%,#5ccfff);box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+
+/* the sign-in card */
+:root[data-theme="aero"] .card{border-radius:24px;
+  box-shadow:0 24px 70px rgba(0,60,130,.45),0 0 0 1px rgba(140,220,255,.5),0 0 50px rgba(120,220,255,.35),inset 0 1px 0 #fff}
+:root[data-theme="aero"] .modal{background:radial-gradient(80% 70% at 50% 40%,rgba(80,190,255,.25),rgba(10,60,120,.55))}
+
+/* ---- the arcade's frame, per theme (10.3) - the canvas inside is skinned in JS (ARC_SKINS) ---- */
+:root[data-theme="win95"] #arcCanvas{border-radius:0;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #000,1px 1px 0 #dfdfdf}
+:root[data-theme="win95"] .arcbar{background:linear-gradient(90deg,#000080,#1084d0);color:#fff;padding:3px 6px;font-family:"Microsoft Sans Serif",Tahoma,sans-serif;font-size:13px}
+:root[data-theme="win95"] .arcbar #arcScore{color:#fff}
+:root[data-theme="c64"] #arcCanvas{border-radius:0;border:14px solid #6c5eb5;box-shadow:none}
+:root[data-theme="wii"] #arcCanvas,:root[data-theme="wiiu"] #arcCanvas{border-radius:24px;border:5px solid #fff;
+  box-shadow:0 0 0 2px #34beed,0 10px 28px rgba(0,120,190,.3)}
+:root[data-theme="aero"] #arcCanvas{border-radius:18px;border:1px solid #fff;
+  box-shadow:0 0 0 1px rgba(120,210,255,.6),0 0 28px rgba(120,220,255,.55),0 10px 26px rgba(0,70,140,.3)}
+:root[data-theme="aerodark"] #arcCanvas{border-radius:18px;border:1px solid rgba(120,240,255,.6);box-shadow:0 0 26px rgba(0,220,255,.35)}
+:root[data-theme="xp"] #arcCanvas{border-radius:0 0 6px 6px;border:3px solid #0831d9;border-top:0}
+:root[data-theme="xp"] .arcbar{background:linear-gradient(#0a5fe4,#3c8cf5 8%,#0055e5 45%,#0048c8);color:#fff;padding:4px 8px;margin-bottom:-7px;
+  border-radius:8px 8px 0 0;font-family:Tahoma,sans-serif;text-shadow:1px 1px #0b2b8a}
+:root[data-theme="xp"] .arcbar #arcScore{color:#fff}
+:root[data-theme="discord"] #arcCanvas{border-radius:8px;border:0;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+:root[data-theme="steam"] #arcCanvas{border-radius:0;border:1px solid;border-color:#292c21 #8a927d #8a927d #292c21;box-shadow:none}
+:root[data-theme="osx"] #arcCanvas{border-radius:6px;border:1px solid #8a8a8a;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+:root[data-theme="matrix"] #arcCanvas{border-radius:0;border:1px solid #00ff66;box-shadow:0 0 18px rgba(0,255,102,.45)}
+:root[data-theme="roblox"] #arcCanvas{border-radius:6px;border:2px solid #fff;box-shadow:0 4px 0 #b8b8b8}
+
 /* ------------------------------------------------------- DARK FRUTIGER AERO */
 :root[data-theme="aerodark"]{
   --base:#020a16; --baseTop:#04142a; --baseBot:#01050c;
@@ -2610,8 +2768,9 @@ html.dcm.dc-set #dcSetHead{display:flex;align-items:center;margin:0 0 20px;color
 :root[data-theme="wii"] .msg.sys b{color:#1c9fd0}
 :root[data-theme="wii"] .msg .b{border-radius:16px;border-color:#d6d6d6}
 :root[data-theme="wii"] .compose{background:#f5f5f5;background-image:none}
-/* the pointer: the Wii Remote's hand cursor, with a "1" on the cuff */
-:root[data-theme="wii"],:root[data-theme="wii"] *{
+/* the pointer: the Wii Remote's hand cursor, with a "1" on the cuff. Only a
+   fallback now - the real sprite (#wiiPtr, html.wiicur) replaces it wherever a mouse is used */
+:root[data-theme="wii"]:not(.wiicur),:root[data-theme="wii"]:not(.wiicur) *{
   cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='44' viewBox='0 0 40 44'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23e8f6fc'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M9 2c2.2 0 3.6 1.7 3.6 3.9v12.3l1-.3V14c0-2 1.5-3.4 3.3-3.4s3.3 1.4 3.3 3.4v3.6l1-.2v-2c0-1.9 1.5-3.3 3.2-3.3 1.8 0 3.2 1.4 3.2 3.3v2.9l.9-.1c.3-1.7 1.6-2.8 3.1-2.8 1.8 0 3.1 1.4 3.1 3.3v9.6c0 7.8-5.7 13.8-13.9 13.8h-2.2C14 42.1 10 38.6 7.7 34L2.4 23.7c-.9-1.8-.3-3.8 1.3-4.6 1.6-.9 3.4-.3 4.4 1.3l1 1.6V5.9C5.4 3.7 6.8 2 9 2z' fill='url(%23g)' stroke='%2334beed' stroke-width='2.2' stroke-linejoin='round'/%3E%3Ctext x='24' y='36' font-family='Arial' font-weight='bold' font-size='9' fill='%2334beed'%3E1%3C/text%3E%3C/svg%3E") 9 2,auto!important}
 
 /* --------------------------------------------------------------------- WII U */
@@ -11020,23 +11179,146 @@ function arcPongEnd(iWon){
 }
 
 /* ------------------------------------------------------------ drawing */
+/* ---- arcade skins ----
+   The games already took their colours from the theme, but every theme got
+   the same dark grid, the same glossy capsules, the same round sparks and the
+   same font - so Windows 95 and the Wii played identically. The themes with a
+   real identity of their own now paint the arcade in it: its backdrop, how a
+   button or card is drawn (slab), the typeface, whether text casts a shadow,
+   and what the particles are. The colour-only themes (the 360 dashboards and
+   their palettes) keep the default look, tinted as before. */
+var ARC_VGA=['#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff','#ffffff','#808000','#008080'];
+var ARC_C64=['#9f4e44','#6abfc6','#a057a3','#5cab5e','#50459b','#c9d487','#a1683c','#cb7e75','#9ae29b','#887ecb'];
+function arcSkyBubbles(g,W,H,now){
+  for(var i=0;i<12;i++){
+    var sp=14+(i%4)*7, r=6+(i*7)%18;
+    var x=(i*113+Math.sin(now/1700+i)*18)%W, y=H+30-((now/1000*sp+i*61)%(H+60));
+    g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=1.5;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.stroke();
+    g.fillStyle='rgba(255,255,255,.6)';g.beginPath();g.arc(x-r*.35,y-r*.35,r*.22,0,Math.PI*2);g.fill();
+  }
+}
+var ARC_SKINS={
+  win95:{font:'"Microsoft Sans Serif","MS Sans Serif",Tahoma,Arial,sans-serif',shadow:false,slab:'bevel',fx:'px',pal:ARC_VGA,felt:'#008000',
+    bg:function(g,W,H){g.fillStyle='#008080';g.fillRect(0,0,W,H);}},
+  c64:{font:'VT323,"Courier New",monospace',shadow:false,slab:'bevel',fx:'px',pal:ARC_C64,upper:true,
+    bg:function(g,W,H){
+      g.fillStyle='#352879';g.fillRect(0,0,W,H);
+      g.font='20px VT323,monospace';g.textAlign='left';g.textBaseline='alphabetic';g.fillStyle='rgba(108,94,181,.9)';
+      g.fillText('READY.',14,H-14);
+      if(Math.floor(performance.now()/530)%2){g.fillRect(84,H-30,10,18);}
+    }},
+  wii:{font:'Nunito,"Arial Rounded MT Bold","Segoe UI",sans-serif',slab:'tile',fx:'dot',
+    bg:function(g,W,H){
+      var b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#5cc8f0');b.addColorStop(1,'#1e93cc');g.fillStyle=b;g.fillRect(0,0,W,H);
+      g.fillStyle='rgba(255,255,255,.07)';for(var y=0;y<H;y+=6)g.fillRect(0,y,W,2);
+      var f=g.createRadialGradient(W/2,H+120,40,W/2,H+120,W*.7);f.addColorStop(0,'rgba(255,255,255,.35)');f.addColorStop(1,'rgba(255,255,255,0)');
+      g.fillStyle=f;g.fillRect(0,0,W,H);
+    }},
+  wiiu:{font:'Nunito,"Segoe UI",sans-serif',slab:'tile',fx:'dot',
+    bg:function(g,W,H){
+      var b=g.createLinearGradient(0,0,W,H);b.addColorStop(0,'#16b6ef');b.addColorStop(1,'#0072c4');g.fillStyle=b;g.fillRect(0,0,W,H);
+      g.fillStyle='rgba(255,255,255,.13)';for(var y=12;y<H;y+=24)for(var x=12;x<W;x+=24){g.beginPath();g.arc(x,y,1.8,0,Math.PI*2);g.fill();}
+    }},
+  aero:{slab:'gel',fx:'bubble',
+    bg:function(g,W,H,C,now){
+      var b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#0f86dc');b.addColorStop(.6,'#5cc4f5');b.addColorStop(1,'#bfeaff');g.fillStyle=b;g.fillRect(0,0,W,H);
+      var s=g.createRadialGradient(110,40,6,110,40,220);s.addColorStop(0,'rgba(255,255,235,.95)');s.addColorStop(1,'rgba(255,255,235,0)');g.fillStyle=s;g.fillRect(0,0,W,H);
+      g.fillStyle='#4fbf30';g.beginPath();g.ellipse(W*.62,H+150,W*.8,210,0,0,Math.PI*2);g.fill();
+      g.fillStyle='rgba(255,255,255,.35)';g.beginPath();g.ellipse(W*.62,H+150,W*.8,210,0,Math.PI*1.05,Math.PI*1.95);g.lineWidth=3;g.strokeStyle='rgba(255,255,255,.5)';g.stroke();
+      arcSkyBubbles(g,W,H,now);
+    }},
+  aerodark:{slab:'gel',fx:'bubble',
+    bg:function(g,W,H,C,now){
+      g.fillStyle='#03101f';g.fillRect(0,0,W,H);
+      for(var k=0;k<3;k++){
+        var y=H*(.3+k*.18)+Math.sin(now/2400+k)*14;
+        var a=g.createLinearGradient(0,y-40,0,y+40);a.addColorStop(0,'rgba(0,0,0,0)');
+        a.addColorStop(.5,['rgba(0,230,200,.22)','rgba(60,140,255,.2)','rgba(150,80,255,.16)'][k]);a.addColorStop(1,'rgba(0,0,0,0)');
+        g.fillStyle=a;g.fillRect(0,y-40,W,80);
+      }
+    }},
+  xp:{font:'Tahoma,"Segoe UI",sans-serif',slab:'gloss',
+    bg:function(g,W,H){
+      var b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#1d63d6');b.addColorStop(.55,'#6aa9f2');b.addColorStop(1,'#bcdcff');g.fillStyle=b;g.fillRect(0,0,W,H);
+      g.fillStyle='rgba(255,255,255,.75)';
+      [[150,70,60],[190,62,44],[560,100,70],[610,92,50],[520,108,40]].forEach(function(c){g.beginPath();g.arc(c[0],c[1],c[2]*.6,0,Math.PI*2);g.fill();});
+      var h=g.createLinearGradient(0,H*.6,0,H);h.addColorStop(0,'#58b83a');h.addColorStop(1,'#2f7f1c');g.fillStyle=h;
+      g.beginPath();g.moveTo(0,H);g.lineTo(0,H*.72);g.quadraticCurveTo(W*.35,H*.52,W*.7,H*.7);g.quadraticCurveTo(W*.88,H*.78,W,H*.7);g.lineTo(W,H);g.fill();
+    }},
+  discord:{font:'"gg sans","Segoe UI",sans-serif',slab:'flat',
+    bg:function(g,W,H){g.fillStyle='#313338';g.fillRect(0,0,W,H);g.fillStyle='#2b2d31';g.fillRect(0,0,W,40);}},
+  steam:{font:'Tahoma,Verdana,sans-serif',shadow:false,slab:'bevel',
+    bg:function(g,W,H){g.fillStyle='#4c5844';g.fillRect(0,0,W,H);g.strokeStyle='#8a927d';g.strokeRect(6.5,6.5,W-13,H-13);}},
+  osx:{font:'"Lucida Grande","Helvetica Neue",sans-serif',slab:'gel',
+    bg:function(g,W,H){
+      var b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#3d6fb0');b.addColorStop(1,'#1d4a86');g.fillStyle=b;g.fillRect(0,0,W,H);
+      g.fillStyle='rgba(255,255,255,.06)';for(var y=0;y<H;y+=4)g.fillRect(0,y,W,2);
+    }},
+  matrix:{font:'"Courier New",monospace',slab:'flat',fx:'px',pal:['#00ff66','#7dff9e','#00c850'],ink:'#7dffa0',
+    bg:function(g,W,H,C,now){
+      g.fillStyle='#000';g.fillRect(0,0,W,H);
+      g.font='16px "Courier New",monospace';g.textAlign='center';g.textBaseline='middle';
+      for(var c=0;c<40;c++){
+        var head=((now/1000*(40+(c*37)%60))+(c*53)%H)%(H+200)-100;
+        for(var k=0;k<10;k++){
+          var y=head-k*18;if(y<-10||y>H+10)continue;
+          g.fillStyle=k?'rgba(0,255,102,'+(0.28-k*0.025).toFixed(3)+')':'rgba(190,255,210,.6)';
+          g.fillText(String.fromCharCode(0x30A0+((c*7+k*13+Math.floor(now/300))%90)),c*20+10,y);
+        }
+      }
+    }},
+  roblox:{font:'"Source Sans Pro","Segoe UI",Arial,sans-serif',slab:'flat',
+    bg:function(g,W,H){
+      g.fillStyle='#6f7277';g.fillRect(0,0,W,H);
+      for(var y=10;y<H;y+=20)for(var x=10;x<W;x+=20){g.fillStyle='rgba(0,0,0,.18)';g.beginPath();g.arc(x+1,y+1,5,0,Math.PI*2);g.fill();
+        g.fillStyle='rgba(255,255,255,.12)';g.beginPath();g.arc(x,y,5,0,Math.PI*2);g.fill();}
+    }},
+};
+function arcSkin(){return ARC_SKINS[document.documentElement.getAttribute('data-theme')||'']||null;}
 function arcColors(){
   var cs=getComputedStyle(document.documentElement);
   function v(n,f){var x=(cs.getPropertyValue(n)||'').trim();return x||f;}
+  var S=arcSkin();
   return {a:v('--sel1','#8b5cff'),b:v('--sel2','#5a2de0'),c:v('--sel3','#4b1fd0'),
           base:v('--base','#07051a'),top:v('--baseTop','#0a0626'),ok:'#7dff6a',bad:'#ff5a7a',
-          ink:'#ffffff',dim:'rgba(255,255,255,.65)',font:v('--font','Segoe UI,sans-serif')};
+          ink:(S&&S.ink)||'#ffffff',dim:'rgba(255,255,255,.65)',font:(S&&S.font)||v('--font','Segoe UI,sans-serif'),skin:S};
 }
 function arcRR(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);
   g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
 function arcGloss(g,x,y,w,h,r,c1,c2){
   /* themes that are square and flat (Windows 95) get a bevelled slab
      instead of a glossy capsule, so the arcade matches the rest of the page */
-  var th=document.documentElement.getAttribute('data-theme')||'';
-  if(th==='win95'||th==='c64'){
+  var S=arcSkin(), slab=S&&S.slab;
+  if(slab==='bevel'){
     g.fillStyle=c2;g.fillRect(x,y,w,h);
     g.fillStyle='rgba(255,255,255,.85)';g.fillRect(x,y,w,2);g.fillRect(x,y,2,h);
     g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x,y+h-2,w,2);g.fillRect(x+w-2,y,2,h);
+    return;
+  }
+  if(slab==='flat'){
+    g.fillStyle=c2;arcRR(g,x,y,w,h,Math.min(r,8));g.fill();
+    g.fillStyle=c1;g.globalAlpha*=.35;arcRR(g,x,y,w,h*.5,Math.min(r,8));g.fill();g.globalAlpha/=.35;
+    return;
+  }
+  if(slab==='tile'){
+    /* a Wii channel tile: the colour inside a thick white rounded rim */
+    var rr=Math.max(r,14), gt=g.createLinearGradient(0,y,0,y+h);gt.addColorStop(0,c1);gt.addColorStop(1,c2);
+    g.fillStyle=gt;arcRR(g,x+2,y+2,w-4,h-4,rr-2);g.fill();
+    g.save();arcRR(g,x+2,y+2,w-4,h-4,rr-2);g.clip();
+    var th2=g.createLinearGradient(0,y,0,y+h*.45);th2.addColorStop(0,'rgba(255,255,255,.4)');th2.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=th2;g.fillRect(x,y,w,h*.45);g.restore();
+    g.strokeStyle='#fff';g.lineWidth=4;arcRR(g,x+2,y+2,w-4,h-4,rr-2);g.stroke();
+    g.strokeStyle='rgba(0,40,80,.18)';g.lineWidth=1;arcRR(g,x+.5,y+.5,w-1,h-1,rr);g.stroke();
+    return;
+  }
+  if(slab==='gel'){
+    /* wet: a bright cap on the top half and light pooling at the bottom */
+    var gg=g.createLinearGradient(0,y,0,y+h);gg.addColorStop(0,c1);gg.addColorStop(.5,c2);gg.addColorStop(1,c1);
+    g.fillStyle=gg;arcRR(g,x,y,w,h,r);g.fill();
+    g.save();arcRR(g,x,y,w,h,r);g.clip();
+    var cap=g.createLinearGradient(0,y,0,y+h*.5);cap.addColorStop(0,'rgba(255,255,255,.9)');cap.addColorStop(1,'rgba(255,255,255,.12)');
+    g.fillStyle=cap;arcRR(g,x+3,y+2,w-6,h*.48,Math.max(2,r-3));g.fill();g.restore();
+    g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=1.5;arcRR(g,x+.5,y+.5,w-1,h-1,r);g.stroke();
     return;
   }
   var gr=g.createLinearGradient(0,y,0,y+h);gr.addColorStop(0,c1);gr.addColorStop(1,c2);
@@ -11049,7 +11331,15 @@ function arcGloss(g,x,y,w,h,r,c1,c2){
 /* a dark table tinted with the theme, so white text and bright pieces read
    on every theme, the light ones included */
 function arcFelt(g,C){
-  var W=ARC.W,H=ARC.H;
+  var W=ARC.W,H=ARC.H,S=C.skin;
+  /* Windows 95 plays cards on Solitaire's green; any other skinned theme
+     keeps its own scene and dims it just enough for white cards and text */
+  if(S&&S.felt){g.fillStyle=S.felt;g.fillRect(0,0,W,H);return;}
+  if(S&&S.bg){
+    var v=g.createRadialGradient(W/2,H*0.45,60,W/2,H/2,W*0.7);
+    v.addColorStop(0,'rgba(0,0,0,.18)');v.addColorStop(1,'rgba(0,0,0,.5)');
+    g.fillStyle=v;g.fillRect(0,0,W,H);return;
+  }
   g.fillStyle=C.c;g.fillRect(0,0,W,H);
   var felt=g.createRadialGradient(W/2,H*0.45,60,W/2,H/2,W*0.65);
   felt.addColorStop(0,'rgba(0,0,0,.35)');felt.addColorStop(1,'rgba(0,0,0,.78)');
@@ -11057,8 +11347,12 @@ function arcFelt(g,C){
   g.strokeStyle='rgba(255,255,255,.08)';g.lineWidth=2;arcRR(g,8,8,W-16,H-16,26);g.stroke();
 }
 function arcText(g,t,x,y,size,color,weight,align){
-  g.font=(weight||'700')+' '+size+'px '+arcColors().font;g.textAlign=align||'center';g.textBaseline='middle';
-  g.fillStyle='rgba(0,0,0,.45)';g.fillText(t,x+2,y+2);g.fillStyle=color||'#fff';g.fillText(t,x,y);
+  var S=arcSkin();
+  if(S&&S.upper)t=String(t).toUpperCase();
+  if(S&&S.ink&&(!color||color==='#fff'||color==='#ffffff'))color=S.ink;
+  g.font=(weight||'700')+' '+size+'px '+((S&&S.font)||arcColors().font);g.textAlign=align||'center';g.textBaseline='middle';
+  if(!S||S.shadow!==false){g.fillStyle='rgba(0,0,0,.45)';g.fillText(t,x+2,y+2);}
+  g.fillStyle=color||'#fff';g.fillText(t,x,y);
 }
 var ARC_BANNER={text:null,good:null,at:0};
 function arcBanner(t,good){ARC_BANNER={text:t,good:good,at:arcNow()};}
@@ -11073,14 +11367,17 @@ function arcBurst(x,y,n){
     life:1,h:(Math.random()*360)|0});
 }
 function arcDraw(now){
-  var g=ARC.g, W=ARC.W, H=ARC.H, C=arcColors(), st=ARC.st;
-  var bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,C.top);bg.addColorStop(1,C.base);
-  g.fillStyle=bg;g.fillRect(0,0,W,H);
-  var glow=g.createRadialGradient(W/2,-40,10,W/2,-40,W*0.7);glow.addColorStop(0,C.a);glow.addColorStop(1,'rgba(0,0,0,0)');
-  g.globalAlpha=0.35;g.fillStyle=glow;g.fillRect(0,0,W,H);g.globalAlpha=1;
-  g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;
-  for(var gx=0;gx<W;gx+=40){g.beginPath();g.moveTo(gx,0);g.lineTo(gx,H);g.stroke();}
-  for(var gy=0;gy<H;gy+=40){g.beginPath();g.moveTo(0,gy);g.lineTo(W,gy);g.stroke();}
+  var g=ARC.g, W=ARC.W, H=ARC.H, C=arcColors(), st=ARC.st, S=C.skin;
+  if(S&&S.bg){g.save();S.bg(g,W,H,C,now);g.restore();}
+  else{
+    var bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,C.top);bg.addColorStop(1,C.base);
+    g.fillStyle=bg;g.fillRect(0,0,W,H);
+    var glow=g.createRadialGradient(W/2,-40,10,W/2,-40,W*0.7);glow.addColorStop(0,C.a);glow.addColorStop(1,'rgba(0,0,0,0)');
+    g.globalAlpha=0.35;g.fillStyle=glow;g.fillRect(0,0,W,H);g.globalAlpha=1;
+    g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;
+    for(var gx=0;gx<W;gx+=40){g.beginPath();g.moveTo(gx,0);g.lineTo(gx,H);g.stroke();}
+    for(var gy=0;gy<H;gy+=40){g.beginPath();g.moveTo(0,gy);g.lineTo(W,gy);g.stroke();}
+  }
   if(ARC_GAMES[ARC.game].party&&partyMine())partyDraw(g,now,C);
   else if(!st){
     var G=ARC_GAMES[ARC.game];
@@ -11096,7 +11393,16 @@ function arcDraw(now){
   ARC.fx=ARC.fx.filter(function(p){
     p.vy+=600*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*1.3;
     if(p.life<=0)return false;
-    g.globalAlpha=Math.max(0,p.life);g.fillStyle='hsl('+p.h+',95%,65%)';
+    g.globalAlpha=Math.max(0,p.life);
+    if(S&&S.fx==='px'){                 /* square pixels on a 4px grid, in the machine's own palette */
+      var pal=S.pal||ARC_VGA;g.fillStyle=pal[p.h%pal.length];
+      g.fillRect(Math.round(p.x/4)*4-3,Math.round(p.y/4)*4-3,6,6);g.globalAlpha=1;return true;
+    }
+    if(S&&S.fx==='bubble'){
+      g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=1.5;g.beginPath();g.arc(p.x,p.y,5+(1-p.life)*4,0,Math.PI*2);g.stroke();
+      g.globalAlpha=1;return true;
+    }
+    g.fillStyle='hsl('+p.h+',95%,65%)';
     if(bloom){g.shadowColor=g.fillStyle;g.shadowBlur=10;}
     g.beginPath();g.arc(p.x,p.y,3.2,0,Math.PI*2);g.fill();g.globalAlpha=1;g.shadowBlur=0;return true;
   });
@@ -17992,91 +18298,306 @@ function asrDispatch(id,pcm,onFail){
 }
 
 /* ============================================================================
-   AUTO-UPDATE
+   THEME CURSORS
+
+   Windows 95 gets its own pointer and hand, drawn as pixel art at 2x so the
+   pixels read as pixels instead of being smoothed away. Built here as SVG
+   rather than shipped as images: each is a grid of letters, which is easier
+   to read and adjust than a PNG and costs a few hundred bytes.
+
+   The Wii gets the real Wii remote pointer - the hand with the "1" on it -
+   and like the real one it is never quite still: it swings from the fingertip
+   as you move, leaning into the direction of travel and settling back with a
+   little overshoot, plus a slow idle drift like a remote held in a hand.
+   A CSS cursor cannot move or rotate, so this one is an element that follows
+   the mouse. It swings about the FINGERTIP, which is the click point, so
+   however far it leans the thing you click is exactly what it points at.
+   ============================================================================ */
+function pixelCursor(rows,scale){
+  var h=rows.length,w=rows[0].length,r=[];
+  for(var y=0;y<h;y++)for(var x=0;x<w;x++){
+    var c=rows[y].charAt(x);
+    if(c==='B'||c==='W')r.push('<rect x="'+x*scale+'" y="'+y*scale+'" width="'+scale+'" height="'+scale+'" fill="'+(c==='B'?'#000':'#fff')+'"/>');
+  }
+  return 'url("data:image/svg+xml,'+encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="'+w*scale+'" height="'+h*scale+'" shape-rendering="crispEdges">'+r.join('')+'</svg>')+'")';
+}
+(function(){
+  var arrow=pixelCursor([
+    'B...........','BB..........','BWB.........','BWWB........','BWWWB.......','BWWWWB......',
+    'BWWWWWB.....','BWWWWWWB....','BWWWWWWWB...','BWWWWWWWWB..','BWWWWWBBBBB.','BWWBWWB.....',
+    'BWB.BWWB....','BB..BWWB....','B....BWWB...','.....BWWB...','......BWWB..','......BWWB..','.......BB...'],2);
+  var hand=pixelCursor([
+    '.....BB.........','....BWWB........','....BWWB........','....BWWB........','....BWWBBB......',
+    '....BWWBWWBBB...','....BWWBWWBWWBB.','.BB.BWWBWWBWWBWB','BWWBBWWWWWWWWBWB','BWWWBWWWWWWWWWWB',
+    '.BWWBWWWWWWWWWWB','..BWWWWWWWWWWWWB','..BWWWWWWWWWWWB.','...BWWWWWWWWWWB.','...BWWWWWWWWWB..',
+    '....BWWWWWWWWB..','....BWWWWWWWWB..','....BBBBBBBBBB..'],2);
+  var T=':root[data-theme="win95"]';
+  var click=['a','button','select','summary','label','.btn','.q','.rb','.tab','.row.action','.arctile','.sw','.hint',
+    '.mem','.sv','.dcmenu div','[role=button]','input[type=checkbox]','input[type=radio]','input[type=range]','#rooms .row'];
+  var css=T+','+T+' *{cursor:'+arrow+' 0 0,default!important}'+
+    click.map(function(s){return T+' '+s;}).join(',')+'{cursor:'+hand+' 10 0,pointer!important}'+
+    T+' input[type=text],'+T+' input[type=password],'+T+' input:not([type]),'+T+' textarea,'+T+' [contenteditable]{cursor:text!important}';
+  var st=document.createElement('style');st.id='w95cursor';st.textContent=css;document.head.appendChild(st);
+})();
+
+var WII_PTR={el:null,on:false,x:-200,y:-200,vx:0,ang:0,vel:0,raf:0,down:false,lastX:0,lastT:0};
+/* the sprite, 112x153, fingertip at (38,10) */
+var WII_PTR_SRC='data:image/png;base64,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';
+var WII_PTR_W=46, WII_PTR_TIPX=38/112*46, WII_PTR_TIPY=10/112*46;
+function wiiPtrSync(){
+  var want=(document.documentElement.getAttribute('data-theme')==='wii')&&
+           !(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
+  if(want===WII_PTR.on)return;
+  WII_PTR.on=want;
+  document.documentElement.classList.toggle('wiicur',want);
+  if(want){
+    if(!WII_PTR.el){
+      var d=document.createElement('img');d.id='wiiPtr';d.src=WII_PTR_SRC;d.alt='';d.draggable=false;
+      d.style.cssText='position:fixed;left:0;top:0;width:'+WII_PTR_W+'px;height:auto;pointer-events:none;z-index:2147483600;'+
+        'transform-origin:'+WII_PTR_TIPX+'px '+WII_PTR_TIPY+'px;will-change:transform;opacity:0;transition:opacity .15s;'+
+        'filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))';
+      document.body.appendChild(d);WII_PTR.el=d;
+    }
+    wiiPtrLoop();
+  }else if(WII_PTR.el){
+    WII_PTR.el.style.opacity='0';
+  }
+}
+function wiiPtrLoop(){
+  if(WII_PTR.raf)return;
+  var tick=function(now){
+    WII_PTR.raf=0;
+    if(!WII_PTR.on||!WII_PTR.el)return;
+    /* a spring pulled toward a lean that follows how fast you are moving
+       sideways: move right and it swings out behind to the left, like
+       something hanging from the fingertip, then it overshoots and settles */
+    WII_PTR.vx*=0.86;
+    var target=Math.max(-28,Math.min(28,-WII_PTR.vx*0.9))+Math.sin(now/900)*2.2;
+    WII_PTR.vel+=(target-WII_PTR.ang)*0.09;
+    WII_PTR.vel*=0.8;
+    WII_PTR.ang+=WII_PTR.vel;
+    var s=WII_PTR.down?0.9:1;
+    WII_PTR.el.style.transform='translate('+(WII_PTR.x-WII_PTR_TIPX)+'px,'+(WII_PTR.y-WII_PTR_TIPY)+'px) rotate('+
+      WII_PTR.ang.toFixed(2)+'deg) scale('+s+')';
+    WII_PTR.raf=requestAnimationFrame(tick);
+  };
+  WII_PTR.raf=requestAnimationFrame(tick);
+}
+document.addEventListener('pointermove',function(e){
+  if(!WII_PTR.on||e.pointerType==='touch')return;
+  var now=performance.now(), dt=Math.max(8,now-(WII_PTR.lastT||now));
+  WII_PTR.vx+=((e.clientX-WII_PTR.x)/dt)*16*0.35;
+  WII_PTR.x=e.clientX;WII_PTR.y=e.clientY;WII_PTR.lastT=now;
+  if(WII_PTR.el)WII_PTR.el.style.opacity='1';
+},{passive:true,capture:true});
+document.addEventListener('pointerdown',function(e){if(WII_PTR.on&&e.pointerType!=='touch')WII_PTR.down=true;},true);
+document.addEventListener('pointerup',function(){WII_PTR.down=false;},true);
+document.documentElement.addEventListener('mouseleave',function(){if(WII_PTR.el)WII_PTR.el.style.opacity='0';});
+(function(){
+  var st=document.createElement('style');
+  st.textContent='html.wiicur,html.wiicur *{cursor:none!important}';
+  document.head.appendChild(st);
+  /* follow theme changes, however they happen */
+  try{new MutationObserver(wiiPtrSync).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+  wiiPtrSync();
+})();
+
+/* Frutiger Aero's soap bubbles: their own layer, so they rise BEHIND the
+   frosted panels and blur as they pass. Only built while the theme is on. */
+function aeroFxSync(){
+  var on=document.documentElement.getAttribute('data-theme')==='aero';
+  var fx=document.getElementById('aeroFx');
+  if(!on){if(fx)fx.remove();return;}
+  if(fx)return;
+  fx=document.createElement('div');fx.id='aeroFx';
+  for(var i=0;i<22;i++){
+    var b=document.createElement('i'), sz=Math.round(10+Math.pow(Math.random(),1.8)*78);
+    b.style.width=b.style.height=sz+'px';
+    b.style.left=(Math.random()*100).toFixed(1)+'%';
+    b.style.setProperty('--dx',Math.round(-60+Math.random()*120)+'px');
+    var dur=(14+Math.random()*16+sz/10).toFixed(1);
+    b.style.animationDuration=dur+'s';
+    b.style.animationDelay=(-Math.random()*dur).toFixed(1)+'s';
+    fx.appendChild(b);
+  }
+  var bg=document.getElementById('bg');
+  if(bg&&bg.nextSibling)bg.parentNode.insertBefore(fx,bg.nextSibling);else document.body.insertBefore(fx,document.body.firstChild);
+}
+try{new MutationObserver(aeroFxSync).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+aeroFxSync();
+
+/* ============================================================================
+   AUTO-UPDATE - forced, and seamless
 
    Every moderation action here is enforced by the OTHER person's browser, so a
    room split across builds is a room where kicks and mutes quietly do nothing.
-   Waiting for people to refresh has not worked; nobody refreshes a tab that
-   looks fine.
 
-   So the page asks the server what the current build is, and when the answer
-   stops matching, it reloads itself. With two rules, because a reload at the
-   wrong moment is its own kind of broken:
+   This used to ask politely: a ten-second countdown with "not now", and it
+   held off entirely while you were typing, talking, watching or playing - so
+   in a busy room people sat on an old build for an hour. Now a new build is
+   picked up within half a minute (and the moment the window comes back into
+   focus), a full-screen "Mingus Chat Needs an Update" takes over, and the page
+   reloads itself. What makes forcing it acceptable is that nothing is lost:
+   the room you were in, your gamertag and anything half-typed are stashed
+   first, and the fresh page rejoins and puts them back on its own.
 
-     - never mid-sentence. If you are typing, or on a call, or something is
-       playing in the theatre, it waits and asks again later.
-     - never silently. You get ten seconds and a way to say "not now", because
-       being yanked out of a room without warning is worse than being a build
-       behind.
+   The Windows app has a second layer: its shell (main.js / preload.js) can
+   also be out of date. A shell new enough to update itself downloads and
+   installs the new version silently and says so on the same screen; the
+   original 1.0.0 shell cannot, so it gets the same screen with a download
+   button instead.
    ============================================================================ */
-var UPD={seen:null,pending:false,snoozed:0};
-function updBusy(){
-  try{
-    var box=document.getElementById('text');
-    if(box&&box.value&&box.value.trim())return 'you are part-way through a message';
-    if(micOn&&!muted)return 'your microphone is live';
-    var v=tVid();
-    if(v&&!v.paused&&!v.ended&&v.currentTime>0)return 'something is playing in the theatre';
-    if(typeof ARC!=='undefined'&&(ARC.m&&!ARC.m.over||ARC.st&&!ARC.st.done||PARTY&&PARTY.started))return 'you are in the middle of a game';
-    if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.playing)return 'VERITY is talking';
-  }catch(e){}
-  return null;
+var UPD={shown:false};
+function updScreen(o){
+  var w=document.getElementById('updScreen');
+  if(!w){
+    w=document.createElement('div');w.id='updScreen';
+    w.style.cssText='position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:20px;'+
+      'background:radial-gradient(900px 600px at 50% 30%,rgba(90,60,220,.55),rgba(6,4,24,.96) 70%);'+
+      'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;cursor:default;'+
+      'font-family:"Segoe UI",system-ui,sans-serif;text-align:center;animation:cardIn .3s ease-out';
+    w.innerHTML='<div style="max-width:440px">'+
+      '<div style="font-size:54px;line-height:1;margin-bottom:14px;filter:drop-shadow(0 4px 14px rgba(140,110,255,.7))">⬆</div>'+
+      '<div style="font-size:26px;font-weight:700;letter-spacing:.3px;margin-bottom:10px">Mingus Chat Needs an Update</div>'+
+      '<div id="updSub" style="font-size:15px;opacity:.85;line-height:1.45"></div>'+
+      '<div id="updBar" style="display:none;margin:18px auto 0;width:280px;height:10px;border-radius:5px;'+
+        'background:rgba(255,255,255,.15);overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.4)">'+
+        '<i style="display:block;height:100%;width:0;border-radius:5px;background:linear-gradient(#b7a4ff,#7b4dff);'+
+        'transition:width .25s"></i></div>'+
+      '<div id="updBtns" style="margin-top:20px;display:none;gap:10px;justify-content:center"></div>'+
+      '</div>';
+    document.body.appendChild(w);
+  }
+  if(o.sub!=null)document.getElementById('updSub').innerHTML=o.sub;
+  var bar=document.getElementById('updBar');
+  bar.style.display=o.pct==null?'none':'block';
+  if(o.pct!=null)bar.firstChild.style.width=Math.max(2,Math.min(100,o.pct))+'%';
+  var b=document.getElementById('updBtns');
+  b.innerHTML='';b.style.display=o.btn?'flex':'none';
+  if(o.btn){
+    var k=document.createElement('button');k.className='btn';k.textContent=o.btn;
+    k.style.cssText='font-size:15px;padding:10px 22px';k.onclick=o.onBtn;b.appendChild(k);
+  }
+  return w;
 }
-function updApply(build){
-  if(UPD.pending)return;
-  UPD.pending=true;
-  var left=10, bar=document.createElement('div');
-  bar.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;'+
-    'padding:11px 16px;border-radius:12px;font-size:14px;color:#fff;display:flex;align-items:center;gap:12px;'+
-    'background:linear-gradient(#7b4dff,#3d1f9e);border:1px solid #fff;'+
-    'box-shadow:0 6px 24px rgba(0,0,0,.55)';
-  var txt=document.createElement('span');
-  var later=document.createElement('button');
-  later.className='duelbtn';later.textContent='not now';
-  var now=document.createElement('button');
-  now.className='duelbtn';now.textContent='reload now';
-  bar.appendChild(txt);bar.appendChild(later);bar.appendChild(now);
-  document.body.appendChild(bar);
-  var t=setInterval(function(){
-    left--;
-    txt.textContent='Build '+build+' is out — reloading in '+left+'s';
-    if(left<=0){clearInterval(t);location.reload();}
-  },1000);
-  txt.textContent='Build '+build+' is out — reloading in '+left+'s';
-  later.onclick=function(){
-    clearInterval(t);try{bar.remove();}catch(e){}
-    UPD.pending=false;UPD.snoozed=Date.now()+15*60000;
-    sys('⏳ Update postponed for fifteen minutes. Moderation and newer features only work '+
-        'when everyone is on the same build, so do reload when you get a moment.');
+/* What a reload would otherwise throw away. sessionStorage, so it survives
+   the reload but not closing the tab, and it is ignored after two minutes. */
+function updStash(){
+  try{
+    var t=document.getElementById('text');
+    sessionStorage.setItem('mc_resume',JSON.stringify({
+      at:Date.now(),joined:!!(peer&&!peer.destroyed),room:room,name:me.name||'',icon:me.icon,
+      draft:t?t.value:''
+    }));
+  }catch(e){}
+}
+function updReload(build){
+  if(UPD.shown)return;
+  UPD.shown=true;
+  updStash();
+  var left=3;
+  var say=function(){
+    updScreen({sub:'Build <b>'+esc(build)+'</b> is out and you are on <b>'+esc(BUILD)+'</b>.<br>'+
+      'Updating in '+left+'s — you will be put straight back in <b>'+esc(room)+'</b>.',pct:(3-left)/3*100});
   };
-  now.onclick=function(){clearInterval(t);location.reload();};
+  say();
+  var t=setInterval(function(){
+    left--;say();
+    if(left<=0){clearInterval(t);try{if(peer&&!peer.destroyed)peer.destroy();}catch(e){}location.reload();}
+  },1000);
 }
 function updCheck(){
-  if(UPD.pending)return;
-  if(UPD.snoozed&&Date.now()<UPD.snoozed)return;
+  if(UPD.shown)return;
   fetch(adminBase()+'/version',{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(j){
       var b=j&&j.build;
-      if(!b||b==='?')return;
-      if(UPD.seen===null)UPD.seen=b;
-      if(b===BUILD)return;                      /* already current */
-      var why=updBusy();
-      if(why){
-        /* try again shortly rather than interrupting */
-        if(!UPD.warned){
-          UPD.warned=1;
-          sys('🔄 Build <b>'+esc(b)+'</b> is out — holding off because '+esc(why)+'. '+
-              'It will reload when you are free.');
-        }
-        return;
-      }
-      updApply(b);
+      /* NEWER, not just different: while Render swaps instances during a
+         deploy the old one can still answer for a moment, and reloading
+         "down" to it and back up again would bounce people in a loop */
+      if(!b||b==='?'||!verNewer(b,BUILD))return;
+      /* and never twice for the same build in a minute - if the reload came
+         back with the old page (a cache in the way), hammering it will not help */
+      try{
+        var tried=JSON.parse(sessionStorage.getItem('mc_updTried')||'null');
+        if(tried&&tried.b===b&&Date.now()-tried.at<60000)return;
+        sessionStorage.setItem('mc_updTried',JSON.stringify({b:b,at:Date.now()}));
+      }catch(e){}
+      updReload(b);
     })
     .catch(function(){});
+  deskUpdCheck();
 }
-setInterval(updCheck,120000);
-setTimeout(updCheck,20000);
+setInterval(updCheck,30000);
+setTimeout(updCheck,4000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)updCheck();});
+window.addEventListener('focus',function(){updCheck();});
+
+/* ---- back in after an update ---- */
+(function(){
+  var r=null;
+  try{r=JSON.parse(sessionStorage.getItem('mc_resume')||'null');sessionStorage.removeItem('mc_resume');}catch(e){}
+  if(!r||Date.now()-r.at>120000)return;
+  if(r.draft){var t=document.getElementById('text');if(t&&!t.value)t.value=r.draft;}
+  if(!r.joined||!r.name)return;
+  try{
+    $('#name').value=r.name;$('#roomIn').value=r.room||'lobby';
+    if(r.icon)me.icon=r.icon;
+  }catch(e){}
+  setTimeout(function(){
+    if(peer)return;
+    try{join();}catch(e){return;}
+    var n=0,iv=setInterval(function(){
+      if(peer){clearInterval(iv);sys('✨ Updated to build <b>'+esc(BUILD)+'</b> — you were put straight back in.');}
+      else if(++n>80)clearInterval(iv);
+    },250);
+  },400);
+})();
+
+/* ---- the Windows app's own shell ---- */
+function verNewer(a,b){
+  a=String(a||'').split('.').map(Number);b=String(b||'').split('.').map(Number);
+  for(var i=0;i<3;i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false;}
+  return false;
+}
+var DESK_UPD={at:0};
+function deskUpdCheck(){
+  var D=window.mingusDesktop;
+  if(!D||!D.isDesktop||UPD.shown)return;
+  /* a shell that can update itself drives this from main.js - just nudge it */
+  if(D.checkUpdate){try{D.checkUpdate();}catch(e){}return;}
+  if(Date.now()-DESK_UPD.at<5*60000)return;
+  DESK_UPD.at=Date.now();
+  Promise.all([D.info(),fetch(adminBase()+'/desktop/latest',{cache:'no-store'}).then(function(r){return r.json();})])
+    .then(function(v){
+      var i=v[0],l=v[1];
+      if(!i||!l||!l.ok||!verNewer(l.version,i.version))return;
+      UPD.shown=true;
+      updScreen({sub:'This copy of the Windows app is <b>v'+esc(i.version)+'</b> and <b>v'+esc(l.version)+'</b> is out. '+
+        'This is the last time you will have to do this by hand — from this version on the app updates itself.<br><br>'+
+        'Download it, run it, and it replaces this one.',
+        btn:'⬇ Download the update',onBtn:function(){window.open(l.url,'_blank');}});
+    }).catch(function(){});
+}
+(function(){
+  var D=window.mingusDesktop;
+  if(!D||!D.onUpdate)return;
+  D.onUpdate(function(u){
+    if(!u)return;
+    UPD.shown=true;
+    if(u.phase==='found')updScreen({sub:'Version <b>'+esc(u.version)+'</b> of the Windows app is out. Getting it now…',pct:0});
+    else if(u.phase==='downloading')updScreen({sub:'Downloading version <b>'+esc(u.version||'')+'</b>… '+Math.round(u.pct||0)+'%',pct:u.pct||0});
+    else if(u.phase==='installing')updScreen({sub:'Installing. Mingus will close and open again by itself in a few seconds.',pct:100});
+    else if(u.phase==='manual')updScreen({sub:'Version <b>'+esc(u.version)+'</b> is out. The portable app cannot replace itself — download the new one and use that instead.',
+      btn:'⬇ Download the update',onBtn:function(){window.open(u.url,'_blank');}});
+    else if(u.phase==='error'){
+      UPD.shown=false;
+      var s=document.getElementById('updScreen');if(s)s.remove();
+      sys('⚠ The app could not update itself ('+esc(String(u.msg||'unknown').slice(0,80))+'). It will try again later.',true);
+    }
+  });
+})();
 
 
 /* ============================================================================

@@ -47,6 +47,21 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
+      # What installed copies (1.1.0+) read to decide whether to update
+      # themselves, and what the server's /desktop/latest reports. Written here
+      # rather than trusted to electron-builder, which only emits it when a
+      # publish provider is configured. The sha512 is checked before the
+      # downloaded installer is ever run.
+      - name: Write the update manifest
+        shell: bash
+        working-directory: desktop
+        run: |
+          V=$(node -p "require('./package.json').version")
+          SHA=$(node -e "process.stdout.write(require('crypto').createHash('sha512').update(require('fs').readFileSync('dist/Mingus-Chatroom-Setup.exe')).digest('base64'))")
+          SIZE=$(node -p "require('fs').statSync('dist/Mingus-Chatroom-Setup.exe').size")
+          printf 'version: %s\npath: Mingus-Chatroom-Setup.exe\nsha512: %s\nsize: %s\n' "$V" "$SHA" "$SIZE" > dist/latest.yml
+          cat dist/latest.yml
+
       - name: Move the desktop-latest tag to this commit
         shell: bash
         run: |
@@ -68,5 +83,6 @@ jobs:
           files: |
             desktop/dist/Mingus-Chatroom-Setup.exe
             desktop/dist/Mingus-Chatroom-Portable.exe
+            desktop/dist/latest.yml
           make_latest: true
           fail_on_unmatched_files: true

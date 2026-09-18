@@ -354,6 +354,34 @@ app.get('/version', (req, res) => {
   res.json({ build: CURRENT_BUILD });
 });
 
+// ---- which Windows app is current -------------------------------------------
+// The version that is actually DOWNLOADABLE, read from the latest.yml that
+// electron-builder writes and the desktop workflow publishes next to the
+// installer. Not desktop/package.json: that changes the moment this deploys,
+// several minutes before GitHub has finished building the installer, and
+// sending people to download a "new" version that is still the old file would
+// loop them forever. Cached so a room full of apps asks GitHub once.
+const DESKTOP_REL = 'https://github.com/Cuppaxx/chat/releases/download/desktop-latest/';
+let desktopLatest = null, desktopLatestAt = 0;
+app.get('/desktop/latest', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (desktopLatest && Date.now() - desktopLatestAt < 5 * 60000) return res.json(desktopLatest);
+  try {
+    const r = await fetch(DESKTOP_REL + 'latest.yml', { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('release has no latest.yml yet (' + r.status + ')');
+    const yml = await r.text();
+    const version = (yml.match(/^version:\s*['"]?([\d.]+)/m) || [])[1];
+    const file = ((yml.match(/^path:\s*(.+)$/m) || [])[1] || 'Mingus-Chatroom-Setup.exe').trim();
+    if (!version) throw new Error('latest.yml has no version');
+    desktopLatest = { ok: true, version, url: DESKTOP_REL + file };
+  } catch (e) {
+    // a failed check must never look like "there is an update"
+    desktopLatest = { ok: false, error: String((e && e.message) || e) };
+  }
+  desktopLatestAt = Date.now();
+  res.json(desktopLatest);
+});
+
 // The chatroom page. MUST be declared above app.use('/', peerServer) at the
 // bottom — that mount matches every path, so anything registered after it
 // never gets reached.

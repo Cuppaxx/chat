@@ -45,6 +45,12 @@ contextBridge.exposeInMainWorld('mingusDesktop', {
   minimizeToTray: () => ipcRenderer.invoke('shell:minimizeToTray'),
   quit: () => ipcRenderer.invoke('shell:quit'),
 
+  /* self-update (1.1.0+): the shell finds, downloads and installs a new
+     version on its own and reports each step here, so the page can put up
+     its "needs an update" screen. checkUpdate asks it to look now. */
+  onUpdate: (fn) => { if (typeof fn === 'function') ipcRenderer.on('shell:update', (e, u) => { try { fn(u); } catch (err) {} }); },
+  checkUpdate: () => ipcRenderer.invoke('shell:checkUpdate'),
+
   /* the offline page uses these two */
   retry: () => ipcRenderer.invoke('shell:retry'),
   openLocalCopy: () => ipcRenderer.invoke('shell:openLocal'),
