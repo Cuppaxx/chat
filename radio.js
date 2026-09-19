@@ -62,7 +62,19 @@ const streams = new Map();
 // input url -> { at, result } so the host re-resolving a queued item is instant
 const cache = new Map();
 const CACHE_MS = 25 * 60 * 1000;      // YouTube stream URLs last hours; stay well inside
+// SoundCloud's do not: measured dead (403) between 4 and 8 minutes after the
+// lookup. Reusing one for 25 minutes handed the host a dead link for any
+// SoundCloud song queued more than a few minutes before its turn, and the
+// radio skipped it.
+const SC_CACHE_MS = 3 * 60 * 1000;
+const cacheFor = (r) => (/sndcdn\.com|soundcloud/i.test(String(r && r.url)) ? SC_CACHE_MS : CACHE_MS);
 const TOKEN_MS = 4 * 60 * 60 * 1000;
+// locked link -> the unlocked upload that played instead. Finding that upload
+// is a search plus several tries (it took two minutes for a Deftones track),
+// so it is done once a day per link rather than every time it is queued or
+// comes up in the queue.
+const moved = new Map();
+const MOVED_MS = 24 * 60 * 60 * 1000;
 
 // ---- abuse brakes ----------------------------------------------------------
 // Anybody in the room can queue, so resolving needs its own budget: yt-dlp is
@@ -293,12 +305,21 @@ async function resolveYouTube(url) {
 
 async function resolve(url) {
   const hit = cache.get(url);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.result;
+  if (hit && Date.now() - hit.at < cacheFor(hit.result)) return hit.result;
 
-  let result;
+  let result = null;
   let host = '';
   try { host = new URL(url).hostname; } catch (e) {}
-  if (haveYtdlp() && YOUTUBE.test(host)) {
+  const mv = moved.get(url);
+  if (mv && Date.now() - mv.at < MOVED_MS && haveYtdlp()) {
+    try {
+      result = fromYtdlp(await ytdlp(mv.page), mv.page);
+      result.meta.fallback = mv.fallback;
+      result.meta.ytTitle = mv.ytTitle;
+    } catch (e) { moved.delete(url); result = null; }
+  }
+  if (result) { /* the stand-in from last time still plays */ }
+  else if (haveYtdlp() && YOUTUBE.test(host)) {
     result = await resolveYouTube(url);
   } else if (haveYtdlp()) {
     try {
@@ -317,6 +338,11 @@ async function resolve(url) {
     throw new Error('this server has no yt-dlp, so only direct audio links (.mp3, .m4a, .ogg...) work');
   }
   if (!(await publicUrl(result.url))) throw new Error('that link points somewhere this server will not fetch');
+  if (result.meta.fallback && result.meta.page && result.meta.page !== url) {
+    moved.set(url, { at: Date.now(), page: result.meta.page, fallback: result.meta.fallback,
+                     ytTitle: result.meta.ytTitle });
+    if (moved.size > 500) moved.delete(moved.keys().next().value);
+  }
   cache.set(url, { at: Date.now(), result });
   if (cache.size > 300) cache.delete(cache.keys().next().value);
   return result;
@@ -336,7 +362,8 @@ function attach(app, clientIp) {
     try {
       const r = await resolve(url);
       const token = crypto.randomBytes(12).toString('hex');
-      streams.set(token, { url: r.url, headers: r.headers, exp: Date.now() + TOKEN_MS });
+      streams.set(token, { url: r.url, headers: r.headers, exp: Date.now() + TOKEN_MS,
+                           page: r.meta.page || url, fixedAt: 0 });
       if (streams.size > 400) {
         const now = Date.now();
         for (const [k, v] of streams) if (v.exp < now) streams.delete(k);
@@ -359,12 +386,30 @@ function attach(app, clientIp) {
   app.get('/radio/stream/:token', async (req, res) => {
     const s = streams.get(String(req.params.token || ''));
     if (!s || s.exp < Date.now()) return res.status(404).end();
-    const headers = Object.assign({}, s.headers);
-    delete headers['Accept-Encoding'];
-    if (req.headers.range) headers.Range = req.headers.range;
+    const pull = () => {
+      const headers = Object.assign({}, s.headers);
+      delete headers['Accept-Encoding'];
+      if (req.headers.range) headers.Range = req.headers.range;
+      return fetch(s.url, { headers, redirect: 'follow' });
+    };
     let up;
     try {
-      up = await fetch(s.url, { headers, redirect: 'follow' });
+      up = await pull();
+      // SoundCloud's stream links are signed and run out - a song that sat in
+      // the queue, or the browser asking for the next chunk late in a long
+      // one, got a 403 and the host skipped it as unplayable. Look the page
+      // up again for a fresh link and carry on (at most once a minute).
+      if ((up.status === 403 || up.status === 404 || up.status === 410) && s.page &&
+          Date.now() - s.fixedAt > 60000) {
+        s.fixedAt = Date.now();
+        cache.delete(s.page);
+        await slot();
+        try {
+          const r = await resolve(s.page);
+          s.url = r.url; s.headers = r.headers;
+        } finally { release(); }
+        up = await pull();
+      }
     } catch (e) {
       return res.status(502).end();
     }

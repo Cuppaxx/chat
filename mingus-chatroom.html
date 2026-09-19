@@ -456,6 +456,7 @@ body.touch .cam .ctl{opacity:1}
 .radm label{display:inline-flex;gap:3px;align-items:center}
 .radm input[type=range]{width:74px}
 .radm span{min-width:30px;font-variant-numeric:tabular-nums}
+.rmine{flex:none}
 .rqueue{max-height:96px;overflow:auto;border-radius:6px}
 .rq{display:flex;gap:6px;align-items:center;padding:2px 6px;font-size:12px;color:var(--ink);
   border-bottom:1px solid rgba(80,50,160,.15)}
@@ -4077,6 +4078,7 @@ body.noorbs #pumpFx .wisp{display:none}
               <button class="rb rhost" id="rHost" title="play the radio from your machine — it goes out over your voice, to this channel and to Discord">📻 Host</button>
             </div>
             <div class="rrow">
+              <span class="radm rmine"><label title="how loud the radio is for YOU only - nobody else hears the change. The radio arrives inside the host's voice, so while a song plays this turns the host down with it">my vol <input type="range" id="rMine" min="0" max="150" step="5" value="100"><span id="rMineVal">100%</span></label></span>
               <input type="text" id="rUrl" maxlength="600" placeholder="paste a YouTube / SoundCloud / Bandcamp / audio link…">
               <button class="rb" id="rAdd">＋ Queue</button>
             </div>
@@ -4416,7 +4418,7 @@ body.noorbs #pumpFx .wisp{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='11.2';
+var BUILD='11.3';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -7422,6 +7424,7 @@ function applyVol(p){
   /* rawOn solos one person for an admin; monOn solos you. Both mean "mute
      everybody, I am listening to one thing on purpose". */
   var v=(deaf||monOn||RAW.id||p.srvMuted)?0:(p.vol==null?1:p.vol);
+  v*=radioMineFor(p);
   if(p.gain)p.gain.gain.value=v;
   else if(p.audioEl)p.audioEl.volume=Math.min(1,v);
 }
@@ -10543,11 +10546,39 @@ setInterval(function(){
    control messages (play, pause, skip, jump, remove, stop); only admins may
    change the volume and bitrate. The host applies them and broadcasts the
    resulting state, which is all everybody else ever displays. */
-var RADIO={q:[],idx:-1,playing:false,vol:70,kbps:96,bass:0,host:'',pos:0,dur:0,posAt:0,
+var RADIO={mine:(function(){try{var v=+localStorage.getItem('mingusRadioMine');
+             return (localStorage.getItem('mingusRadioMine')!=null&&isFinite(v))?Math.max(0,Math.min(150,v)):100;}
+             catch(e){return 100;}})(),q:[],idx:-1,playing:false,vol:70,kbps:96,bass:0,host:'',pos:0,dur:0,posAt:0,loading:false,retried:null,
            el:null,src:null,gain:null,bassNode:null,an:null,bus:null,local:null,gen:0,seekTo:0};
+/* "my vol": the radio at your own level. The host hears the radio from its
+   own branch of the graph, so theirs is exact. Everyone else gets it inside
+   the host's voice - one stream - so while a song is playing the host's
+   whole stream is scaled for them, and put back when it stops. */
+function radioMineFor(p){
+  if(typeof RADIO==='undefined'||!RADIO||!p||!RADIO.host||p.name!==RADIO.host)return 1;
+  return (RADIO.idx>=0&&RADIO.playing)?RADIO.mine/100:1;
+}
+function radioMineApply(){
+  if(RADIO.local)RADIO.local.gain.value=RADIO.mine/100;
+  for(var id in peers){try{applyVol(peers[id]);}catch(e){}}
+}
 function radioIsHost(){return !!RADIO.host&&RADIO.host===me.name&&!!peer;}
 function radioKey(){return isAdmin()?ADMIN_PASS:(isMod()?MOD_PASS:'');}
 function radioCur(){return (RADIO.idx>=0&&RADIO.idx<RADIO.q.length)?RADIO.q[RADIO.idx]:null;}
+function radioNewId(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);}
+function radioKeyOf(it){return (it&&(it.id||it.url))||'';}
+/* A mod's play/remove names a row by its position in THEIR copy of the
+   queue, which can be a song behind the host's: if a song ended in between,
+   every row moved up one and the host played or removed the wrong song. So
+   the row also carries the song's id, and the host finds that song wherever
+   it is now. -1 if it has gone. */
+function radioAt(i,key){
+  i=i|0;
+  if(!key)return (i>=0&&i<RADIO.q.length)?i:-1;
+  if(i>=0&&i<RADIO.q.length&&radioKeyOf(RADIO.q[i])===key)return i;
+  for(var k=0;k<RADIO.q.length;k++)if(radioKeyOf(RADIO.q[k])===key)return k;
+  return -1;
+}
 function radioPosNow(){
   if(radioIsHost()&&RADIO.el&&RADIO.el.getAttribute('src'))return RADIO.el.currentTime||0;
   return RADIO.pos+(RADIO.playing?(Date.now()-RADIO.posAt)/1000:0);
@@ -10572,9 +10603,21 @@ function radioGraph(){
     a.crossOrigin='anonymous';          /* required, or Web Audio hears silence */
     a.preload='auto';
     RADIO.el=a;
-    a.addEventListener('ended',function(){if(radioIsHost())radioFinish(true);});
+    a.addEventListener('ended',function(){
+      if(!radioIsHost())return;
+      /* a stream that was cut off can look like the song ending. If it
+         stopped well short of how long the song is, it did not end */
+      var it=radioCur(), len=(it&&it.dur)||0, at=a.currentTime||0;
+      if(len>40&&at<len-15&&radioResume('the stream cut out'))return;
+      radioFinish(true);
+    });
     a.addEventListener('error',function(){
       if(!radioIsHost()||!a.getAttribute('src'))return;
+      /* Usually not the song's fault: SoundCloud's link ran out, the
+         connection blinked, or the server restarted (every deploy) and
+         forgot the stream. These used to skip the song on the spot. Pick it
+         back up from where it was once; only skip if that fails too. */
+      if(radioResume('lost the stream'))return;
       var it=radioCur();
       sys('📻 could not play <b>'+esc(it?it.title:'that track')+'</b> — skipping it',true);
       var g=RADIO.gen;
@@ -10586,7 +10629,12 @@ function radioGraph(){
       radioRender();radioBroadcast();
     });
     ['play','pause','seeked'].forEach(function(ev){
-      a.addEventListener(ev,function(){RADIO.playing=!a.paused;radioRender();radioBroadcast();});
+      a.addEventListener(ev,function(){
+        /* letting go of the old song fires a late 'pause' - it is not the
+           host pausing, and it would leave the next song sitting paused */
+        if(RADIO.loading||!a.getAttribute('src'))return;
+        RADIO.playing=!a.paused;radioRender();radioBroadcast();
+      });
     });
   }
   if(!RADIO.src||RADIO.src.context!==c){
@@ -10610,6 +10658,7 @@ function radioGraph(){
     RADIO.crush.connect(RADIO.bus);
     RADIO.bus.connect(fxDest);                     /* out to the channel */
     RADIO.local=c.createGain();                    /* and to the host's own ears */
+    RADIO.local.gain.value=RADIO.mine/100;
     RADIO.bus.connect(RADIO.local);RADIO.local.connect(spk());
     MIX.rHooked=false;try{mixSync();}catch(e){}   /* and into the Discord mix */
   }
@@ -10621,6 +10670,17 @@ function radioGraph(){
   var t=fxDest.stream.getAudioTracks()[0];
   if(t)setOut('audio',t);
   return RADIO.bus;
+}
+/* host: reload the current song from where it got to. Once per song, so a
+   song that really is broken still gets skipped. */
+function radioResume(why){
+  var it=radioCur();
+  if(!it||RADIO.retried===it)return false;
+  RADIO.retried=it;
+  var at=0;try{at=RADIO.el.currentTime||0;}catch(e){}
+  sys('📻 '+why+' on <b>'+esc(it.title)+'</b> — picking it back up');
+  radioLoad(RADIO.idx,true,Math.max(0,at-1));
+  return true;
 }
 function radioUngraph(){
   RADIO.gen++;
@@ -10645,27 +10705,48 @@ function radioLoad(i,play,startAt){
   if(!radioIsHost())return;
   if(i<0||i>=RADIO.q.length){
     /* ran off the end of the queue */
-    RADIO.gen++;
+    RADIO.gen++;RADIO.loading=false;
     if(RADIO.el){try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}}
     RADIO.idx=-1;RADIO.playing=false;RADIO.pos=0;RADIO.dur=0;
     radioRender();radioBroadcast();
     return;
   }
   var gen=++RADIO.gen, it=RADIO.q[i];
+  if(RADIO.retried&&RADIO.retried!==it)RADIO.retried=null;
+  /* let go of the last song now, not when this one arrives. Looking a song
+     up can take a minute or two, and while the finished song was still
+     loaded, pressing play replayed its last instant - it "ended" again and
+     threw away the song that was loading */
+  if(RADIO.el&&RADIO.el.getAttribute('src')){
+    try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}
+  }
+  RADIO.loading=true;
   RADIO.idx=i;RADIO.playing=!!play;RADIO.pos=startAt||0;RADIO.posAt=Date.now();RADIO.dur=it.dur||0;
   radioRender();radioBroadcast();
-  radioResolve(it.url).then(function(j){
+  var tries=0;
+  (function look(){return radioResolve(it.url).catch(function(e){
+    /* a busy or slow server is not a broken song: one more go first */
+    if(++tries>1||gen!==RADIO.gen)throw e;
+    return new Promise(function(r){setTimeout(r,4000);}).then(function(){
+      if(gen!==RADIO.gen)throw e;
+      return look();
+    });
+  });})().then(function(j){
     if(gen!==RADIO.gen||!radioIsHost())return;
+    RADIO.loading=false;
     radioGraph();
     var a=RADIO.el;
     RADIO.seekTo=startAt||0;
     a.src=adminBase()+'/radio/stream/'+j.token;
-    if(play)a.play().catch(function(){toast('click ▶ to start the radio — your browser blocked autoplay');});
+    if(RADIO.playing)a.play().catch(function(){toast('click ▶ to start the radio — your browser blocked autoplay');});
     for(var id in peers)applyBitrate(peers[id].call);
   }).catch(function(e){
     if(gen!==RADIO.gen)return;
+    RADIO.loading=false;
     sys('📻 <b>'+esc(it.title)+'</b> would not play: '+esc(String(e.message||e).slice(0,200)),true);
-    setTimeout(function(){if(gen===RADIO.gen)radioLoad(i+1,true);},1500);
+    /* take it out, the same as a song that fails once playing. Stepping past
+       it instead left it sitting above the current song for good */
+    setTimeout(function(){if(gen===RADIO.gen)radioFinish(true);},1500);
   });
 }
 /* host: the current song is over (it ended, failed or was skipped) - take it
@@ -10775,11 +10856,13 @@ function radioCrunch(){
   RADIO.crush.curve=curve;
 }
 /* host: carry out a control, whoever asked for it */
-function radioExec(cmd,arg,by){
+function radioExec(cmd,arg,by,key){
   var a=RADIO.el, has=!!(a&&a.getAttribute('src'));
   if(cmd==='play'){
     if(RADIO.idx<0){if(RADIO.q.length)radioLoad(0,true);return;}
-    if(has)a.play().catch(function(){}); else radioLoad(RADIO.idx,true,RADIO.pos);
+    /* still being looked up: it starts by itself when it arrives */
+    if(RADIO.loading){RADIO.playing=true;}
+    else if(has)a.play().catch(function(){}); else radioLoad(RADIO.idx,true,RADIO.pos);
   }
   else if(cmd==='pause'){if(has)a.pause();RADIO.playing=false;}
   else if(cmd==='skip')radioFinish(true);
@@ -10790,11 +10873,15 @@ function radioExec(cmd,arg,by){
     if(has&&isFinite(to)){try{a.currentTime=Math.max(0,Math.min(to,(isFinite(a.duration)?a.duration-0.5:to)));}catch(e){}}
   }
   else if(cmd==='jump'){
-    var j=arg|0;
-    if(j<0||j>=RADIO.q.length||j===RADIO.idx)return;
-    /* jumping ahead means the current song is over too */
-    if(RADIO.idx>=0&&RADIO.idx<RADIO.q.length){RADIO.q.splice(RADIO.idx,1);if(j>RADIO.idx)j--;}
-    radioLoad(j,true);
+    var j=radioAt(arg,key);
+    if(j<0||j===RADIO.idx)return;
+    /* the song that was on is over, the picked one moves to the front, and
+       everything else keeps its place. Playing it where it stood left the
+       songs above it stranded ahead of the current one, never to play */
+    var pick=RADIO.q[j], was=radioCur();
+    RADIO.q=RADIO.q.filter(function(it){return it!==pick&&it!==was;});
+    RADIO.q.unshift(pick);
+    radioLoad(0,true);
   }
   else if(cmd==='stop'){
     if(has){a.pause();try{a.currentTime=0;}catch(e){}}
@@ -10802,8 +10889,8 @@ function radioExec(cmd,arg,by){
     sys('📻 <b>'+esc(by)+'</b> stopped the radio');
   }
   else if(cmd==='remove'){
-    var k=arg|0;
-    if(k<0||k>=RADIO.q.length)return;
+    var k=radioAt(arg,key);
+    if(k<0)return;
     var gone=RADIO.q.splice(k,1)[0];
     if(k<RADIO.idx)RADIO.idx--;
     else if(k===RADIO.idx){radioLoad(k,RADIO.playing);}
@@ -10835,12 +10922,12 @@ function radioExec(cmd,arg,by){
 }
 var RADIO_ADMIN_ONLY={vol:1,kbps:1,bass:1};
 /* anybody's button press: run it here if we are the host, otherwise ask the host */
-function radioCommand(cmd,arg){
+function radioCommand(cmd,arg,key){
   if(RADIO_ADMIN_ONLY[cmd]&&!isAdmin()){toast('only admins can change that');return;}
   if(!isMod()){toast('only admins and mods control the radio — anyone can queue');return;}
   if(!RADIO.host){toast('nobody is hosting the radio — press 📻 Host the radio here');return;}
-  if(radioIsHost()){radioExec(cmd,arg,me.name);return;}
-  bc({t:'rctl',k:radioKey(),cmd:cmd,arg:arg,by:me.name||'a moderator'});
+  if(radioIsHost()){radioExec(cmd,arg,me.name,key);return;}
+  bc({t:'rctl',k:radioKey(),cmd:cmd,arg:arg,id:key||'',by:me.name||'a moderator'});
 }
 /* become the host: an admin/mod starts the radio, or takes it over */
 function radioTakeHost(){
@@ -10874,8 +10961,18 @@ function radioAdd(){
   if(!peer){toast('join a channel first');return;}
   if(RADIO.q.length>=100){toast('the queue is full (100)');return;}
   var btn=$('#rAdd');btn.disabled=true;btn.textContent='checking…';
+  /* a label or Go+ track on SoundCloud is locked, and finding an unlocked
+     upload of it can take the server a minute or two - say so, or the
+     button just looks stuck */
+  var slow=setTimeout(function(){
+    btn.textContent='searching…';
+    toast('still working — locked (label / Go+) tracks take a minute or two to find another upload');
+  },10000);
   radioResolve(u).then(function(j){
-    var item={url:u.slice(0,600),title:String(j.title||'untitled').slice(0,120),
+    /* when another upload stood in for a locked one, queue THAT, so the host
+       loads it directly when its turn comes instead of repeating the search */
+    var play=(j.fallback&&/^https:\/\//i.test(String(j.page||'')))?String(j.page):u;
+    var item={id:radioNewId(),url:play.slice(0,600),title:String(j.title||'untitled').slice(0,120),
               dur:+j.duration||0,thumb:String(j.thumb||'').slice(0,400),
               src:String(j.fallback?'SoundCloud match':(j.source||'')).slice(0,24),
               by:(me.name||'someone').slice(0,18)};
@@ -10892,14 +10989,20 @@ function radioAdd(){
     toast('queued: '+item.title);
   }).catch(function(e){
     sys('📻 could not queue that: '+esc(String(e.message||e).slice(0,240)),true);
-  }).then(function(){btn.disabled=false;btn.textContent='＋ Queue';});
+  }).then(function(){clearTimeout(slow);btn.disabled=false;btn.textContent='＋ Queue';});
 }
 function radioGotItem(item){
-  RADIO.q.push(item);
   sys('📻 <b>'+esc(item.by)+'</b> queued <b>'+esc(item.title)+'</b>');
-  /* nothing on? the host starts it straight away */
-  if(radioIsHost()&&(RADIO.idx<0||!RADIO.playing&&!(RADIO.el&&RADIO.el.getAttribute('src'))))
-    radioLoad(RADIO.q.length-1,true);
+  /* While someone hosts, their queue is the only real one: they add the song
+     and send the new queue round. Everybody adding it to their own copy as
+     well is what made the queue jump about - it could land twice, or in a
+     different spot, until the host's next update overwrote it. */
+  if(RADIO.host&&!radioIsHost())return;
+  RADIO.q.push(item);
+  /* nothing on? the host starts the queue from the top. It used to jump to
+     the song just added, skipping anything queued before it, and did so even
+     when a song was loaded but still paused */
+  if(radioIsHost()&&RADIO.idx<0)radioLoad(0,true);
   else radioBroadcast();
   radioRender();
 }
@@ -10908,7 +11011,7 @@ function radioOnData(id,p,d){
   if(d.t==='radd'){
     var it=d.item||{};
     if(typeof it.url!=='string'||!/^https?:\/\//i.test(it.url)||RADIO.q.length>=100)return;
-    radioGotItem({url:it.url.slice(0,600),title:String(it.title||'untitled').slice(0,120),
+    radioGotItem({id:String(it.id||'').slice(0,40),url:it.url.slice(0,600),title:String(it.title||'untitled').slice(0,120),
       dur:+it.dur||0,thumb:(/^https:\/\//.test(String(it.thumb||''))?String(it.thumb).slice(0,400):''),
       src:String(it.src||'').slice(0,24),by:String(it.by||p.name||'someone').slice(0,18)});
     return;
@@ -10931,7 +11034,7 @@ function radioOnData(id,p,d){
     }
     if(!radioIsHost())return;
     if(RADIO_ADMIN_ONLY[d.cmd]&&!admin2)return;
-    radioExec(String(d.cmd||''),d.arg,by);
+    radioExec(String(d.cmd||''),d.arg,by,(typeof d.id==='string')?d.id.slice(0,40):'');
     return;
   }
   if(d.t==='rstate'){
@@ -10941,7 +11044,7 @@ function radioOnData(id,p,d){
     if(radioIsHost())return;
     RADIO.host=String(d.host||'').slice(0,18);
     if(Array.isArray(d.q))RADIO.q=d.q.slice(0,100).map(function(it){
-      return {url:String(it.url||''),title:String(it.title||'untitled').slice(0,120),dur:+it.dur||0,
+      return {id:String(it.id||'').slice(0,40),url:String(it.url||''),title:String(it.title||'untitled').slice(0,120),dur:+it.dur||0,
               thumb:(/^https:\/\//.test(String(it.thumb||''))?String(it.thumb).slice(0,400):''),
               src:String(it.src||'').slice(0,24),by:String(it.by||'').slice(0,18)};});
     RADIO.idx=(typeof d.idx==='number')?d.idx:-1;
@@ -10994,15 +11097,18 @@ function radioRender(){
     if(isMod()){
       if(i!==RADIO.idx){
         var bp=document.createElement('button');bp.textContent='play';bp.title='play this now';
-        bp.onclick=function(){radioCommand('jump',i);};
+        bp.onclick=function(){radioCommand('jump',i,radioKeyOf(it));};
         r.appendChild(bp);
       }
       var bx=document.createElement('button');bx.textContent='✕';bx.title='remove from the queue';
-      bx.onclick=function(){radioCommand('remove',i);};
+      bx.onclick=function(){radioCommand('remove',i,radioKeyOf(it));};
       r.appendChild(bx);
     }
     q.appendChild(r);
   });
+  var mv=$('#rMine');
+  if(document.activeElement!==mv){mv.value=RADIO.mine;$('#rMineVal').textContent=RADIO.mine+'%';}
+  radioMineApply();
   radioTick();
   radioVizKick();
 }
@@ -11066,6 +11172,12 @@ function radioVizDraw(){
 }
 (function(){
   $('#rAdd').onclick=radioAdd;
+  $('#rMine').oninput=function(){
+    RADIO.mine=Math.max(0,Math.min(150,+this.value||0));
+    $('#rMineVal').textContent=RADIO.mine+'%';
+    try{localStorage.setItem('mingusRadioMine',String(RADIO.mine));}catch(e){}
+    radioMineApply();
+  };
   $('#rUrl').onkeydown=function(e){if(e.key==='Enter')radioAdd();};
   $('#rPlay').onclick=function(){radioCommand('play');};
   $('#rPause').onclick=function(){radioCommand('pause');};
