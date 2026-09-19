@@ -1,12 +1,12 @@
 /* ============================================================================
    RADIO — the server half
 
-   The radio plays through somebody's VOICE stream: one person in the channel
-   (the radio host) plays the audio in their browser and mixes it into what
-   they send, so the whole channel hears it and the Discord bridge picks it up
-   like any other voice. The catch is that YouTube and SoundCloud players are
-   sealed cross-origin frames - a page cannot tap their sound - so the audio has
-   to arrive as a plain audio stream the page is allowed to read. That is what
+   One person in the channel (the radio host) keeps the queue and the clock,
+   and every browser in the channel plays the same stream in step with them;
+   whoever holds the Discord bridge mixes theirs into it. The catch is that
+   YouTube and SoundCloud players are sealed cross-origin frames - a page
+   cannot tap their sound, and Discord has to hear it - so the audio has to
+   arrive as a plain audio stream the page is allowed to read. That is what
    this file does, the same way a Discord music bot does it:
 
      POST /radio/resolve  {url}   -> yt-dlp works out the real audio stream
@@ -19,10 +19,10 @@
    Why proxy rather than hand the browser the URL: YouTube's audio URLs are
    locked to the address that asked for them (this server) and carry no CORS
    headers, so the browser could not play them into Web Audio even if it
-   could reach them. Only the one radio host pulls the stream - everybody
-   else hears it over voice - so this costs one audio stream, not one per
-   listener. Nothing is transcoded or stored; bytes are passed straight
-   through.
+   could reach them. Everybody shares the one token the host was given, so a
+   song is looked up once however many are listening; each listener pulls its
+   own copy of the bytes (roughly 4 MB a song). Nothing is transcoded or
+   stored; bytes are passed straight through.
 
    yt-dlp is a standalone binary fetched at install time (scripts/get-ytdlp.js).
    Without it, direct audio links still work and everything else says why not.
@@ -166,6 +166,10 @@ const BOT = /sign in to confirm|not a bot|confirm you.?re not/i;
 const YOUTUBE = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/i;
 
 function fromYtdlp(j, url) {
+  // an album / set / playlist link: say so, rather than a puzzling "no audio"
+  if (j && (j._type === 'playlist' || Array.isArray(j.entries))) {
+    throw new Error('that is a whole album or playlist link - paste the link to one song');
+  }
   // with a merged/single format the URL is at the top level
   const f = (j.requested_formats && j.requested_formats[0]) || j;
   if (!f.url) throw new Error('no playable audio stream found for that link');
@@ -204,36 +208,75 @@ async function youtubeTitle(url) {
 // and stop at the first that yields a full, unlocked stream. That is a lot
 // cheaper on Render's CPU than fully processing eight results up front, which
 // is what made queueing take the better part of a minute.
-async function searchSoundCloud(q, excludeId) {
+//
+// Full-album uploads, mixes and compilations have the song's words in their
+// titles too, so the search used to pick them - and the radio played a whole
+// album for one song. They are marked down unless that is what was asked
+// for, and anything far off the real song's length is not the song: within a
+// quarter of it (45 s at least) when that is known, 12 minutes at most when
+// it is not.
+const ALBUMISH = /\b(full album|album|full ep|mixtape|compilation|megamix|playlist|discography|greatest hits|best of|full concert|live set|dj set|full set|non ?stop)\b/i;
+function lengthOk(d, want) {
+  d = Number(d) || 0;
+  if (!d) return true;                       // not known yet: checked again once opened
+  if (d <= 35) return false;                 // a clip or a preview
+  if (want > 0) return Math.abs(d - want) <= Math.max(45, want * 0.25);
+  return d <= 12 * 60;
+}
+// The words that matter in a title: the song's own words, not "official",
+// "audio", "feat" and the like.
+const STOP = new Set(['the', 'a', 'an', 'of', 'and', 'in', 'on', 'to', 'at', 'is', 'feat', 'ft', 'featuring', 'official',
+  'audio', 'video', 'music', 'lyrics', 'lyric', 'hd', 'hq', 'prod', 'by', 'with', 'version', 'visualizer', 'mv']);
+const words = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
+const keyWords = (t) => words(t).filter((w) => !STOP.has(w));
+// The same RECORDING is the same length: a re-upload of it runs within a few
+// seconds of the original. A live take, an edit, a sped-up version or a
+// different song is further off than that.
+function sameLength(d, want) {
+  d = Number(d) || 0;
+  if (!want) return lengthOk(d, 0);
+  return d > 0 && Math.abs(d - want) <= 12;
+}
+// Is this upload the song? Every word of the song title has to be in its
+// title (a third of them used to be enough, which is how it kept playing the
+// wrong song). 2 = the artist is named too, in the title or as the uploader;
+// 1 = no artist, but the title is distinctive (3+ real words), so it is
+// allowed if it also runs within 5 s of the original; 0 = not it.
+function titleMatches(e, artist, title, askedVariant) {
+  const t = String(e.title || '');
+  const tw = new Set(words(t));
+  const need = keyWords(title);
+  if (!need.length || !need.every((w) => tw.has(w))) return 0;
+  if (!askedVariant && (VARIANT_ALL.test(t) || ALBUMISH.test(t))) return 0;
+  if (!artist) return 2;
+  const aw = keyWords(artist);
+  const up = new Set(words(e.uploader || e.channel || ''));
+  if (!aw.length || aw.every((w) => tw.has(w) || up.has(w))) return 2;
+  return need.length >= 3 ? 1 : 0;
+}
+const VARIANT_ALL = /\b(cover|covered|remix|nightcore|sped up|speed up|slowed|reverb|8d|karaoke|instrumental|acapella|a cappella|mashup|bootleg|edit|flip|rework|type beat|live|reaction|lesson|tutorial|drum cover|guitar cover|bass cover|piano|acoustic|demo|extended|loop|clip|snippet|preview)\b/i;
+// Another upload of a song whose own upload is locked. Every candidate has
+// to pass titleMatches, and once opened, sameLength - so when it gets this
+// wrong it says so instead of playing something else.
+async function searchSoundCloud(artist, title, excludeId, wantDur) {
+  const q = (artist && keyWords(title).join(' ').indexOf(keyWords(artist).join(' ')) < 0) ? artist + ' ' + title : title;
   let list;
-  try { list = await ytdlp('scsearch8:' + q, ['--flat-playlist']); } catch (e) { return null; }
-  // Rank by how well the title matches, and skip covers / remixes / nightcore
-  // / sped-up versions unless that is what was asked for - the first live test
-  // of this played a Rick Astley COVER because it happened to be listed first.
-  const words = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
-  const want = words(q);
-  const VARIANT = /\b(cover|remix|nightcore|sped up|speed up|slowed|reverb|8d|karaoke|instrumental|mashup|bootleg|edit|flip|rework|type beat)\b/i;
-  const askedVariant = VARIANT.test(q);
-  const score = (e) => {
-    const t = words(e.title);
-    let hit = 0; for (const w of want) if (t.indexOf(w) >= 0) hit++;
-    let s = want.length ? hit / want.length : 0;
-    if (!askedVariant && VARIANT.test(String(e.title || ''))) s -= 1;
-    return s;
-  };
+  try { list = await ytdlp('scsearch15:' + q, ['--flat-playlist']); } catch (e) { return null; }
+  const askedVariant = VARIANT_ALL.test(title) || ALBUMISH.test(title);
   const cands = (list.entries || []).filter((e) => e && e.url &&
     String(e.id) !== String(excludeId || '') &&
-    !(Number(e.duration) > 0 && Number(e.duration) <= 35))
-    .map((e) => ({ e, s: score(e) }))
-    .filter((x) => x.s > 0.34)          // at least a third of the words in common
-    .sort((a, b) => b.s - a.s)
-    .map((x) => x.e);
-  for (const c of cands.slice(0, 4)) {
+    lengthOk(e.duration, 0) &&
+    (!Number(e.duration) || sameLength(e.duration, wantDur)))
+    .map((e) => ({ e, m: titleMatches(e, artist, title, askedVariant) }))
+    .filter((x) => x.m > 0 && (x.m === 2 || wantDur > 0))       // no artist AND no length to check: too risky
+    .sort((a, b) => b.m - a.m);                                  // the artist named first
+  for (const { e: c, m } of cands.slice(0, 5)) {
     try {
       const r = fromYtdlp(await ytdlp(c.url), c.url);
-      if (r.meta.duration && r.meta.duration <= 35) continue;   // a clip, not the song
+      if (!sameLength(r.meta.duration, wantDur)) continue;      // a different take of it
+      if (m === 1 && Math.abs(Number(r.meta.duration) - wantDur) > 5) continue;
       return r;
-    } catch (e) { /* locked, preview-only, region-blocked: next */ }
+    } catch (e) { /* locked too, preview-only, region-blocked: next */ }
   }
   return null;
 }
@@ -243,13 +286,12 @@ async function searchSoundCloud(q, excludeId) {
 // that is tried before the SoundCloud stand-ins. It needs YouTube to be
 // talking to this server (YTDLP_COOKIES set, or not bot-checked lately).
 function youtubeUsable() { return !!cookiesFile || Date.now() >= ytBlockedUntil; }
-async function searchYouTube(artist, title) {
+async function searchYouTube(artist, title, wantDur) {
   if (!youtubeUsable()) return null;
   const q = (artist ? artist + ' ' : '') + title;
   let list;
   try { list = await ytdlp('ytsearch8:' + q + ' audio', ['--flat-playlist']); }
   catch (e) { if (BOT.test(String(e.message)) && !cookiesFile) ytBlockedUntil = Date.now() + 30 * 60 * 1000; return null; }
-  const words = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
   const want = words(title), who = String(artist || '').toLowerCase();
   const VARIANT = /\b(cover|remix|nightcore|sped up|speed up|slowed|reverb|8d|karaoke|instrumental|mashup|bootleg|edit|flip|rework|type beat|live|reaction|lesson|tutorial|drum|guitar|bass cover)\b/i;
   const askedVariant = VARIANT.test(title);
@@ -262,10 +304,12 @@ async function searchYouTube(artist, title) {
     if (/ - topic$/.test(ch)) s += 0.6;                          // the studio recording
     if (/official (audio|video)|\baudio\b/i.test(String(e.title || ''))) s += 0.2;
     if (!askedVariant && VARIANT.test(String(e.title || ''))) s -= 1;
+    if (!ALBUMISH.test(title) && ALBUMISH.test(String(e.title || ''))) s -= 1;
     return s;
   };
-  const cands = (list.entries || []).filter((e) => e && (e.url || e.id) &&
-    !(Number(e.duration) > 0 && (Number(e.duration) <= 35 || Number(e.duration) > 20 * 60)))
+  const cands = (list.entries || []).filter((e) => e && (e.url || e.id) && lengthOk(e.duration, 0) &&
+    (!Number(e.duration) || sameLength(e.duration, wantDur)) &&
+    titleMatches(e, /- topic$/i.test(String(e.channel || '')) ? '' : artist, title, askedVariant) === 2)
     .map((e) => ({ e, s: score(e) }))
     .filter((x) => x.s > 0.5)
     .sort((a, b) => b.s - a.s)
@@ -274,7 +318,7 @@ async function searchYouTube(artist, title) {
     const u = c.url && /^https?:/.test(c.url) ? c.url : 'https://www.youtube.com/watch?v=' + c.id;
     try {
       const r = fromYtdlp(await ytdlp(u), u);
-      if (r.meta.duration && r.meta.duration <= 35) continue;
+      if (!sameLength(r.meta.duration, wantDur)) continue;
       return r;
     } catch (e) {
       if (BOT.test(String(e.message))) { if (!cookiesFile) ytBlockedUntil = Date.now() + 30 * 60 * 1000; return null; }
@@ -302,12 +346,12 @@ async function resolveDrm(url, original) {
   const who = String((meta && (meta.artist || meta.uploader)) || '').trim();
   const q = (who && title.toLowerCase().indexOf(who.toLowerCase()) < 0) ? (who + ' ' + title) : title;
   // the real recording from YouTube first, then another SoundCloud upload
-  let hit = await searchYouTube(who, title);
-  if (!hit) hit = await searchSoundCloud(q, meta.id);
-  if (!hit && q !== title) hit = await searchSoundCloud(title, meta.id);
+  const want = Number(meta && (meta.duration || meta.full_duration)) || 0;   // the real song's length
+  let hit = await searchYouTube(who, title, want);
+  if (!hit) hit = await searchSoundCloud(who, title, meta.id, want);
   if (!hit) {
-    throw new Error('"' + title.slice(0, 80) + '" is locked on SoundCloud (a label or Go+ upload - DRM or a ' +
-      '30-second preview), and no full, unlocked upload of it turned up. Try a different link for the same song.');
+    throw new Error('could not find a playable copy of "' + title.slice(0, 80) + '"' +
+      (who ? ' by ' + who.slice(0, 40) : '') + ' - try another link for it');
   }
   const r = hit;
   r.meta.fallback = 'drm';
@@ -340,7 +384,7 @@ async function resolveYouTube(url) {
       const title = await youtubeTitle(url);
       if (!title) throw e1;
       let hit = null;
-      try { hit = await searchSoundCloud(cleanTitle(title)); } catch (e3) { throw e1; }
+      try { hit = await searchSoundCloud('', cleanTitle(title)); } catch (e3) { throw e1; }
       if (!hit) throw e1;
       const r = hit;
       r.meta.fallback = 'soundcloud';
@@ -419,8 +463,7 @@ function attach(app, clientIp) {
     } catch (e) {
       let why = String((e && e.message) || e);
       if (/sign in to confirm|not a bot/i.test(why)) {
-        why = 'YouTube is asking this server to prove it is not a bot. An admin can fix that by ' +
-              'setting YTDLP_COOKIES on the server (see radio.js). SoundCloud and direct links still work.';
+        why = 'YouTube would not hand that one over right now - try a SoundCloud link for it';
       }
       res.json({ ok: false, error: why });
     } finally {
