@@ -3766,17 +3766,17 @@ body.noorbs #pumpFx .wisp{display:none}
 
   <div class="blade">
     <div class="setbox">
-    <div class="row action hl" id="btnInvite">Invite Players to Party <span class="val">copy room link</span></div>
-    <div class="row action" id="btnMic">Voice Chat: <b id="micState">Off</b> <span class="val">click to arm your mic</span></div>
-    <div class="row action" id="btnCam">Webcam: <b id="camState">Off</b> <span class="val">click to share your camera</span></div>
-    <div class="row action" id="btnScreen">🖥 Screen Share: <b id="scrState">Off</b> <span class="val">share a window, tab or your whole screen</span></div>
-    <div class="row action" id="btnDiag">🩺 Network Test <span class="val">run this if you can't connect</span></div>
-    <div class="row action" id="btnCfg">⚙ Connection Settings <span class="val">signaling server / TURN keys</span></div>
+    <div class="row action hl" id="btnInvite">Invite Players to Party <span class="val"></span></div>
+    <div class="row action" id="btnMic">Voice Chat: <b id="micState">Off</b> <span class="val"></span></div>
+    <div class="row action" id="btnCam">Webcam: <b id="camState">Off</b> <span class="val"></span></div>
+    <div class="row action" id="btnScreen">🖥 Screen Share: <b id="scrState">Off</b> <span class="val"></span></div>
+    <div class="row action" id="btnDiag">🩺 Network Test <span class="val"></span></div>
+    <div class="row action" id="btnCfg">⚙ Connection Settings <span class="val"></span></div>
     <div class="row" style="font-size:15px;gap:10px;flex-wrap:wrap">
       <span class="lab">🥒 VERITY:</span>
       <button class="btn" id="btnVerityCall">📞 Call VERITY</button>
       <button class="btn grey" id="btnVerityHang">📴 Hang up</button>
-      <span class="val" id="verityVal" style="margin-left:0">a quirky little presence with a real voice</span>
+      <span class="val" id="verityVal" style="margin-left:0"></span>
     </div>
     <div class="row" style="font-size:15px;gap:10px;flex-wrap:wrap">
       <span class="lab">VERITY voice:</span>
@@ -3788,10 +3788,10 @@ body.noorbs #pumpFx .wisp{display:none}
       <span class="q" id="verityMute" title="silence her on your machine only">🔇 Mute VERITY (me)</span>
       <span class="q on" id="verityHear" title="transcribe the room in your own browser so VERITY can react — no audio is uploaded">🎤 Let VERITY hear me</span>
     </div>
-    <div class="row action" id="btnGetApp" style="display:none">🖥 Get the Windows app <span class="val">tray, global mute hotkey, pick any window to share</span></div>
-    <div class="row action" id="btnArcade">🎮 Minigames <span class="val">practice on your own or challenge someone</span></div>
-    <div class="row action" id="btnSkin">🎨 Appearance <span class="val" id="skinVal">theme, orbs, glass, scanlines</span></div>
-    <div class="row action" id="btnAdmin">🛡 Admin Panel <span class="val" id="admVal">moderation tools</span></div>
+    <div class="row action" id="btnGetApp" style="display:none">🖥 Get the Windows app <span class="val"></span></div>
+    <div class="row action" id="btnArcade">🎮 Minigames <span class="val"></span></div>
+    <div class="row action" id="btnSkin">🎨 Appearance <span class="val" id="skinVal"></span></div>
+    <div class="row action" id="btnAdmin">🛡 Admin Panel <span class="val" id="admVal"></span></div>
     <div class="row" style="font-size:15px;gap:12px;flex-wrap:wrap">
       <span class="lab">Voice:</span>
       <div class="qstrip">
@@ -3995,12 +3995,6 @@ body.noorbs #pumpFx .wisp{display:none}
             <button class="btn" id="tAdd">＋ Add</button>
           </div>
           <div id="tQueue"></div>
-          <div class="hint2" style="padding:0 12px 10px;color:#b9a9e6;text-shadow:0 1px 2px rgba(0,0,0,.6)">
-            Media files play in perfect sync — the leader is the clock. Websites open the same page
-            for everyone and only the leader can click or scroll it, but each person's page is their
-            own copy, so scrolling isn't mirrored. To show people exactly what is on your screen,
-            use <b>🖥 Screen Share</b> instead.
-          </div>
         </div>
 
         <details class="fold radio" id="radio" title="Anyone can queue. Admins and mods control playback and can scrub; admins set volume, bass and bitrate. It goes out over the host's voice to this channel and to Discord — hosts, wear headphones.">
@@ -4078,7 +4072,6 @@ body.noorbs #pumpFx .wisp{display:none}
 <div class="modal" id="modal">
   <div class="card">
     <h2>Sign in to <b>Mingus</b> Chatroom</h2>
-    <p>Free peer-to-peer voice &amp; chat. Nothing is saved anywhere. Bitrate is intentionally trash.</p>
     <label>Gamertag</label>
     <input type="text" id="name" placeholder="SOWC Mingus" maxlength="18">
     <label>Icon</label>
@@ -4100,17 +4093,14 @@ body.noorbs #pumpFx .wisp{display:none}
 <div class="modal" id="cfgModal" style="display:none">
   <div class="card">
     <h2>Connection Settings</h2>
-    <p>You should never need this — the server is already built in. Only touch it if you moved the server.</p>
     <label>Signaling server (host:port)</label>
     <input type="text" id="cfgHost" placeholder="mingus-signaling.onrender.com:443">
-    <div class="hint2">Built in and shared by everyone who opens this page. Leave it blank to snap back to the built-in server.</div>
     <label>TURN url(s), comma separated</label>
     <input type="text" id="cfgTurn" placeholder="turn:standard.relay.metered.ca:80,turns:standard.relay.metered.ca:443?transport=tcp">
     <label>TURN username</label>
     <input type="text" id="cfgUser" placeholder="your metered.ca username">
     <label>TURN password</label>
     <input type="text" id="cfgPass" placeholder="your metered.ca credential">
-    <div class="hint2">Free 20GB/mo key at metered.ca. Without working TURN, anyone on mobile data or locked-down wifi will NEVER connect. These settings ride along in your invite link so friends inherit them automatically.</div>
     <div class="err" id="cfgErr"></div>
     <div class="actions">
       <button class="btn grey" id="cfgClear">Reset to defaults</button>
@@ -4123,7 +4113,6 @@ body.noorbs #pumpFx .wisp{display:none}
 <div class="modal" id="skinModal" style="display:none">
   <div class="card" style="max-width:600px">
     <h2>🎨 Appearance</h2>
-    <p>Everything here is saved on this machine only — it does not change how the room looks for anybody else.</p>
 
     <label>Theme</label>
     <div class="swatches" id="swatches"></div>
@@ -4145,8 +4134,6 @@ body.noorbs #pumpFx .wisp{display:none}
       <span class="q" data-corner="round">⬭ Round</span>
     </div>
 
-    <div class="hint2">Reduced-motion is respected automatically: if your system asks for less
-      animation, the light sweep and the floating orbs hold still whatever you pick here.</div>
 
     <div class="actions">
       <button class="btn grey" id="skReset">↺ Back to Mingus Purple</button>
@@ -4161,9 +4148,6 @@ body.noorbs #pumpFx .wisp{display:none}
     <h2>🛡 Admin Panel</h2>
 
     <div id="admLock">
-      <p>Moderation tools for this room. There are two passwords: the <b>admin</b> one opens
-         everything, the <b>moderator</b> one opens mute, limit, kick and announcements
-         (including MEGA) only.</p>
       <label>Password</label>
       <input type="password" id="admPass" autocomplete="off" placeholder="admin or moderator password">
       <div class="err" id="admErr"></div>
@@ -4232,11 +4216,6 @@ body.noorbs #pumpFx .wisp{display:none}
             <span class="q" id="prankSnipeRandom" title="snipe a random member">🎯 Snipe (random)</span>
           </div>
         </div>
-        <div class="hint2">Everything here wears off on its own after a few seconds, and the admin
-          panel is never affected, so <b>Stop all</b> is always reachable — as is <b>Esc</b>, for
-          whoever it landed on. Anyone with reduced-motion turned on gets the chat line without
-          the spinning. <b>Spotlight</b> and <b>Snipe</b> deliberately show up on everybody's
-          screen; the rest, when aimed at one person, are seen only by them.</div>
         </div>
       </details>
 
@@ -4281,10 +4260,6 @@ body.noorbs #pumpFx .wisp{display:none}
             <span class="q" id="vpSave">💾 Apply</span>
             <span class="q" id="vpReset">↺ Default</span>
           </div>
-          <div class="hint2">This changes <b>who he is</b>, not the safety floor or the length
-            limit — those are enforced on the server and no wording here removes them. Saying his
-            name always gets a reply regardless of the slider. Takes effect on his next line; no
-            redeploy, and it is saved on this machine only.</div>
         </div>
       </details>
 
@@ -4301,11 +4276,6 @@ body.noorbs #pumpFx .wisp{display:none}
         <select id="brVoice" class="sel" style="max-width:280px"><option value="">loading channels…</option></select>
         <span class="q" id="brLoad" title="ask the bot again which servers and channels it can reach">↻ Refresh</span>
       </div>
-      <div class="hint2">Sends this room's voice into your Discord voice channel while you hold it open.
-        Your browser encodes the mix once and the server passes it straight through — it never decodes
-        anything, which is what keeps it inside Render's free tier. Closing the tab or hitting Unlink
-        drops the bot out. Discord voices come back into the room too: they play on your speakers and
-        travel to everyone else over your voice stream. Wear headphones so they do not loop back through your mic.</div>
 
       <label>Speak in a Discord text channel</label>
       <div>
@@ -4319,12 +4289,6 @@ body.noorbs #pumpFx .wisp{display:none}
           <input type="text" id="brSay" maxlength="400" placeholder="say something in Discord, as the bot…" style="flex:1;min-width:0">
           <button class="btn blue" id="brSayGo">💬 Send</button>
         </div>
-        <div class="hint2">The message genuinely comes from the bot and is labelled with your
-          gamertag — it does not impersonate anyone. <b>Relay in</b> needs the
-          <b>Message Content</b> intent enabled for the bot in Discord's developer portal;
-          without it Discord sends empty message bodies and nothing will appear.
-          <b>Mirror out</b> pushes the room's chat into Discord from this browser only, so
-          only whoever is holding the bridge does the posting and nothing gets doubled up.</div>
       </div>
 
         </div>
@@ -4337,9 +4301,6 @@ body.noorbs #pumpFx .wisp{display:none}
       <div class="qstrip" style="margin-top:6px">
         <span class="q" id="admBansRefresh">↻ Refresh from server</span>
       </div>
-      <div class="hint2">Name bans live in your browser. <b>IP bans live on the signalling server</b>, so
-        they cannot be dodged by rejoining, renaming or clearing storage — but they are held in memory,
-        so they clear if the server restarts (Render's free tier sleeps when idle).</div>
         </div>
       </details>
 
@@ -4398,7 +4359,7 @@ body.noorbs #pumpFx .wisp{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.8';
+var BUILD='10.9';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -8769,7 +8730,7 @@ function admLogout(){
   setTimeout(function(){try{radioRender();}catch(e){}},0);
   ADMIN_KEY='';
   try{sessionStorage.removeItem('mc_role');sessionStorage.removeItem('mc_admin');sessionStorage.removeItem('mc_akey');}catch(e){}
-  $('#admVal').textContent='moderation tools';
+  $('#admVal').textContent='';
   $('#admModal').style.display='none';
   toast('panel locked');
 }
@@ -14789,7 +14750,7 @@ function verityStop(){
     verityListen(false);
     try{speechSynthesis.cancel();}catch(e){}
     bc({t:'verity',a:'leave'});
-    $('#verityVal').textContent='a quirky little presence with a real voice';
+    $('#verityVal').textContent='';
     verityButtons();renderMembers();
     /* back to the plain mic path now there is nothing to mix in */
     try{if(micOn)wireFx();}catch(e){}
