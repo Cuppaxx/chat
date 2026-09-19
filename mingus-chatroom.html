@@ -3942,7 +3942,7 @@ body{min-height:0}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.3';
+var BUILD='10.4';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -4271,6 +4271,28 @@ var everSeen={};        /* peerIds we have already accepted, so a lock only bloc
    walked straight back in. Same trap the per-person volume memory fell into. */
 var banNames={};        /* lowercased name -> expiry timestamp (Infinity = session) */
 var muteNames={};       /* lowercased name -> true while server-muted */
+/* All of the above lived only in memory, so a reload forgot every mute, ban,
+   limiter and file block. That used to be one person refreshing; since 10.3
+   a deploy reloads EVERYBODY at once, which wiped all moderation in the room
+   on every update. Each client now keeps its copy in sessionStorage - it
+   survives a reload, not closing the tab - and restores it on load. */
+function modSave(){
+  try{
+    var b={};for(var k in banNames)b[k]=banNames[k]===Infinity?-1:banNames[k];
+    sessionStorage.setItem('mc_mod',JSON.stringify({at:Date.now(),ban:b,mute:muteNames,
+      lim:limitNames,nofile:noFileNames}));
+  }catch(e){}
+}
+function modRestore(){
+  try{
+    var m=JSON.parse(sessionStorage.getItem('mc_mod')||'null');
+    if(!m||Date.now()-m.at>12*3600000)return;
+    for(var k in (m.ban||{})){var v=m.ban[k];banNames[k]=v===-1?Infinity:v;}
+    for(k in (m.mute||{}))muteNames[k]=1;
+    for(k in (m.lim||{}))limitNames[k]=m.lim[k];
+    for(k in (m.nofile||{}))noFileNames[k]=m.nofile[k];
+  }catch(e){}
+}
 function nameKey(n){return String(n||'').toLowerCase().trim().slice(0,18);}
 function isNameBanned(n){var k=nameKey(n);return !!k&&banNames[k]>Date.now();}
 function isNameMuted(n){var k=nameKey(n);return !!k&&!!muteNames[k];}
@@ -4293,6 +4315,7 @@ function modBroadcast(action,name,id,mins,val){
          until:mins?(Date.now()+mins*60000):0};
   bc(m);
   applyMod(m,true);
+  modSave();
 }
 
 /* set by an admin's "server mute" — while true this client refuses to unmute
@@ -4770,6 +4793,7 @@ function applyPrefsToUI(){
 /* ===================== BOOT ===================== */
 (function(){
   $('#ver').textContent=BUILD;
+  modRestore();
   loadPrefs();applyPrefsToUI();
   try{
     me.name=localStorage.getItem('mc_name')||'';
@@ -4940,6 +4964,10 @@ function connectRoom(){
       setStatus('online as '+id+' via '+srv+(forceRelay?' · TURN only':''));
       $('#btnDiag').querySelector('.val').textContent='you are '+id;
       sys('you joined <b>'+esc(room)+'</b> · build '+BUILD);
+      /* muted before a reload: stay muted, rather than waiting to be told */
+      if(isNameMuted(me.name))setTimeout(function(){
+        try{applyMod({t:'mod',k:ADMIN_PASS,action:'mute',name:me.name,id:me.id},true);}catch(e){}
+      },300);
       try{outbound();}catch(e){MEDIA_OK=false;}
       if(!MEDIA_OK)sys('this browser can\'t produce a media stream — <b>chat only</b> here',true);
       blip(660,.08);
@@ -5434,7 +5462,7 @@ function onData(id,d){
     try{if(p.conn&&p.conn.open&&scrOn)p.conn.send({t:'scr',on:true,at:scrAt});}catch(e){}
     return;
   }
-  if(d.t==='mod'){applyMod(d,false);return;}
+  if(d.t==='mod'){applyMod(d,false);modSave();return;}
   if(d.t==='prank'){runPrank(d);return;}
   if(d.t==='verity'&&typeof VERITY!=='undefined'){
     /* Only the caller runs the model; everyone else just sees the line in chat.
@@ -5542,7 +5570,12 @@ function onData(id,d){
       setTimeout(function(){dropPeer(id);renderAdmin(true);},350);
       return;
     }
-    if(isNameMuted(d.name)){p.srvMuted=true;applyVol(p);}
+    if(isNameMuted(d.name)){
+      p.srvMuted=true;applyVol(p);
+      /* and tell THEM, the way a ban is re-sent above - otherwise their own
+         screen says they are live while everybody else hears nothing */
+      try{p.conn.send({t:'mod',k:ADMIN_PASS,action:'mute',name:d.name,id:id});}catch(e){}
+    }
     /* Everyone has to be on the same build for moderation to mean anything —
        an older client silently ignores message types it does not know, which
        looks exactly like "the kick button does nothing". */
@@ -6530,6 +6563,23 @@ function devApplyOut(){
     try{ if(media[i].setSinkId)media[i].setSinkId(id).catch(function(){}); }catch(e){}
   }
 }
+/* ...including every one created AFTER the switch. devApplyOut only reached
+   the elements on the page at that moment, so a theatre video opened later,
+   or a peer on the plain-element audio path (Safari, or a failed WebAudio
+   graph) who joined later, played on the system default instead. */
+try{
+  new MutationObserver(function(ms){
+    if(typeof DEV==='undefined'||!DEV.out)return;
+    for(var i=0;i<ms.length;i++){
+      var add=ms[i].addedNodes;
+      for(var j=0;j<add.length;j++){
+        var n=add[j];if(n.nodeType!==1)continue;
+        var els=(n.matches&&n.matches('audio,video'))?[n]:(n.querySelectorAll?n.querySelectorAll('audio,video'):[]);
+        for(var k=0;k<els.length;k++){try{if(els[k].setSinkId)els[k].setSinkId(DEV.out).catch(function(){});}catch(e){}}
+      }
+    }
+  }).observe(document.documentElement,{childList:true,subtree:true});
+}catch(e){}
 (function(){
   var mic=document.getElementById('devMic'), cam=document.getElementById('devCam'),
       out=document.getElementById('devOut'), rf=document.getElementById('devRefresh');
@@ -6767,6 +6817,13 @@ function playRemote(id,stream){
       p.elAudio=true;
     }
   }
+  /* The chain above is built at the person's own volume, which knows nothing
+     about a server mute (or deafen, or a raw-listen solo). Every time their
+     stream is replaced - mic or camera toggled, a renegotiation, a reconnect,
+     a rejoin - this runs again, and a server-muted person used to come
+     straight back on air in everybody's speakers. applyVol is the one place
+     that knows all of those rules. */
+  applyVol(p);
   a.play().catch(function(){
     if(!audioGesture){
       toast('tap anywhere to enable sound');
@@ -6845,7 +6902,10 @@ function applyMod(m,local){
     var on=(m.action==='mute');
     if(k){ if(on)muteNames[k]=1; else delete muteNames[k]; }
     if(mine){
+      /* a rejoin gets this from every member at once - say it once */
+      var already=on&&forceMuted&&muted;
       forceMuted=on;
+      if(on&&already){renderMembers();return;}
       if(on){
         muted=true;$('#muteLbl').textContent='Unmute';
         if(localStream)localStream.getAudioTracks()[0].enabled=false;
