@@ -3293,7 +3293,7 @@ body{min-height:0}
   font-size:10.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--ink2);opacity:.75;
   border-top:1px solid rgba(128,128,128,.25);border-bottom:1px solid rgba(128,128,128,.25);user-select:none}
 #setToggle:hover{opacity:1;background:rgba(255,255,255,.12)}
-.blade.setmin>.setbox{display:none}
+.blade.setmin>.setbox{display:none!important}   /* !important: Wii/Wii U make it a grid with a stronger selector */
 html.dcm #setToggle{display:none}
 /* The log's minimum has to be the WRAPPER's minimum too. With the wrapper
    allowed to shrink to nothing, opening the whisper bar (or a file transfer
@@ -3309,6 +3309,78 @@ html.dcm #setToggle{display:none}
   /* the button-hint bar wrapped onto four lines on a phone; one swipeable line instead */
   .wrap>.bottombar{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
   .wrap>.bottombar .grow{display:none}
+}
+
+/* ============================ THE RAIL LAYOUT (10.6) ============================
+   Everything used to share ONE column: the member list (Discord members
+   included), the cameras, the radio, and then the chat underneath whatever
+   was left - while a wide or fullscreen window sat mostly empty either side
+   of a 1120 px page. Enlarging a camera made it worse, because the big picture
+   had nowhere to go but that same crowded column.
+
+   On any window wide enough for it, every theme now uses the arrangement the
+   Discord theme already had:
+
+      channels | cameras / theatre / radio  | members
+               | CHAT, all the height left  | (scrolls)
+
+   The member list becomes its own scrolling rail on the right, a camera you
+   enlarge becomes a stage above the chat, and the page grows to use a wide
+   window instead of stopping at 1120 px. Sizes are relative to the layout
+   itself (container units), so it scales with the window rather than with
+   fixed pixel guesses. Narrow windows keep the stacked layout below. */
+@media (min-width:980px){
+  html:not(.dcm) .wrap{max-width:min(1640px,100%)}
+  html:not(.dcm) .wrap>.blade>.layout{
+    display:grid;container-type:size;
+    grid-template-columns:210px minmax(0,1fr) clamp(250px,24%,340px);
+    grid-template-rows:auto auto auto minmax(0,1fr);
+    background-image:linear-gradient(90deg,rgba(90,50,200,.10) 0 210px,transparent 210px),
+                     linear-gradient(90deg,transparent 0 209px,rgba(80,50,160,.2) 209px 210px,transparent 210px)}
+  html:not(.dcm) .layout>.main{display:contents}
+  html:not(.dcm) .layout>.side{grid-column:1;grid-row:1/-1}
+  html:not(.dcm) .layout>.main>h3{display:none}
+  /* the right rail: members, scrolling on their own */
+  html:not(.dcm) .layout>.main>#members{grid-column:3;grid-row:1/-1;max-height:none;min-height:0;overflow-y:auto;
+    border-left:1px solid rgba(128,128,128,.28);padding-bottom:12px}
+  html:not(.dcm) .layout>.main>#members::before{content:"Party members";position:sticky;top:0;z-index:2;display:block;
+    padding:6px 12px;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--ink2);
+    background:inherit;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(80,50,160,.15)}
+  /* a member row is two lines in a rail: who, then their controls */
+  html:not(.dcm) #members .mem{flex-wrap:wrap;row-gap:3px;padding:6px 10px}
+  html:not(.dcm) #members .mem .nm{flex:1}
+  html:not(.dcm) #members .mem .st{flex-basis:100%;margin-left:0;padding-left:34px;flex-wrap:wrap;gap:4px 8px;white-space:normal}
+  html:not(.dcm) #members .mem .st .vol{flex:1 1 70px;min-width:60px;width:auto}
+  /* one status line per person; their volume, limiter and buttons open on hover
+     (or keyboard focus), so the rail shows a whole room instead of four people */
+  html:not(.dcm) #members .mem .st{max-height:19px;overflow:hidden;transition:max-height .2s ease-out}
+  html:not(.dcm) #members .mem:hover .st,html:not(.dcm) #members .mem:focus-within .st{max-height:140px}
+  html:not(.dcm) #members .mem .st .vu{display:none}
+  html:not(.dcm) #members .mem .ava{width:26px;height:26px}
+  html:not(.dcm) #members .mem.talk{box-shadow:inset 3px 0 0 var(--ok)}
+  /* the middle column: cameras (and an enlarged one as a stage), theatre, radio, then the chat */
+  html:not(.dcm) .layout>.main>#cams{grid-column:2;grid-row:1;max-height:48cqh;min-width:0;overflow-y:auto;flex:none}
+  html:not(.dcm) .layout>.main>#cams .cam.big{width:100%}
+  /* the stage takes up to 44% of the layout, but never so much that the chat
+     is left with less than ~250 px: on a short window the camera gives way */
+  html:not(.dcm) .layout>.main>#cams .cam.big video{height:max(110px,min(44cqh,620px,calc(100cqh - 270px)))}
+  html:not(.dcm) .layout>.main>#theater.on{grid-column:2;grid-row:2;max-height:62cqh;min-width:0}
+  html:not(.dcm) .layout>.main>#radio{grid-column:2;grid-row:3;min-width:0;margin:6px 10px}
+  html:not(.dcm) .layout>.main>.chat{grid-column:2;grid-row:4;min-height:0;min-width:0}
+  /* the settings strip gives way sooner now that the chat has a whole column to fill */
+  html:not(.dcm) .blade>.setbox{max-height:min(28%,250px)}
+}
+
+/* the Discord theme's own layout: same rule for an enlarged camera - it gives way before the chat does */
+html.dcm .cam.big video{height:max(110px,min(42vh,560px,calc(100vh - 430px)))}
+html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
+
+/* the Wii's clock bar is lovely and about 150 px tall; on a short window it
+   slims down so the chat is not paying for it */
+@media (max-height:820px){
+  :root[data-theme="wii"] .top{margin-top:34px;min-height:58px;padding:8px 22px 10px}
+  :root[data-theme="wii"] .clock{font-size:26px!important;top:-34px;padding:8px 20px 4px;min-width:170px}
+  :root[data-theme="wii"] .clock::after{font-size:13px;margin-top:2px}
 }
 </style>
 </head>
@@ -3967,7 +4039,7 @@ html.dcm #setToggle{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.5';
+var BUILD='10.6';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -18536,12 +18608,12 @@ try{
   }
   t.onclick=function(){set(!b.classList.contains('setmin'),true);};
   set(pref==='1',false);
-  /* no choice made yet: fold it when joining on a window under 900px tall */
+  /* no choice made yet: fold it on joining - the chat is what matters then */
   if(pref===null){
     var iv=setInterval(function(){
       if(typeof peer!=='undefined'&&peer){
         clearInterval(iv);
-        try{if(localStorage.getItem('mc_setmin')===null&&innerHeight<900)set(true,false);}catch(e){}
+        try{if(localStorage.getItem('mc_setmin')===null)set(true,false);}catch(e){}
       }
     },1000);
   }
