@@ -2751,7 +2751,10 @@ html.dcm.dc-set #dcSetHead{display:flex;align-items:center;margin:0 0 20px;color
 }
 /* the channel menu's faint pinstripes */
 :root[data-theme="wii"] #bg{background-color:#ececec;
-  background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.035) 0 1px,transparent 1px 4px),linear-gradient(#f8f8f8,#dcdcdc)}
+  background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.035) 0 1px,transparent 1px 4px),
+    url('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/48f579b9-0d56-481a-a9b4-d61ef9364197/dcm4v1f-fb64b6d1-30d8-454e-8208-f0c384eb00c1.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi80OGY1NzliOS0wZDU2LTQ4MWEtYTliNC1kNjFlZjkzNjQxOTcvZGNtNHYxZi1mYjY0YjZkMS0zMGQ4LTQ1NGUtODIwOC1mMGMzODRlYjAwYzEucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.D4cPEEsy6CTTGaFpbOBrJl-zGK_deGHZYGpzQf3zreU'),
+    linear-gradient(#f8f8f8,#dcdcdc);
+  background-size:auto,cover,auto;background-position:0 0,center,0 0;background-repeat:repeat,no-repeat,no-repeat}
 :root[data-theme="wii"] #bg::after{display:none}
 :root[data-theme="wii"] .top h1{color:#5b5b5b;text-shadow:none;font-weight:800}
 :root[data-theme="wii"] .top h1 b{color:#34beed;background:none;-webkit-background-clip:border-box;background-clip:border-box}
@@ -2948,6 +2951,36 @@ html.dcm.dc-set #dcSetHead{display:flex;align-items:center;margin:0 0 20px;color
   padding:12px 40px 8px;border:3px solid #34beed;border-bottom:0;border-radius:140px 140px 0 0;
   background:linear-gradient(#f7f7f7,#f0f0f0);font-size:40px!important;font-weight:800;color:#9a9a9a;letter-spacing:1px;line-height:1}
 :root[data-theme="wii"] .clock::after{content:attr(data-date);display:block;font-size:17px;font-weight:800;color:#b3b3b3;margin-top:6px;letter-spacing:.5px}
+/* ---- Wii polish (11.8) ----
+   The panel is frosted rather than solid, so the wallpaper reads through it;
+   the channel tiles get the Wii's gloss sweeping across as you point at one,
+   and the picked one breathes its blue ring the way a channel does under the
+   Wii Remote; buttons spring; the log is the menu's pinstripe. */
+:root[data-theme="wii"] .wrap>.blade>.layout{background:rgba(255,255,255,.84);border:1px solid rgba(200,200,200,.9);border-radius:26px;
+  -webkit-backdrop-filter:blur(12px) saturate(1.1);backdrop-filter:blur(12px) saturate(1.1);
+  box-shadow:0 12px 36px rgba(0,0,0,.10),inset 0 1px 0 #fff}
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action:hover{
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.95) 50%,transparent 65%) -150% 0/250% 100% no-repeat,
+    radial-gradient(120% 90% at 50% 0%,#ffffff 0 55%,#eef9fe 100%);
+  animation:wiiShine .9s ease-out 1 forwards}
+@keyframes wiiShine{to{background-position:250% 0,0 0}}
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action.hl:not(:hover){animation:wiiPulse 1.8s ease-in-out infinite}
+@keyframes wiiPulse{
+  0%,100%{box-shadow:inset 0 0 0 5px #fff,inset 0 0 0 6px #bfeaf9,0 0 0 3px #34beed,0 0 14px 2px rgba(52,190,237,.35)}
+  50%{box-shadow:inset 0 0 0 5px #fff,inset 0 0 0 6px #bfeaf9,0 0 0 3px #34beed,0 0 26px 7px rgba(52,190,237,.6)}}
+:root[data-theme="wii"] .btn{transition:transform .18s cubic-bezier(.25,1.6,.45,1),box-shadow .18s}
+:root[data-theme="wii"] .btn:hover{transform:translateY(-1px) scale(1.04)}
+:root[data-theme="wii"] .btn:active{transform:scale(.97)}
+:root[data-theme="wii"] .log{background:repeating-linear-gradient(0deg,rgba(0,0,0,.028) 0 1px,transparent 1px 4px),linear-gradient(#f7f7f7,#efefef);
+  box-shadow:inset 0 2px 10px rgba(0,0,0,.07)}
+:root[data-theme="wii"] .chat,:root[data-theme="wii"] .compose{background:rgba(247,247,247,.9)}
+:root[data-theme="wii"] .msg .b{box-shadow:0 2px 6px rgba(0,0,0,.06)}
+:root[data-theme="wii"] .fxring{border-color:#34beed;box-shadow:0 0 12px rgba(52,190,237,.8),inset 0 0 6px rgba(52,190,237,.5)}
+:root[data-theme="wii"] .fxspark{box-shadow:0 0 6px #34beed,0 0 12px #34beed}
+/* putting the theme on: the Wii Menu fading up from white */
+#wiiFade{position:fixed;inset:0;z-index:9990;pointer-events:none;background:#fff;animation:wiiFade .9s ease-out forwards}
+@keyframes wiiFade{from{opacity:1}to{opacity:0}}
+@media (prefers-reduced-motion:reduce){:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action:hover,:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action.hl{animation:none}#wiiFade{display:none}}
 :root[data-theme="wii"] .tabs{margin-top:0}
 :root[data-theme="wii"] .tabs .tab{background:linear-gradient(#fff,#ececec);border-radius:14px 14px 0 0}
 :root[data-theme="wii"] .msg .ava{border-radius:12px;border:2px solid #cfcfcf;background:#fff}
@@ -3446,6 +3479,91 @@ html.dcm[data-theme="dcaero"] #dcRail .sv::before{background:#8ff5ff;box-shadow:
 :root[data-theme="skype"] .bottombar{color:#16537e;text-shadow:none}
 :root[data-theme="skype"] ::-webkit-scrollbar-track{background:#eef6fb}
 :root[data-theme="skype"] ::-webkit-scrollbar-thumb{border-radius:4px;border:1px solid #9ccbe6;background:linear-gradient(90deg,#eef8fd,#d6ecf8)}
+
+/* ================================ PHONE MODE ================================
+   On a phone the page is laid out like a messaging app: a slim header (the
+   room, and big mic and camera buttons), one screen at a time, and a tab bar
+   along the bottom - Chat, Cams, People, Radio, More. Nothing is moved in the
+   page: each tab only shows its own part of it, so a call or a film carries
+   on while you switch. Colours all come from the theme (--bladeA/--ink/...),
+   so every theme keeps its look. html.mob is set by mobSync(). */
+#mHead,#mTabs,#mCamBar{display:none}
+html.mob,html.mob body{height:100%;overflow:hidden}
+html.mob body{min-height:0}
+html.mob .wrap{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:none;margin:0;padding:0;gap:0}
+html.mob .wrap>.top,html.mob .wrap>.tabs,html.mob .wrap>.bottombar,html.mob #setToggle,html.mob .wrap>div:last-child{display:none!important}
+html.mob .wrap>#banner{flex:none;margin:0}
+/* the header */
+html.mob #mHead{display:flex;flex:none;align-items:center;gap:8px;padding:calc(6px + env(safe-area-inset-top,0px)) 10px 6px;
+  color:var(--ink);background-image:linear-gradient(var(--bladeA),var(--bladeB));border-bottom:1px solid var(--line);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#mHead .mroom{display:flex;align-items:center;gap:4px;min-width:0;padding:6px 4px;border:0;background:none;color:var(--ink);
+  font:inherit;font-size:18px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#mHead .mroom .h{opacity:.55;font-weight:600}
+#mHead .mroom b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw}
+#mHead .mroom .dn{opacity:.55;font-size:13px}
+#mHead .grow{flex:1}
+#mHead .mbig{min-height:44px;min-width:78px;padding:8px 12px;font-size:15px;font-weight:700}
+#mHead .mbig.live{box-shadow:inset 0 0 0 2px #35c85a,0 0 10px rgba(53,200,90,.45)}
+/* the page body: one tab at a time */
+html.mob .wrap>.blade{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0;
+  border:0!important;border-radius:0!important;padding:0 0 calc(62px + env(safe-area-inset-bottom,0px))!important}
+html.mob .blade>.setbox,html.mob .layout>.side,html.mob .main>#members,html.mob .main>#cams,
+html.mob .main>#radio,html.mob .main>.chat,html.mob .main>#theater,html.mob .main>h3{display:none!important}
+html.mob .wrap>.blade>.layout{display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0;grid-template-columns:none}
+html.mob .layout>.main{display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0}
+/* Chat: the log fills the screen, the message box sits above the tabs */
+html.mob[data-mtab="chat"] .main>.chat{display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0;margin:0;border-radius:0}
+html.mob[data-mtab="chat"] .main>#theater.on{display:flex!important;flex:none;max-height:42vh;overflow:auto}
+html.mob .chat .logwrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+html.mob .chat .log{height:auto!important;flex:1 1 auto;min-height:0}
+html.mob .chat .compose{flex:none;gap:5px;padding:6px}
+/* the message box gets the row: the buttons round it go compact */
+html.mob .compose>.btn,html.mob .compose>button{flex:none;min-width:40px;height:42px;padding:0 10px!important;font-size:15px}
+html.mob .compose .abxy{display:none}
+html.mob .compose>#text{flex:1 1 auto;min-width:0;width:auto}
+html.mob .msg{font-size:16px}
+/* Cams: the gallery from cams-only mode, with the camera buttons above the tabs */
+html.mob[data-mtab="cams"] .main>#cams{display:flex!important;flex:1 1 auto;min-height:0;padding-bottom:70px}
+html.mob[data-mtab="cams"] #mCamBar{display:flex;position:fixed;left:0;right:0;z-index:59;justify-content:center;gap:10px;padding:10px;
+  bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+#mCamBar .btn{min-height:46px;padding:10px 18px;font-size:15px;font-weight:700}
+/* People: the rooms and who is here, in big rows */
+html.mob[data-mtab="people"] .wrap>.blade>.layout{overflow-y:auto;-webkit-overflow-scrolling:touch}
+html.mob[data-mtab="people"] .layout>.side{display:block!important;flex:none;border:0}
+html.mob[data-mtab="people"] .main{flex:none}
+html.mob[data-mtab="people"] .main>#members{display:block!important}
+html.mob .side h3{display:block!important}
+html.mob .rooms{display:block!important;overflow:visible}
+html.mob .side .row{min-height:52px;font-size:17px;border-right:0!important;border-bottom:1px solid var(--line)!important;white-space:normal}
+html.mob .main>#members::before{content:"In this room";display:block;padding:14px 12px 4px;font-size:12px;letter-spacing:1.5px;
+  text-transform:uppercase;font-weight:700;color:var(--ink2)}
+html.mob .mem{min-height:56px;font-size:17px}
+/* Radio */
+html.mob[data-mtab="radio"] .main>#radio{display:block!important;flex:1 1 auto;min-height:0;overflow-y:auto;margin:8px}
+html.mob[data-mtab="radio"] .rqueue{max-height:none}
+/* More: every setting */
+html.mob[data-mtab="more"] .blade>.setbox{display:block!important;flex:1 1 auto;min-height:0;overflow-y:auto;max-height:none!important;
+  -webkit-overflow-scrolling:touch}
+html.mob[data-mtab="more"] .wrap>.blade>.layout{display:none!important}
+html.mob .setbox>.row{min-height:52px;font-size:17px}
+/* the tab bar */
+html.mob #mTabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;height:calc(62px + env(safe-area-inset-bottom,0px));
+  padding-bottom:env(safe-area-inset-bottom,0px);background-image:linear-gradient(var(--bladeA),var(--bladeB));
+  border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.22);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#mTabs .mtab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:0;background:none;color:var(--ink);opacity:.6;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#mTabs .mtab .i{font-size:23px;line-height:1}
+#mTabs .mtab .l{font-size:11.5px;font-weight:700;letter-spacing:.3px}
+#mTabs .mtab.on{opacity:1}
+#mTabs .mtab.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:var(--sel2)}
+#mTabs .bd{position:absolute;top:6px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:#e5343a;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+/* the join screen, made for a thumb */
+html.mob .modal .card{width:calc(100vw - 20px);max-width:none;max-height:calc(100dvh - 20px);overflow-y:auto}
+html.mob #modal input[type=text],html.mob #modal input[type=password]{font-size:18px;padding:12px}
+html.mob #modal .actions{flex-wrap:wrap}
+html.mob #btnJoin{order:-1;flex:1 1 100%;font-size:18px;padding:14px 22px}
 
 /* ===================== "NOW A WINDOWS APP" ===================== */
 #deskPromo{position:fixed;right:18px;bottom:18px;z-index:60;width:330px;max-width:calc(100vw - 36px);
@@ -4668,6 +4786,15 @@ body.noorbs #pumpFx .wisp{display:none}
       <span class="q" data-corner="round">⬭ Round</span>
     </div>
 
+    <label>Sounds</label>
+    <div class="qstrip" id="skSfx">
+      <span class="q on" data-sfx="auto" title="the Wii's sounds on the Wii themes, the 360's on the Xbox themes, the usual beeps everywhere else">🎵 Theme's own</span>
+      <span class="q" data-sfx="wii" title="the Wii's sounds, whatever the theme">⚪ Wii</span>
+      <span class="q" data-sfx="xbox" title="the Xbox 360's sounds, whatever the theme">🟢 Xbox 360</span>
+      <span class="q" data-sfx="classic" title="the usual beeps, on every theme">🔔 Classic</span>
+      <span class="q" data-sfx="mute" title="no interface sounds at all">🔇 Mute</span>
+    </div>
+
 
     <div class="actions">
       <button class="btn grey" id="skReset">↺ Back to Mingus Purple</button>
@@ -4899,7 +5026,7 @@ body.noorbs #pumpFx .wisp{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='11.7';
+var BUILD='11.8';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -5931,6 +6058,8 @@ function connectRoom(){
       setStatus('online as '+id+' via '+srv+(forceRelay?' · TURN only':''));
       $('#btnDiag').querySelector('.val').textContent='you are '+id;
       sys('you joined <b>'+esc(room)+'</b> · build '+BUILD);
+      /* the 360 says hello when you sign in */
+      try{if(sfxPack()==='xbox')sfx('start');}catch(e){}
       try{radioRestoreSoon();}catch(e){}
       /* muted before a reload: stay muted, rather than waiting to be told */
       if(isNameMuted(me.name))setTimeout(function(){
@@ -6618,14 +6747,14 @@ function onData(id,d){
     return;
   }
   else if(d.t==='chat'){
-    addMsg(p,String(d.text).slice(0,500),false);blip(520,.04);
+    addMsg(p,String(d.text).slice(0,500),false);if(!sfx('notify'))blip(520,.04);
     dcMirror(p.name||'someone',String(d.text));
     if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host)
       verityRespond(p.name||'someone',String(d.text));
   }
   else if(d.t==='gif'){
     if(isNameNoFiles(p.name))return;
-    if(d.gif&&gifOk(d.gif)){addGif(p,d.gif,false);blip(520,.04);}
+    if(d.gif&&gifOk(d.gif)){addGif(p,d.gif,false);if(!sfx('notify'))blip(520,.04);}
   }
   else if(d.t==='img'){
     if(isNameNoFiles(p.name))return;
@@ -6726,6 +6855,7 @@ function dropPeer(id){
 function bc(o){for(var id in peers){var c=peers[id].conn;if(c&&c.open){try{c.send(o);}catch(e){}}}}
 
 function switchRoom(r){
+  try{if(r&&r!==room)sfx('channel');}catch(e){}
   if(r===room&&peer)return;
   room=r;leaveParty(true);renderRooms();
   $('#roomIn').value=room;$('#modal').style.display='grid';$('#err').textContent='';
@@ -8129,7 +8259,7 @@ function setMute(on){
   }
   muted=on;$('#muteLbl').textContent=on?'Unmute':'Mute';
   if(localStream)localStream.getAudioTracks()[0].enabled=!on&&(!ptt||pttDown);
-  bc({t:'mute',on:on||!micOn});renderMembers();blip(on?300:700,.05);
+  bc({t:'mute',on:on||!micOn});renderMembers();if(!sfx('mute'))blip(on?300:700,.05);
 }
 function setQuality(q){
   quality=q;
@@ -8483,7 +8613,7 @@ function camFit(){
   /* in the rail grid and Discord's grid the box is the row's height; in the
      stacked layout it only grows with its tiles, so there it is the window
      below it that counts */
-  var gridded=document.documentElement.classList.contains('dcm')||getComputedStyle(box.parentNode).display==='contents';
+  var gridded=(typeof MOB!=='undefined'&&MOB.on)||document.documentElement.classList.contains('dcm')||getComputedStyle(box.parentNode).display==='contents';
   var H=(gridded?box.clientHeight:Math.max(box.clientHeight,innerHeight-box.getBoundingClientRect().top-80))
         -parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
   /* some themes frame a tile (Wii's caption bar, borders): that height is on
@@ -8513,6 +8643,112 @@ window.addEventListener('resize',function(){if(CAMSONLY.on)camFit();});
     }).observe(document.getElementById('log'),{childList:true});
   }catch(e){}
 })();
+/* ================================ PHONE MODE ================================
+   A touch screen up to about tablet width gets the phone layout (see the CSS
+   of the same name). It can be switched off - and back on - from More, and
+   that choice is remembered. */
+var MOB={on:false,tab:'chat',unread:0,pref:null,t:0};
+try{MOB.pref=localStorage.getItem('mc_mob');}catch(e){}
+function mobWanted(){
+  if(MOB.pref==='off')return false;
+  if(MOB.pref==='on')return true;
+  return !!IS_TOUCH&&innerWidth<=950;
+}
+function mobSync(){
+  var on=mobWanted();
+  if(on!==MOB.on){
+    MOB.on=on;
+    document.documentElement.classList.toggle('mob',on);
+    if(on){mobBuild();mobTab(MOB.tab||'chat');}
+    else{mobTear();if(CAMSONLY.on)camsOnly(false);}
+    /* Discord's own layout is a desktop grid: on a phone the Discord themes
+       keep their colours but use this layout */
+    try{dcMode((SKIN.theme==='discord'||SKIN.theme==='dcaero')&&!on);}catch(e){}
+  }
+  mobSwitchRow();
+  if(on)mobPaint();
+}
+function mobBuild(){
+  if(document.getElementById('mTabs'))return;
+  var head=el('div','');head.id='mHead';
+  head.innerHTML='<button type="button" class="mroom" id="mRoom" title="rooms and people">'+
+    '<span class="h">#</span><b id="mRoomNm"></b><span class="dn">▾</span></button><span class="grow"></span>'+
+    '<button type="button" class="btn mbig" id="mMic"></button><button type="button" class="btn mbig" id="mCam"></button>';
+  var wrap=document.querySelector('.wrap'), blade=document.querySelector('.wrap>.blade');
+  wrap.insertBefore(head,blade);
+  var tabs=el('nav','');tabs.id='mTabs';
+  [['chat','💬','Chat'],['cams','🎥','Cams'],['people','👥','People'],['radio','📻','Radio'],['more','⚙','More']].forEach(function(t){
+    var b=el('button','mtab');b.type='button';b.setAttribute('data-mtab',t[0]);
+    b.innerHTML='<span class="i">'+t[1]+'</span><span class="l">'+t[2]+'</span><span class="bd" style="display:none"></span>';
+    b.onclick=function(){mobTab(t[0]);};
+    tabs.appendChild(b);
+  });
+  document.body.appendChild(tabs);
+  var cb=el('div','');cb.id='mCamBar';
+  cb.innerHTML='<button type="button" class="btn" id="mCamOn"></button><button type="button" class="btn" id="mFlip">🔄 Flip</button>';
+  document.body.appendChild(cb);
+  $('#mRoom').onclick=function(){mobTab('people');};
+  $('#mMic').onclick=function(){if(!micOn)$('#btnMic').click();else setMute(!muted);setTimeout(mobPaint,250);};
+  $('#mCam').onclick=$('#mCamOn').onclick=function(){toggleCam();setTimeout(mobPaint,400);};
+  $('#mFlip').onclick=function(){var f=$('#hFlip');if(f)f.click();};
+  clearInterval(MOB.t);MOB.t=setInterval(mobPaint,1000);
+}
+function mobTear(){
+  ['mHead','mTabs','mCamBar'].forEach(function(id){var e=document.getElementById(id);if(e)e.remove();});
+  clearInterval(MOB.t);MOB.t=0;
+  document.documentElement.removeAttribute('data-mtab');
+}
+function mobTab(t){
+  MOB.tab=t;
+  document.documentElement.setAttribute('data-mtab',t);
+  if(t==='chat'){MOB.unread=0;setTimeout(function(){var l=$('#log');if(l)l.scrollTop=l.scrollHeight;},30);}
+  if(t==='radio'){var d=$('#radio');if(d)d.open=true;}
+  if(t==='more'){try{setFold(false,false);}catch(e){}}
+  /* the Cams tab is cams-only mode */
+  if((t==='cams')!==CAMSONLY.on)camsOnly(t==='cams');
+  mobPaint();
+}
+function mobPaint(){
+  if(!MOB.on)return;
+  var nm=$('#mRoomNm');if(nm)nm.textContent=(typeof room!=='undefined'&&room)?room:'lobby';
+  var live=!!(micOn&&!muted);
+  var m=$('#mMic');if(m){m.textContent=live?'🎤 On':'🔇 Off';m.classList.toggle('live',live);}
+  var c=$('#mCam');if(c){c.textContent=camOn?'📷 On':'📷 Off';c.classList.toggle('live',!!camOn);}
+  var co=$('#mCamOn');if(co)co.textContent=camOn?'📷 Turn my camera off':'📷 Turn my camera on';
+  var f=$('#mFlip');if(f)f.style.display=camOn?'':'none';
+  var bd=document.querySelector('#mTabs [data-mtab="chat"] .bd');
+  if(bd){bd.textContent=MOB.unread>99?'99+':String(MOB.unread);bd.style.display=MOB.unread?'':'none';}
+  document.querySelectorAll('#mTabs .mtab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-mtab')===MOB.tab);});
+}
+/* in More: switch between the phone layout and the full one (touch screens only) */
+function mobSwitchRow(){
+  var box=document.querySelector('.blade>.setbox');if(!box)return;
+  var r=document.getElementById('mSwitch');
+  if(!IS_TOUCH){if(r)r.remove();return;}
+  if(!r){
+    r=el('div','row action');r.id='mSwitch';
+    r.onclick=function(){
+      MOB.pref=MOB.on?'off':'on';
+      try{localStorage.setItem('mc_mob',MOB.pref);}catch(e){}
+      mobSync();
+    };
+    box.insertBefore(r,box.firstChild);
+  }
+  r.textContent=MOB.on?'🖥 Use the full layout':'📱 Use the phone layout';
+}
+/* messages that arrive while you are on another tab */
+try{
+  new MutationObserver(function(ms){
+    if(!MOB.on||MOB.tab==='chat')return;
+    var n=0;
+    ms.forEach(function(x){Array.prototype.forEach.call(x.addedNodes,function(nd){
+      if(nd.nodeType===1&&nd.classList.contains('msg')&&!nd.classList.contains('sys'))n++;});});
+    if(n){MOB.unread+=n;mobPaint();}
+  }).observe(document.getElementById('log'),{childList:true});
+}catch(e){}
+window.addEventListener('resize',function(){mobSync();});
+window.addEventListener('orientationchange',function(){setTimeout(mobSync,200);});
+setTimeout(mobSync,0);
 /* ===================== WEBCAM GRID ===================== */
 function toggleBig(id){
   if(!id)return;
@@ -18197,7 +18433,57 @@ window.addEventListener('hashchange',function(){
   if(r&&r!==room)switchRoom(r);
 });
 
+/* ============================ SOUND PACKS ============================
+   The Wii's and the Xbox 360's own interface sounds. "Theme's own" (the
+   default) plays them on their themes and the usual beeps elsewhere; any
+   pack can be picked for any theme in Appearance, or everything muted.
+   A pack stands in for the beep on the same event; an event a pack has no
+   sound for (the 360 has no channel-change sound) falls back to the beep. */
+var SFX_PACKS={
+  wii:{start:'https://files.catbox.moe/4psn84.wav',notify:'https://files.catbox.moe/zg5loq.wav',
+       mute:'https://files.catbox.moe/l7f19n.wav',click:'https://files.catbox.moe/kpybsh.wav',
+       channel:'https://files.catbox.moe/td5mnl.wav'},
+  xbox:{start:'https://files.catbox.moe/u3kc9j.mp3',notify:'https://files.catbox.moe/zhnfb3.mp3',
+        mute:'https://files.catbox.moe/v7g8lv.mp3',click:'https://files.catbox.moe/spgiv2.mp3'}
+};
+var SFX_THEME={wii:'wii',wiiu:'wii',xbox360:'xbox',nxe:'xbox'};
+var SFX_CACHE={}, SFX_LAST={};
+function sfxMode(){return (typeof SKIN!=='undefined'&&SKIN&&SKIN.sfx)||'auto';}
+function sfxPack(){
+  var m=sfxMode();
+  if(m==='mute')return 'mute';
+  if(m==='classic')return null;
+  if(SFX_PACKS[m])return m;
+  return SFX_THEME[(typeof SKIN!=='undefined'&&SKIN&&SKIN.theme)||'']||null;
+}
+/* true = handled (played, or muted), so the caller skips its beep */
+function sfx(kind){
+  var p=sfxPack();
+  if(p==='mute')return true;
+  if(!p)return false;
+  var url=SFX_PACKS[p][kind];if(!url)return false;
+  var now=Date.now();if(SFX_LAST[kind]&&now-SFX_LAST[kind]<60)return true;   /* one per burst */
+  SFX_LAST[kind]=now;
+  try{
+    var a=SFX_CACHE[url];
+    if(!a){a=new Audio(url);a.preload='auto';SFX_CACHE[url]=a;}
+    var n=a.cloneNode();n.volume=kind==='click'?0.45:0.6;
+    n.play().catch(function(){});
+  }catch(e){}
+  return true;
+}
+/* have the current pack's sounds ready before they are needed */
+function sfxWarm(){
+  var p=sfxPack();if(!p||p==='mute')return;
+  for(var k in SFX_PACKS[p]){var u=SFX_PACKS[p][k];if(!SFX_CACHE[u]){try{var a=new Audio(u);a.preload='auto';SFX_CACHE[u]=a;}catch(e){}}}
+}
+/* clicking anything clickable */
+document.addEventListener('pointerdown',function(e){
+  var t=e.target&&e.target.closest&&e.target.closest('.btn,.q,.rb,.row.action,.arctile,.sw,.tab,.hint,.sv,#dcAct .row,.dcmenu div,.mem,#dcUser .ic,#dcUser .vcb span,#dcHead .hi,#mTabs .mtab');
+  if(t)sfx('click');
+},true);
 function blip(f,d){
+  if(sfxMode()==='mute')return;
   try{
     var c=ctx(),o=c.createOscillator(),g=c.createGain();
     o.type='sine';
@@ -18634,7 +18920,7 @@ var THEMES=[
   {id:'c64',       n:'80s Computer',  a:'#a59aff', b:'#6c5eb5', c:'#352879'},
   {id:'osx',       n:'Mac OS X',      a:'#3b8ff0', b:'#1b5fb3', c:'#ececec'}
 ];
-var SKIN={theme:'',orbs:true,sweep:true,glass:true,crt:false,compact:false,bloom:true,corner:'normal'};
+var SKIN={theme:'',orbs:true,sweep:true,glass:true,crt:false,compact:false,bloom:true,corner:'normal',sfx:'auto'};
 function skinSave(){try{localStorage.setItem('mc_skin',JSON.stringify(SKIN));}catch(e){}}
 function skinLoad(){
   try{
@@ -18645,6 +18931,7 @@ function skinLoad(){
         if(typeof v[k]==='boolean')SKIN[k]=v[k];
       });
       if(v.corner==='square'||v.corner==='round'||v.corner==='normal')SKIN.corner=v.corner;
+      if(/^(auto|wii|xbox|classic|mute)$/.test(String(v.sfx||'')))SKIN.sfx=v.sfx;
     }
   }catch(e){}
 }
@@ -18915,10 +19202,31 @@ function skinApply(){
     (SKIN.crt?' · CRT':'')+(SKIN.compact?' · compact':'');
   skinSyncUI();
   skinSave();
-  try{dcMode(SKIN.theme==='discord'||SKIN.theme==='dcaero');}catch(e){}
+  try{dcMode((SKIN.theme==='discord'||SKIN.theme==='dcaero')&&!(typeof MOB!=='undefined'&&MOB.on));}catch(e){}
+  try{if(SKIN_BOOTED&&prevTheme!==(SKIN.theme||''))sfx('start');}catch(e){}
+  try{
+    if(SKIN_BOOTED&&SKIN.theme==='wii'&&prevTheme!=='wii'){
+      var wf=document.getElementById('wiiFade');if(wf)wf.remove();
+      wf=document.createElement('div');wf.id='wiiFade';document.body.appendChild(wf);
+      setTimeout(function(){if(wf.parentNode)wf.remove();},1000);
+    }
+  }catch(e){}
   try{skinExtras(prevTheme);}catch(e){}
+  try{sfxWarm();}catch(e){}
 }
+(function(){
+  var chips=document.querySelectorAll('#skSfx .q');
+  for(var i=0;i<chips.length;i++)(function(c){
+    c.onclick=function(){
+      SKIN.sfx=c.getAttribute('data-sfx');skinSave();skinSyncUI();sfxWarm();
+      /* a taste of it */
+      if(!sfx('start'))blip(700,.05);
+    };
+  })(chips[i]);
+})();
 function skinSyncUI(){
+  var sc=document.querySelectorAll('#skSfx .q');
+  for(var si=0;si<sc.length;si++)sc[si].classList.toggle('on',sc[si].getAttribute('data-sfx')===(SKIN.sfx||'auto'));
   var map={skOrbs:'orbs',skSweep:'sweep',skGlass:'glass',skCrt:'crt',skCompact:'compact',skBloom:'bloom'};
   for(var id in map){
     var e=document.getElementById(id);
