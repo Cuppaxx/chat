@@ -3772,6 +3772,27 @@ body.noorbs #pumpFx .wisp{display:none}
 #arcade.min>.arccard>.arcwrap,#arcade.min>.arccard>*:not(h2){display:none!important}
 #arcade.dragging>.arccard{opacity:.92;transition:none}
 @media (max-width:820px){#arcade>.arccard{min-width:0;left:4px!important;width:calc(100vw - 8px)!important;resize:none}}
+
+/* ---- GIFs (11.2) ----
+   Always Tenor's 90-pixel "nano" rendition, blown up with nearest-neighbour
+   scaling: crunchy on purpose, and about 8 KB each. */
+.compose{position:relative}
+.gifpanel{display:none;position:absolute;left:6px;right:6px;bottom:calc(100% + 6px);z-index:60;height:min(340px,55vh);
+  flex-direction:column;border-radius:12px;overflow:hidden;background:rgba(14,10,30,.96);border:1px solid rgba(255,255,255,.3);
+  box-shadow:0 -10px 40px rgba(0,0,0,.55)}
+.gifhead input,.gifgrid{pointer-events:auto}
+.gifpanel.on{display:flex}
+.gifhead{display:flex;align-items:center;gap:8px;padding:8px}
+.gifhead input{flex:1;min-width:0;width:auto}
+.gifby{font-size:11px;color:#bbb;white-space:nowrap}
+.gifgrid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:0 8px 8px}
+.gifgrid img{width:100%;aspect-ratio:1;object-fit:cover;image-rendering:pixelated;border-radius:6px;cursor:pointer;background:#222;
+  transition:transform .12s}
+.gifgrid img:hover{transform:scale(1.06);outline:2px solid #fff}
+.gifgrid .gifnote{grid-column:1/-1;color:#bbb;font-size:13px;padding:10px 2px}
+.msg .b img.gifmsg{display:block;width:180px;max-width:100%;height:auto;margin-top:4px;border-radius:6px;
+  image-rendering:pixelated;cursor:zoom-in}
+#lbimg.gifmsg{image-rendering:pixelated;width:min(70vw,540px)}
 </style>
 </head>
 <body>
@@ -4075,7 +4096,12 @@ body.noorbs #pumpFx .wisp{display:none}
             <span class="x" id="pmCancel">✕ Esc</span>
           </div>
           <div class="compose">
+            <div class="gifpanel" id="gifPanel">
+              <div class="gifhead"><input type="text" id="gifQ" placeholder="search Tenor…" autocomplete="off" maxlength="50"><span class="gifby">via Tenor</span></div>
+              <div class="gifgrid" id="gifGrid"></div>
+            </div>
             <button class="btn grey" id="btnArcade2" title="minigames">🎮</button>
+            <button class="btn grey" id="btnGif" title="search Tenor and send a GIF">GIF</button>
             <button class="btn grey" id="btnAttach" title="attach a file — image, gif, audio, video, anything"><span class="abxy Y">Y</span>📎</button>
             <input type="text" id="text" placeholder="say something to the party…" maxlength="500" autocomplete="off">
             <button class="btn" id="btnSend"><span class="abxy A">A</span>Send</button>
@@ -4390,7 +4416,7 @@ body.noorbs #pumpFx .wisp{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='11.1';
+var BUILD='11.2';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -6112,6 +6138,10 @@ function onData(id,d){
     dcMirror(p.name||'someone',String(d.text));
     if(typeof VERITY!=='undefined'&&VERITY.on&&VERITY.host)
       verityRespond(p.name||'someone',String(d.text));
+  }
+  else if(d.t==='gif'){
+    if(isNameNoFiles(p.name))return;
+    if(d.gif&&gifOk(d.gif)){addGif(p,d.gif,false);blip(520,.04);}
   }
   else if(d.t==='img'){
     if(isNameNoFiles(p.name))return;
@@ -8058,7 +8088,7 @@ function renderAtt(b,att){
   var type=att.type||'', url=att.url;
   if(type.indexOf('image/')===0){
     var i=document.createElement('img');i.src=url;i.alt=att.name||'';
-    i.onclick=function(){$('#lbimg').src=url;$('#lb').classList.add('show');};
+    i.onclick=function(){$('#lbimg').classList.remove('gifmsg');$('#lbimg').src=url;$('#lb').classList.add('show');};
     b.appendChild(i);
     return;
   }
@@ -8108,10 +8138,11 @@ function addMsg(from,text,mine,img,att,meta){
   else if(isPm)tag='<span class="tag">'+(meta.to?'to '+esc(meta.to):'whisper')+'</span>';
   var head='<div class="who">'+tag+esc(from.name||'???')+' <span>'+ts()+'</span></div>';
   var b=el('div','b',head);
-  if(text!=null){var t=el('div','');t.innerHTML=linkify(esc(text));b.appendChild(t);}
+  if(text!=null){var t=el('div','');t.innerHTML=linkify(esc(text));b.appendChild(t);
+    if(/tenor\.com\//.test(text))setTimeout(function(){try{gifEmbedLinks(m,text);}catch(e){}},0);}
   if(img){
     var i=document.createElement('img');i.src=img;
-    i.onclick=function(){$('#lbimg').src=img;$('#lb').classList.add('show');};
+    i.onclick=function(){$('#lbimg').classList.remove('gifmsg');$('#lbimg').src=img;$('#lb').classList.add('show');};
     b.appendChild(i);
   }
   if(att)renderAtt(b,att);
@@ -20111,6 +20142,86 @@ function tNavHint(){
   sys('🎬 Heads up: in a browser, viewers only get the page you QUEUED - they cannot follow you as you click '+
       'around it. Host from the <b>Windows app</b> and they follow every page you open, or use <b>🖥 Share</b> to stream it.');
 }
+/* ================================= GIFs ==================================
+   Search Tenor from the GIF button, click one to send it. On the wire a GIF
+   is only Tenor's media id and slug - every client builds the link itself
+   and always to media.tenor.com, so nobody can slip an arbitrary image URL
+   into the room this way. Pasted tenor.com links embed the same way. */
+var GIF_ID=/^[A-Za-z0-9_-]{11}$/, GIF_SLUG=/^[A-Za-z0-9._-]{1,80}$/;
+function gifUrl(g,size){return 'https://media.tenor.com/'+g.id+(size||'AAAAS')+'/'+g.slug+'.gif';}
+function gifOk(g){return !!(g&&GIF_ID.test(String(g.id))&&GIF_SLUG.test(String(g.slug)));}
+function addGif(from,g,mine){
+  if(!gifOk(g))return;
+  addMsg(from,null,mine,gifUrl(g));
+  var last=$('#log').lastElementChild, im=last&&last.querySelector('.b img');
+  if(im){im.classList.add('gifmsg');im.alt=g.slug;im.onclick=function(){var lb=$('#lbimg');lb.src=gifUrl(g);lb.classList.add('gifmsg');$('#lb').classList.add('show');};}
+}
+function sendGif(g){
+  if(!gifOk(g))return;
+  if(!peer){toast('join a party first');return;}
+  if(isNameNoFiles(me.name)){toast('an admin has stopped you sending images for now');return;}
+  addGif(me,g,true);
+  bc({t:'gif',gif:{id:g.id,slug:g.slug}});
+  try{dcMirror(me.name||'you',gifUrl(g,'AAAAM'));}catch(e){}
+  blip(640,.03);
+  gifPanel(false);
+}
+var GIFS={t:0,q:null,seq:0};
+function gifPanel(on){
+  var p=$('#gifPanel');if(!p)return;
+  if(on==null)on=!p.classList.contains('on');
+  p.classList.toggle('on',on);
+  if(on){var q=$('#gifQ');q.value='';q.focus();gifSearch('');}
+}
+function gifSearch(q){
+  var grid=$('#gifGrid'), seq=++GIFS.seq;
+  if(GIFS.q===q&&grid.children.length)return;
+  GIFS.q=q;
+  grid.innerHTML='<div class="gifnote">'+(q?'searching\u2026':'trending on Tenor\u2026')+'</div>';
+  fetch(adminBase()+'/gif/search?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){
+    if(seq!==GIFS.seq)return;
+    grid.innerHTML='';
+    var items=(j&&j.items||[]).filter(gifOk);
+    if(!items.length){grid.innerHTML='<div class="gifnote">'+(j&&j.ok?'nothing for that':'Tenor did not answer \u2014 try again')+'</div>';return;}
+    items.forEach(function(g){
+      var im=document.createElement('img');im.loading='lazy';im.src=gifUrl(g);im.alt=g.slug;im.title=g.slug.replace(/-/g,' ');
+      im.onclick=function(){sendGif(g);};
+      grid.appendChild(im);
+    });
+  }).catch(function(){if(seq===GIFS.seq)grid.innerHTML='<div class="gifnote">could not reach the server</div>';});
+}
+(function(){
+  var b=$('#btnGif'), q=$('#gifQ');
+  if(b)b.onclick=function(e){e.stopPropagation();gifPanel();};
+  if(q){
+    q.addEventListener('input',function(){clearTimeout(GIFS.t);var v=q.value.trim();GIFS.t=setTimeout(function(){gifSearch(v);},350);});
+    q.addEventListener('keydown',function(e){if(e.key==='Escape'){gifPanel(false);$('#text').focus();}
+      if(e.key==='Enter'){var f=$('#gifGrid img');if(f)f.click();}});
+  }
+  document.addEventListener('pointerdown',function(e){
+    var p=$('#gifPanel');if(!p||!p.classList.contains('on'))return;
+    if(!e.target.closest('#gifPanel,#btnGif'))gifPanel(false);
+  },true);
+})();
+/* a tenor link in a chat message: show the GIF under it */
+function gifEmbedLinks(msgEl,text){
+  var t=String(text||''), m;
+  var media=/https:\/\/media\d*\.tenor\.com\/([A-Za-z0-9_-]{11})[A-Za-z0-9]{5}\/([A-Za-z0-9._-]{1,80}?)\.(?:gif|webp|mp4)/.exec(t);
+  var add=function(g){
+    if(!gifOk(g)||!msgEl)return;
+    var b=msgEl.querySelector('.b');if(!b)return;
+    var im=document.createElement('img');im.src=gifUrl(g);im.className='gifmsg';im.alt=g.slug;
+    im.onclick=function(){var lb=$('#lbimg');lb.src=gifUrl(g);lb.classList.add('gifmsg');$('#lb').classList.add('show');};
+    b.appendChild(im);
+    try{if(stick)toBottom();}catch(e){}
+  };
+  if(media){add({id:media[1],slug:media[2]});return;}
+  if((m=/https:\/\/(?:www\.)?tenor\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?view\/[A-Za-z0-9%._-]{1,200}/.exec(t))){
+    fetch(adminBase()+'/gif/resolve?u='+encodeURIComponent(m[0])).then(function(r){return r.json();})
+      .then(function(j){if(j&&j.ok)add(j.item);}).catch(function(){});
+  }
+}
+
 /* ============================================================================
    AUTO-UPDATE - forced, and seamless
 

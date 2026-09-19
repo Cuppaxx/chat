@@ -382,6 +382,49 @@ app.get('/desktop/latest', async (req, res) => {
   res.json(desktopLatest);
 });
 
+// ---- GIFs from Tenor ---------------------------------------------------------
+// Google shut the Tenor API to everyone on 30 June 2026 (Discord and X
+// included), but tenor.com itself still serves its search and GIF pages with
+// the media links in them. So the server reads those pages and hands back
+// just each GIF's media id and slug; the page builds the link itself, and
+// always picks the 90-pixel "nano" rendition (~8 KB) - deliberately crunchy,
+// and it loads instantly for everybody. Cached, and behind the normal
+// per-address request budget.
+const TENOR_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
+const gifCache = new Map();
+function tenorItems(html) {
+  const re = /https:\/\/media\.tenor\.com\/([A-Za-z0-9_-]{11})[A-Za-z0-9]{5}\/([A-Za-z0-9._-]{1,80}?)\.(?:gif|webp|mp4|png)/g;
+  const seen = new Map(); let m;
+  while ((m = re.exec(html)) && seen.size < 60) if (!seen.has(m[1])) seen.set(m[1], { id: m[1], slug: m[2] });
+  return Array.from(seen.values());
+}
+async function tenorPage(url) {
+  const hit = gifCache.get(url);
+  if (hit && Date.now() - hit.at < 10 * 60000) return hit.items;
+  const r = await fetch(url, { headers: { 'User-Agent': TENOR_UA, 'Accept-Language': 'en' }, signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error('tenor answered ' + r.status);
+  const items = tenorItems(await r.text());
+  gifCache.set(url, { at: Date.now(), items });
+  if (gifCache.size > 300) gifCache.delete(gifCache.keys().next().value);
+  return items;
+}
+app.get('/gif/search', async (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase().replace(/[^a-z0-9 '-]/g, '').replace(/\s+/g, '-').slice(0, 50);
+  try {
+    const items = await tenorPage('https://tenor.com/' + (q ? 'search/' + encodeURIComponent(q) + '-gifs' : ''));
+    res.json({ ok: true, items: items.slice(0, 36) });
+  } catch (e) { res.json({ ok: false, error: String((e && e.message) || e), items: [] }); }
+});
+// A pasted tenor.com/view/... link, turned into the GIF it shows.
+app.get('/gif/resolve', async (req, res) => {
+  const u = String(req.query.u || '');
+  if (!/^https:\/\/(www\.)?tenor\.com\/([a-z]{2}(-[A-Z]{2})?\/)?view\/[A-Za-z0-9%._-]{1,200}$/.test(u)) return res.status(400).json({ ok: false });
+  try {
+    const items = await tenorPage(u);
+    res.json(items.length ? { ok: true, item: items[0] } : { ok: false });
+  } catch (e) { res.json({ ok: false, error: String((e && e.message) || e) }); }
+});
+
 // Card packs for Cards Against the Chatroom. The official Cards Against
 // Humanity boxes are Creative Commons BY-NC-SA (see the licence field inside);
 // fetched by the page the first time somebody opens a table.
