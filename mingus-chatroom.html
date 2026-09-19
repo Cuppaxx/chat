@@ -3364,7 +3364,34 @@ html.dcm #setToggle{display:none}
   /* the stage takes up to 44% of the layout, but never so much that the chat
      is left with less than ~250 px: on a short window the camera gives way */
   html:not(.dcm) .layout>.main>#cams .cam.big video{height:max(110px,min(44cqh,620px,calc(100cqh - 270px)))}
-  html:not(.dcm) .layout>.main>#theater.on{grid-column:2;grid-row:2;max-height:62cqh;min-width:0}
+  /* THE THEATRE. It used to be a stack of fixed pixel heights - a 540 px stage,
+     the transport, two rows of controls, a 220 px queue, a hint - close to a
+     thousand pixels crammed into a capped box that scrolled, so the stage was
+     cut off and its controls scrolled out of reach. In the theatre room the
+     theatre is now the point of the page: it takes the middle column, the
+     stage stretches to whatever height is there, the controls stay pinned
+     under it, and the chat keeps a strip below. */
+  html:not(.dcm) .layout:has(>.main>#theater.on){grid-template-rows:auto minmax(0,1fr) auto clamp(130px,24cqh,300px)}
+  html:not(.dcm) .layout:has(>.main>#theater.on)>.main>#cams{max-height:22cqh}
+  html:not(.dcm) .layout>.main>#theater.on{grid-column:2;grid-row:2;min-width:0;min-height:0;max-height:none;overflow:hidden;
+    display:flex;flex-direction:column}
+  html:not(.dcm) #theater.on>*{flex:none}
+  html:not(.dcm) #theater.on>.tmain{flex:1 1 auto;min-height:0;align-items:stretch}
+  html:not(.dcm) #theater.on .tstagewrap{display:flex;flex-direction:column;min-height:0}
+  html:not(.dcm) #theater.on .tstage:not(:fullscreen){flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  html:not(.dcm) #theater.on .tstage.empty:not(:fullscreen){display:grid}
+  html:not(.dcm) #theater.on .tstage:not(:fullscreen) :is(#tvid,#tframe,#tytwrap,#tshare){height:auto;max-height:none;min-height:0;flex:1 1 auto}
+  html:not(.dcm) #theater.on .tside{overflow-y:auto}
+  html:not(.dcm) #theater.on #tQueue{max-height:86px}
+  html:not(.dcm) #theater.on .hint2{display:none}
+  /* the stage is what people came for: the chrome around it goes on a diet */
+  html:not(.dcm) #theater.on>h3{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;white-space:nowrap;padding-top:3px;padding-bottom:3px;scrollbar-width:thin}
+  html:not(.dcm) #theater.on>h3 .tviews{flex-wrap:nowrap}
+  html:not(.dcm) #theater.on>h3 .q,html:not(.dcm) #theater.on>h3 em{flex:none;padding:2px 8px;font-size:11px}
+  html:not(.dcm) #theater.on .trow{padding:3px 10px}
+  html:not(.dcm) #theater.on .tmain{padding:6px 10px 4px}
+  html:not(.dcm) #theater.on #tQueue{max-height:62px;padding-top:2px;padding-bottom:6px}
+  html:not(.dcm) .layout:has(>.main>#theater.on)>.main>#radio{margin:3px 10px}
   html:not(.dcm) .layout>.main>#radio{grid-column:2;grid-row:3;min-width:0;margin:6px 10px}
   html:not(.dcm) .layout>.main>.chat{grid-column:2;grid-row:4;min-height:0;min-width:0}
   /* the settings strip gives way sooner now that the chat has a whole column to fill */
@@ -3594,7 +3621,7 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
                  and with none it refuses to play. strict-origin sends just the origin,
                  which is what embeds expect. allowfullscreen is what makes the
                  player's own fullscreen button work. -->
-            <iframe id="tframe" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen
+            <iframe id="tframe" name="tframe" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
                     allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write"></iframe>
             <!-- YouTube goes through its own player API rather than a plain
@@ -9626,6 +9653,7 @@ var tLoadedUrl='';
 var tSitePaused=false;
 function tBroadcast(){if(inTheater())bc(tState());}
 function renderTheater(){
+  try{if(typeof tNavHint==='function')setTimeout(tNavHint,0);}catch(e){}
   var box=document.getElementById('theater');
   if(!box)return;
   var on=inTheater();
@@ -18619,6 +18647,48 @@ try{
   }
 })();
 
+/* ---- viewers follow the host around a website ----
+   A web page cannot read where a cross-origin frame navigates, so viewers
+   only ever had the link that was QUEUED: the host clicked into a film and
+   everybody else sat on the front page. The Windows app (1.2.0+) can see it
+   and reports every navigation of the theatre frame; when you are the one
+   driving, the current item's address follows yours and goes out to the room,
+   whose theatres load the same page. Batched, because single-page sites
+   rewrite their address on every keystroke of a search. */
+var TNAV={t:0,url:''};
+(function(){
+  var D=window.mingusDesktop;
+  if(!D||!D.onFrameNav)return;
+  D.onFrameNav(function(n){
+    try{
+      if(!inTheater()||!canDrive()||tSitePaused)return;
+      var cur=(tIdx>=0)?tQ[tIdx]:null;
+      if(!cur||tKind(cur)!=='site')return;
+      var u=String((n&&n.url)||'').slice(0,2000);
+      if(!/^https?:\/\//i.test(u)||u===cur.url)return;
+      TNAV.url=u;
+      clearTimeout(TNAV.t);
+      TNAV.t=setTimeout(function(){
+        var c=(tIdx>=0)?tQ[tIdx]:null;
+        if(!c||tKind(c)!=='site'||!canDrive()||c.url===TNAV.url)return;
+        c.url=TNAV.url;c.kind='site';
+        tLoadedUrl=c.url;              /* your own frame is already there - do not reload it */
+        tBroadcast();renderTheater();
+      },450);
+    }catch(e){}
+  });
+})();
+/* in a browser the page cannot see the host's clicks - say so, once, rather
+   than letting the host wonder why nobody followed them */
+var TNAV_WARNED=false;
+function tNavHint(){
+  if(TNAV_WARNED||(window.mingusDesktop&&window.mingusDesktop.onFrameNav))return;
+  var cur=(tIdx>=0)?tQ[tIdx]:null;
+  if(!inTheater()||!canDrive()||!cur||tKind(cur)!=='site')return;
+  TNAV_WARNED=true;
+  sys('🎬 Heads up: in a browser, viewers only get the page you QUEUED - they cannot follow you as you click '+
+      'around it. Host from the <b>Windows app</b> and they follow every page you open, or use <b>🖥 Share</b> to stream it.');
+}
 /* ============================================================================
    AUTO-UPDATE - forced, and seamless
 

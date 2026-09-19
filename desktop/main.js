@@ -141,6 +141,7 @@ function createWindow() {
   });
 
   watchLoadFailures(win);
+  watchTheatreFrame(win);
   loadRoom();
   return win;
 }
@@ -155,6 +156,32 @@ function watchLoadFailures(w) {
     if (!isMainFrame || code === -3) return;
     showOffline(desc || ('error ' + code));
   });
+}
+// The theatre can show a website that the host clicks around in, and everyone
+// else is supposed to follow. A web page is never allowed to read where a
+// cross-origin frame has navigated to, so from inside the page this is
+// impossible - viewers only ever got the link that was queued. The shell CAN
+// see it: Chromium reports every navigation of every frame here, including
+// the in-page ones single-page sites make. So the theatre frame's navigations
+// are passed to the page, which forwards them to the room when you are the
+// host. Only the room's own direct child frame named "tframe" counts - not
+// the YouTube player, and not anything a website nests inside itself.
+function watchTheatreFrame(w) {
+  const wc = w.webContents;
+  const { webFrameMain } = require('electron');
+  const report = (url, pid, rid) => {
+    try {
+      if (!/^https?:/i.test(url)) return;
+      const f = webFrameMain.fromId(pid, rid);
+      const top = wc.mainFrame;
+      if (!f || !f.parent || !top) return;
+      if (f.parent.processId !== top.processId || f.parent.routingId !== top.routingId) return;
+      if (f.name !== 'tframe') return;
+      wc.send('shell:frameNav', { url });
+    } catch (e) {}
+  };
+  wc.on('did-frame-navigate', (e, url, code, status, isMain, pid, rid) => { if (!isMain) report(url, pid, rid); });
+  wc.on('did-navigate-in-page', (e, url, isMain, pid, rid) => { if (!isMain) report(url, pid, rid); });
 }
 function loadRoom() {
   win.loadURL(ROOM_URL).catch((err) => {

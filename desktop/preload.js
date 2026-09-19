@@ -51,6 +51,10 @@ contextBridge.exposeInMainWorld('mingusDesktop', {
   onUpdate: (fn) => { if (typeof fn === 'function') ipcRenderer.on('shell:update', (e, u) => { try { fn(u); } catch (err) {} }); },
   checkUpdate: () => ipcRenderer.invoke('shell:checkUpdate'),
 
+  /* 1.2.0+: where the theatre's website has navigated to, so a host's clicks
+     can be followed by everybody watching (see watchTheatreFrame in main.js) */
+  onFrameNav: (fn) => { if (typeof fn === 'function') ipcRenderer.on('shell:frameNav', (e, n) => { try { fn(n); } catch (err) {} }); },
+
   /* the offline page uses these two */
   retry: () => ipcRenderer.invoke('shell:retry'),
   openLocalCopy: () => ipcRenderer.invoke('shell:openLocal'),
