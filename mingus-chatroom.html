@@ -713,26 +713,7 @@ a.btn,a.hub{text-decoration:none}
   --orb1:#ffffff; --orb2:#dfe6ea; --orb3:#8b979f; --orb4:#1b2024;
   --orbGlow:rgba(180,195,205,.45); --titleGlow:rgba(200,215,225,.7);
 }
-/* --- Windows Vista Aero: blue glass --- */
-:root[data-theme="vista"]{
-  --base:#041127; --baseTop:#071c3d; --baseBot:#010710;
-  --glow1:#1060c8; --glow2:#0aa0d8; --glow3:#1a3f9c; --glow4:#0b3070;
-  --sel1:#7cc8ff; --sel2:#2b8ef0; --sel3:#1560c0;
-  --txt:#eaf6ff; --dim:#a6c9e8; --line:rgba(150,210,255,.30);
-  --ink:#06284d; --ink2:#2f5f96;
-  --bladeA:#fbfeff; --bladeB:#e2f1ff; --bladeC:#c5e2fb; --bladeD:#a8d2f4;
-  --bladeGlow:rgba(43,142,240,.40); --bladeRing:rgba(80,180,255,.55);
-  --tabA:#1a4c8c; --tabB:#0a2450;
-  --tabMainA:#ffffff; --tabMainB:#dceeff; --tabMainC:#b3d8fa;
-  --chromeA:#2f6aa8; --chromeB:#123a6e; --chromeC:#061e42;
-  --btnA:#7ec4ff; --btnB:#2b8ef0; --btnC:#1560c0;
-  --btn2A:#8affe0; --btn2B:#17c2a0; --btn2C:#0a8a72;
-  --chipA:#ffffff; --chipB:#e3f2ff; --chipEdge:#86bce6; --chipInk:#124b85;
-  --cardA:#f4fbff; --cardB:#d7ecff; --cardC:#b5daf8;
-  --bubbleA:#ffffff; --bubbleB:#e9f5ff; --bubbleMeA:#d3ecff; --bubbleMeB:#b2d9f8;
-  --orb1:#ffffff; --orb2:#9fd8ff; --orb3:#2b8ef0; --orb4:#07203f;
-  --orbGlow:rgba(43,142,240,.55); --titleGlow:rgba(90,190,255,.85);
-}
+/* --- Windows Vista: see WINDOWS 7 DARK, and VISTA - it is a window now --- */
 /* --- Frutiger Aqua: the wallpaper with the water droplet and the leaf --- */
 :root[data-theme="aqua"]{
   --base:#02201c; --baseTop:#053430; --baseBot:#010e0c;
@@ -2153,7 +2134,7 @@ h3{
 :root[data-theme="xp"] .arcbar{background:linear-gradient(#0a5fe4,#3c8cf5 8%,#0055e5 45%,#0048c8);color:#fff;padding:4px 8px;margin-bottom:-7px;
   border-radius:8px 8px 0 0;font-family:Tahoma,sans-serif;text-shadow:1px 1px #0b2b8a}
 :root[data-theme="xp"] .arcbar #arcScore{color:#fff}
-:root[data-theme="discord"] #arcCanvas{border-radius:8px;border:0;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) #arcCanvas{border-radius:8px;border:0;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 :root[data-theme="steam"] #arcCanvas{border-radius:0;border:1px solid;border-color:#292c21 #8a927d #8a927d #292c21;box-shadow:none}
 :root[data-theme="osx"] #arcCanvas{border-radius:6px;border:1px solid #8a8a8a;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 :root[data-theme="matrix"] #arcCanvas{border-radius:0;border:1px solid #00ff66;box-shadow:0 0 18px rgba(0,255,102,.45)}
@@ -2321,61 +2302,61 @@ h3{
   --radius:8px;
   --font:"gg sans","Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
 }
-:root[data-theme="discord"] #bg{background:#1e1f22}
-:root[data-theme="discord"] #bg::after,:root[data-theme="discord"] #orbs{display:none}
-:root[data-theme="discord"] .top h1{font-weight:800;text-shadow:none;letter-spacing:0}
-:root[data-theme="discord"] .top h1 b{color:#fff;background:none;-webkit-background-clip:border-box;background-clip:border-box}
-:root[data-theme="discord"] .clock{text-shadow:none;color:#b5bac1;font-size:14px}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) #bg{background:#1e1f22}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) #bg::after,:root:is([data-theme="discord"],[data-theme="dcaero"]) #orbs{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .top h1{font-weight:800;text-shadow:none;letter-spacing:0}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .top h1 b{color:#fff;background:none;-webkit-background-clip:border-box;background-clip:border-box}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .clock{text-shadow:none;color:#b5bac1;font-size:14px}
 /* the server header */
-:root[data-theme="discord"] .tabs .tab{border:none;border-radius:8px 8px 0 0;background-image:none;background:#2b2d31;color:#b5bac1;
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .tabs .tab{border:none;border-radius:8px 8px 0 0;background-image:none;background:#2b2d31;color:#b5bac1;
   box-shadow:0 1px 0 rgba(0,0,0,.25)}
-:root[data-theme="discord"] .tabs .tab.main{background:#313338;color:#f2f3f5;font-weight:700;box-shadow:0 1px 0 rgba(0,0,0,.35)}
-:root[data-theme="discord"] .tab::before{display:none}
-:root[data-theme="discord"] .blade{border:none;border-radius:0 0 8px 8px;background:#313338;
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .tabs .tab.main{background:#313338;color:#f2f3f5;font-weight:700;box-shadow:0 1px 0 rgba(0,0,0,.35)}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .tab::before{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .blade{border:none;border-radius:0 0 8px 8px;background:#313338;
   box-shadow:0 8px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.03)}
-:root[data-theme="discord"] .blade::before,:root[data-theme="discord"] .blade::after{display:none}
-:root[data-theme="discord"] h3{background:none;box-shadow:none;color:#949ba4;letter-spacing:.3px;font-size:11.5px;border:none}
-:root[data-theme="discord"] .row{border-bottom-color:rgba(255,255,255,.04);color:#dbdee1}
-:root[data-theme="discord"] .row.action:hover,:root[data-theme="discord"] .row.action.hl{background:#35373c;background-image:none;color:#fff;text-shadow:none;box-shadow:none}
-:root[data-theme="discord"] .row.action:hover::after,:root[data-theme="discord"] .row.action.hl::after{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .blade::before,:root:is([data-theme="discord"],[data-theme="dcaero"]) .blade::after{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) h3{background:none;box-shadow:none;color:#949ba4;letter-spacing:.3px;font-size:11.5px;border:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .row{border-bottom-color:rgba(255,255,255,.04);color:#dbdee1}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .row.action:hover,:root:is([data-theme="discord"],[data-theme="dcaero"]) .row.action.hl{background:#35373c;background-image:none;color:#fff;text-shadow:none;box-shadow:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .row.action:hover::after,:root:is([data-theme="discord"],[data-theme="dcaero"]) .row.action.hl::after{display:none}
 /* the channel list: dark rail, "#" names, the grey pill on the current one */
-:root[data-theme="discord"] .layout{background-image:none}
-:root[data-theme="discord"] .side{background:#2b2d31;box-shadow:inset -1px 0 0 #1e1f22}
-:root[data-theme="discord"] .side .row{color:#949ba4;border:none;border-radius:4px;margin:1px 8px;padding:5px 8px}
-:root[data-theme="discord"] .side .row .dot{display:none}
-:root[data-theme="discord"] #rooms .row::before{content:"#";font-size:17px;color:#80848e;margin-right:2px;font-weight:600}
-:root[data-theme="discord"] .side .row:hover{background:#35373c;color:#dbdee1}
-:root[data-theme="discord"] .side .row.cur{background:#404249;background-image:none;color:#fff;box-shadow:none;text-shadow:none}
-:root[data-theme="discord"] .btn{border:none;border-radius:4px;box-shadow:none;text-shadow:none;background-image:none;background:#5865f2;font-weight:500}
-:root[data-theme="discord"] .btn:hover{background:#4752c4;filter:none}
-:root[data-theme="discord"] .btn.grey{background:#4e5058}
-:root[data-theme="discord"] .btn::before,:root[data-theme="discord"] .btn::after{display:none}
-:root[data-theme="discord"] .q,:root[data-theme="discord"] .rb{border:none;border-radius:4px;background:#3b3d44;background-image:none;color:#dbdee1;font-weight:500}
-:root[data-theme="discord"] .q.on{background:#5865f2;background-image:none;box-shadow:none;color:#fff}
-:root[data-theme="discord"] input[type=text],:root[data-theme="discord"] input[type=password],
-:root[data-theme="discord"] textarea:not([style]),:root[data-theme="discord"] select:not([style]),:root[data-theme="discord"] .sel{
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .layout{background-image:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .side{background:#2b2d31;box-shadow:inset -1px 0 0 #1e1f22}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .side .row{color:#949ba4;border:none;border-radius:4px;margin:1px 8px;padding:5px 8px}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .side .row .dot{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) #rooms .row::before{content:"#";font-size:17px;color:#80848e;margin-right:2px;font-weight:600}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .side .row:hover{background:#35373c;color:#dbdee1}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .side .row.cur{background:#404249;background-image:none;color:#fff;box-shadow:none;text-shadow:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .btn{border:none;border-radius:4px;box-shadow:none;text-shadow:none;background-image:none;background:#5865f2;font-weight:500}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .btn:hover{background:#4752c4;filter:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .btn.grey{background:#4e5058}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .btn::before,:root:is([data-theme="discord"],[data-theme="dcaero"]) .btn::after{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .q,:root:is([data-theme="discord"],[data-theme="dcaero"]) .rb{border:none;border-radius:4px;background:#3b3d44;background-image:none;color:#dbdee1;font-weight:500}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .q.on{background:#5865f2;background-image:none;box-shadow:none;color:#fff}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) input[type=text],:root:is([data-theme="discord"],[data-theme="dcaero"]) input[type=password],
+:root:is([data-theme="discord"],[data-theme="dcaero"]) textarea:not([style]),:root:is([data-theme="discord"],[data-theme="dcaero"]) select:not([style]),:root:is([data-theme="discord"],[data-theme="dcaero"]) .sel{
   background:#1e1f22;color:#dbdee1;border:none;border-radius:4px;box-shadow:none}
-:root[data-theme="discord"] .card{background:#313338;background-image:none;border:none;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
-:root[data-theme="discord"] .card::before{display:none}
-:root[data-theme="discord"] .modal{background:rgba(0,0,0,.7)}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .card{background:#313338;background-image:none;border:none;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .card::before{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .modal{background:rgba(0,0,0,.7)}
 /* messages the Discord way: no bubbles, the name in bold, a hover highlight */
-:root[data-theme="discord"] .chat{background:#313338;border-top:none;box-shadow:none}
-:root[data-theme="discord"] .log{background:#313338;box-shadow:none}
-:root[data-theme="discord"] .msg .b{background:none;background-image:none;border:none;box-shadow:none;color:#dbdee1;padding:1px 0;max-width:100%}
-:root[data-theme="discord"] .msg .b::before{display:none}
-:root[data-theme="discord"] .msg{padding:2px 6px;border-radius:4px}
-:root[data-theme="discord"] .msg:hover{background:#2e3035}
-:root[data-theme="discord"] .msg .who{color:#f2f3f5;font-size:14px;letter-spacing:0}
-:root[data-theme="discord"] .msg .ava{border-radius:50%}
-:root[data-theme="discord"] .msg.sys{color:#949ba4}
-:root[data-theme="discord"] .msg.sys b{color:#dbdee1}
-:root[data-theme="discord"] .compose{background:#313338;background-image:none;box-shadow:none;padding:10px 12px 14px}
-:root[data-theme="discord"] .compose #text{background:#383a40;border-radius:8px;padding:11px 14px}
-:root[data-theme="discord"] .fold{background:#2b2d31;border-color:#1e1f22}
-:root[data-theme="discord"] .mem{color:#dbdee1}
-:root[data-theme="discord"] .log::-webkit-scrollbar-track{background:#2b2d31}
-:root[data-theme="discord"] .log::-webkit-scrollbar-thumb{background:#1a1b1e;border:none;border-radius:8px}
-:root[data-theme="discord"] #admList,:root[data-theme="discord"] #admBans{background:#2b2d31!important;border-color:#1e1f22!important}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .chat{background:#313338;border-top:none;box-shadow:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .log{background:#313338;box-shadow:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg .b{background:none;background-image:none;border:none;box-shadow:none;color:#dbdee1;padding:1px 0;max-width:100%}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg .b::before{display:none}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg{padding:2px 6px;border-radius:4px}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg:hover{background:#2e3035}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg .who{color:#f2f3f5;font-size:14px;letter-spacing:0}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg .ava{border-radius:50%}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg.sys{color:#949ba4}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg.sys b{color:#dbdee1}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .compose{background:#313338;background-image:none;box-shadow:none;padding:10px 12px 14px}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .compose #text{background:#383a40;border-radius:8px;padding:11px 14px}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .fold{background:#2b2d31;border-color:#1e1f22}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .mem{color:#dbdee1}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .log::-webkit-scrollbar-track{background:#2b2d31}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .log::-webkit-scrollbar-thumb{background:#1a1b1e;border:none;border-radius:8px}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) #admList,:root:is([data-theme="discord"],[data-theme="dcaero"]) #admBans{background:#2b2d31!important;border-color:#1e1f22!important}
 /* ======================= DISCORD: THE WHOLE LAYOUT =======================
    The Discord theme does not just recolour: it rebuilds the page into
    Discord's shape - server rail, channel sidebar with the user panel at the
@@ -2507,6 +2488,9 @@ html.dcm #dcHead{display:flex;grid-column:2/4;grid-row:1;align-items:center;gap:
 #dcHead .hi{width:30px;height:30px;display:grid;place-items:center;border-radius:4px;color:#b5bac1;cursor:pointer;font-size:17px;
   transition:color .1s,background .1s;flex:none}
 #dcHead .hi:hover{color:#dbdee1;background:#393c41}
+/* the settings button, labelled - an unlabelled grey cog was easy to miss */
+#dcHead .hi.dcsetbtn{width:auto;padding:0 12px;gap:6px;font-size:13.5px;font-weight:600;color:#fff;background:#5865f2;filter:none;border-radius:4px;white-space:nowrap}
+#dcHead .hi.dcsetbtn:hover{background:#4752c4;color:#fff}
 #dcHead .hi.on{color:#f2f3f5}
 #dcHead .srch{width:144px;height:24px;border-radius:4px;background:#1e1f22;color:#949ba4;font-size:14px;display:flex;align-items:center;
   padding:0 8px;cursor:pointer;transition:width .2s;flex:none}
@@ -3220,7 +3204,221 @@ body.bloom .fxring{box-shadow:0 0 14px var(--sel1),0 0 30px var(--sel1)}
 :root[data-theme="wiiu"]{--chromeA:#5fd0ff;--chromeB:#00a8e6;--chromeC:#0087bb}
 :root[data-theme="c64"]{--chromeA:#a59aff;--chromeB:#6c5eb5;--chromeC:#352879}
 :root[data-theme="osx"]{--chromeA:#8ec5ff;--chromeB:#3b8ff0;--chromeC:#1c66d0}
-:root[data-theme="discord"] .msg .who span{color:#949ba4}
+:root:is([data-theme="discord"],[data-theme="dcaero"]) .msg .who span{color:#949ba4}
+
+/* ---------------------------------------------- DISCORD, IN DARK AERO ----
+   Discord's whole layout (html.dcm, above) in Dark Aero's materials: the night
+   sky and aurora behind everything, smoked-glass panels you can see it
+   through, cyan edges that glow, glossy pill buttons and names lit like neon. */
+:root[data-theme="dcaero"]{
+  --base:#020a16; --baseTop:#04142a; --baseBot:#01050c;
+  --glow1:rgba(0,255,190,.3); --glow2:rgba(80,140,255,.3); --glow3:rgba(160,80,255,.22); --glow4:rgba(0,210,255,.2);
+  --sel1:#8ff5ff; --sel2:#17b3d8; --sel3:#07607e;
+  --txt:#e8f8ff; --dim:#9fc9da; --line:rgba(120,235,255,.18);
+  --ink:#e6f6ff; --ink2:#7fe8ff;
+  --bladeA:rgba(6,24,44,.6); --bladeB:rgba(6,24,44,.6); --bladeC:rgba(4,18,34,.62); --bladeD:rgba(4,18,34,.66);
+  --bladeGlow:rgba(0,210,255,.35); --bladeRing:rgba(110,240,255,.55);
+  --tabA:rgba(20,60,95,.7); --tabB:rgba(8,30,55,.7);
+  --tabMainA:rgba(40,95,135,.85); --tabMainB:rgba(18,58,92,.85); --tabMainC:rgba(8,36,64,.85);
+  --chromeA:#5fe6ff; --chromeB:#0f9fc8; --chromeC:#07607e;
+  --btnA:#7ff0ff; --btnB:#18b6e0; --btnC:#0a86b8;
+  --btn2A:#8affc7; --btn2B:#15c486; --btn2C:#087a52;
+  --chipA:rgba(40,85,120,.8); --chipB:rgba(16,44,70,.8); --chipEdge:rgba(110,230,255,.55); --chipInk:#dff7ff;
+  --cardA:rgba(26,62,96,.92); --cardB:rgba(12,38,64,.92); --cardC:rgba(6,24,44,.94);
+  --bubbleA:transparent; --bubbleB:transparent; --bubbleMeA:transparent; --bubbleMeB:transparent;
+  --orb1:#fff; --orb2:#8ff5ff; --orb3:#17b3d8; --orb4:#02283a; --orbGlow:rgba(0,220,255,.5); --titleGlow:rgba(0,230,255,.8);
+  --radius:10px;
+  --font:"Segoe UI","gg sans","Noto Sans",Helvetica,Arial,sans-serif;
+}
+:root[data-theme="dcaero"] #bg{
+  background-color:#020a16;
+  background-image:
+    radial-gradient(60% 18% at 30% 22%, rgba(0,255,190,.3), transparent 70%),
+    radial-gradient(50% 14% at 65% 16%, rgba(80,140,255,.3), transparent 70%),
+    radial-gradient(45% 20% at 80% 30%, rgba(160,80,255,.22), transparent 70%),
+    radial-gradient(1px 1px at 12% 18%, #fff, transparent),radial-gradient(1px 1px at 72% 9%, #fff, transparent),
+    radial-gradient(1px 1px at 44% 40%, #cff, transparent),radial-gradient(1px 1px at 88% 52%, #fff, transparent),
+    radial-gradient(1px 1px at 25% 66%, #dff, transparent),radial-gradient(1px 1px at 60% 75%, #fff, transparent),
+    radial-gradient(1px 1px at 93% 84%, #fff, transparent),radial-gradient(1px 1px at 6% 90%, #cff, transparent),
+    radial-gradient(160% 50% at 50% 125%, #062a2a 0 45%, transparent 46%),
+    linear-gradient(#01050c, #04142a 55%, #062038);
+}
+/* the glass: every panel lets the sky through */
+html.dcm[data-theme="dcaero"] .blade{background:transparent!important}
+html.dcm[data-theme="dcaero"] #dcRail{background:rgba(1,8,18,.7);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);
+  box-shadow:inset -1px 0 0 rgba(120,235,255,.2)}
+html.dcm[data-theme="dcaero"] .side{background:rgba(6,24,44,.6)!important;-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:inset -1px 0 0 rgba(120,235,255,.24)!important}
+html.dcm[data-theme="dcaero"] .main>#members{background:rgba(6,24,44,.6);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:inset 1px 0 0 rgba(120,235,255,.24)}
+html.dcm[data-theme="dcaero"] .chat,html.dcm[data-theme="dcaero"] .log{background:rgba(3,14,28,.5)}
+html.dcm[data-theme="dcaero"] .chat{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html.dcm[data-theme="dcaero"] #theater{background:rgba(4,18,34,.62)}
+html.dcm[data-theme="dcaero"] #dcHead{background:rgba(4,18,34,.72);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  box-shadow:0 1px 0 rgba(120,235,255,.3),0 4px 18px rgba(0,200,255,.12)}
+html.dcm[data-theme="dcaero"] #dcHead .cn{color:#eaffff;text-shadow:0 0 10px rgba(0,230,255,.7)}
+html.dcm[data-theme="dcaero"] #dcHead .hash{color:#5fe6ff;text-shadow:0 0 8px rgba(0,230,255,.6)}
+html.dcm[data-theme="dcaero"] #dcHead .topic{color:#9fc9da}
+html.dcm[data-theme="dcaero"] #dcHead .dv{background:rgba(120,235,255,.3)}
+html.dcm[data-theme="dcaero"] #dcHead .hi:hover{background:rgba(120,235,255,.14);color:#fff}
+html.dcm[data-theme="dcaero"] #dcHead .srch{background:rgba(0,12,24,.6)!important;border:1px solid rgba(120,235,255,.35)!important;color:#dff7ff!important}
+html.dcm[data-theme="dcaero"] #dcServer{box-shadow:0 1px 0 rgba(120,235,255,.25);color:#eaffff;text-shadow:0 0 8px rgba(0,230,255,.5)}
+html.dcm[data-theme="dcaero"] #dcServer:hover{background:rgba(120,235,255,.08)}
+html.dcm[data-theme="dcaero"] .dcmenu.open{background:rgba(2,12,24,.96);border:1px solid rgba(120,235,255,.4);box-shadow:0 0 28px rgba(0,200,255,.3)}
+/* channels and people */
+html.dcm[data-theme="dcaero"] .side h3,html.dcm[data-theme="dcaero"] #dcAct h3{color:#7fe8ff!important}
+html.dcm[data-theme="dcaero"] #rooms .row::before{color:#5fe6ff;text-shadow:0 0 6px rgba(0,230,255,.6)}
+html.dcm[data-theme="dcaero"] .side .row{color:#9fc9da}
+html.dcm[data-theme="dcaero"] .side .row:hover,html.dcm[data-theme="dcaero"] #dcAct .row:hover,html.dcm[data-theme="dcaero"] .mem:hover{background:rgba(120,235,255,.09)!important;color:#eaffff}
+html.dcm[data-theme="dcaero"] .side .row.cur{color:#fff;background:linear-gradient(90deg,rgba(60,220,255,.3),rgba(20,140,200,.16));
+  box-shadow:inset 0 0 0 1px rgba(120,235,255,.55),0 0 14px rgba(0,210,255,.25);text-shadow:0 0 8px rgba(0,230,255,.6)}
+html.dcm[data-theme="dcaero"] .main>#members::before{color:#7fe8ff}
+html.dcm[data-theme="dcaero"] .mem{color:#dff7ff}
+html.dcm[data-theme="dcaero"] #dcUser{background:rgba(1,10,20,.8);box-shadow:0 -1px 0 rgba(120,235,255,.22)}
+html.dcm[data-theme="dcaero"] #dcUser .vcb span{background:rgba(20,60,95,.6);box-shadow:inset 0 0 0 1px rgba(120,235,255,.25)}
+html.dcm[data-theme="dcaero"] #dcUser .vcb span:hover{background:rgba(40,110,150,.7)}
+html.dcm[data-theme="dcaero"] #dcUser .vcb span.on{background:#15c486}
+html.dcm[data-theme="dcaero"] #dcUser .me .who:hover,html.dcm[data-theme="dcaero"] #dcUser .me .ic:hover{background:rgba(120,235,255,.12)}
+/* messages: neon names on glass */
+html.dcm[data-theme="dcaero"] .msg:hover{background:rgba(120,235,255,.06)}
+html.dcm[data-theme="dcaero"] .msg .who{color:#bff8ff;text-shadow:0 0 9px rgba(0,220,255,.55)}
+html.dcm[data-theme="dcaero"] .msg .b{color:#e6f6ff}
+html.dcm[data-theme="dcaero"] .msg.sys{color:#8fb7c9}
+html.dcm[data-theme="dcaero"] .msg.sys::before{color:#3ff0c0;text-shadow:0 0 6px rgba(60,255,200,.6)}
+html.dcm[data-theme="dcaero"] .compose{background:rgba(10,40,66,.72)!important;border:1px solid rgba(120,235,255,.42);
+  box-shadow:0 0 18px rgba(0,200,255,.2),inset 0 1px 0 rgba(160,245,255,.22);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html.dcm[data-theme="dcaero"] .compose #text{background:transparent!important;color:#eaffff}
+html.dcm[data-theme="dcaero"] .compose .btn{color:#9fe9ff!important}
+html.dcm[data-theme="dcaero"] .compose .btn:hover{color:#fff!important;text-shadow:0 0 8px rgba(0,230,255,.8)}
+/* glossy glass buttons */
+html.dcm[data-theme="dcaero"] .btn{border-radius:999px;border:1px solid rgba(160,245,255,.8);color:#02283a;font-weight:600;
+  background:#18b6e0;background-image:linear-gradient(#8ff5ff,#2cc4ea 47%,#0a92c4 53%,#1fb4dc);
+  box-shadow:0 0 14px rgba(0,210,255,.45),inset 0 1px 0 rgba(255,255,255,.75)}
+html.dcm[data-theme="dcaero"] .btn:hover{background:#18b6e0;background-image:linear-gradient(#b4fbff,#46d4f3 47%,#12a3d6 53%,#35c4e8);
+  box-shadow:0 0 22px rgba(0,230,255,.7),inset 0 1px 0 #fff}
+html.dcm[data-theme="dcaero"] .btn.grey{background:rgba(40,85,120,.8);background-image:none;color:#dff7ff}
+html.dcm[data-theme="dcaero"] .q,html.dcm[data-theme="dcaero"] .rb{border-radius:999px;background:rgba(20,60,95,.7);border:1px solid rgba(120,235,255,.4);color:#dff7ff}
+html.dcm[data-theme="dcaero"] .q.on{background:rgba(23,179,216,.55);color:#fff;box-shadow:0 0 14px rgba(0,220,255,.6)}
+html.dcm[data-theme="dcaero"] input[type=text],html.dcm[data-theme="dcaero"] input[type=password],html.dcm[data-theme="dcaero"] textarea:not([style]),html.dcm[data-theme="dcaero"] select,html.dcm[data-theme="dcaero"] .sel{
+  background:rgba(0,12,24,.62)!important;color:#dff7ff!important;border:1px solid rgba(120,235,255,.4)!important}
+/* the User Settings screen and dialogs */
+html.dcm[data-theme="dcaero"].dc-set .blade{background:rgba(3,14,28,.9)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+html.dcm[data-theme="dcaero"].dc-set .blade>.setbox>.row{background:rgba(16,48,78,.55)!important;box-shadow:inset 0 0 0 1px rgba(120,235,255,.2)}
+html.dcm[data-theme="dcaero"].dc-set .blade>.setbox>.row.action:hover{background:rgba(30,80,120,.65)!important;box-shadow:inset 0 0 0 1px rgba(120,235,255,.45),0 0 12px rgba(0,210,255,.2)}
+html.dcm[data-theme="dcaero"].dc-set #dcSetHead{color:#eaffff;text-shadow:0 0 10px rgba(0,230,255,.6)}
+html.dcm[data-theme="dcaero"] .card{background:linear-gradient(rgba(26,62,96,.94),rgba(6,24,44,.96));border:1px solid rgba(140,240,255,.55);border-radius:16px;
+  box-shadow:0 0 50px rgba(0,200,255,.22),0 24px 70px rgba(0,0,0,.8);color:#e6f6ff}
+html.dcm[data-theme="dcaero"] .modal{background:rgba(0,6,14,.6)}
+html.dcm[data-theme="dcaero"] .fold{background:rgba(6,24,44,.55);border-color:rgba(120,235,255,.3)}
+html.dcm[data-theme="dcaero"] #admList,html.dcm[data-theme="dcaero"] #admBans{background:rgba(6,24,44,.7)!important;border-color:rgba(120,235,255,.3)!important}
+html.dcm[data-theme="dcaero"] ::-webkit-scrollbar-track,html.dcm[data-theme="dcaero"] .log::-webkit-scrollbar-track{background:transparent}
+html.dcm[data-theme="dcaero"] ::-webkit-scrollbar-thumb,html.dcm[data-theme="dcaero"] .log::-webkit-scrollbar-thumb{background:rgba(95,230,255,.35);border-radius:8px}
+html.dcm[data-theme="dcaero"] #dcHead .hi.dcsetbtn{color:#02283a;background:linear-gradient(#8ff5ff,#2cc4ea 47%,#0a92c4 53%,#1fb4dc);border-radius:999px;
+  box-shadow:0 0 12px rgba(0,210,255,.5),inset 0 1px 0 rgba(255,255,255,.75)}
+html.dcm[data-theme="dcaero"] #dcHead .hi.dcsetbtn:hover{box-shadow:0 0 20px rgba(0,230,255,.75),inset 0 1px 0 #fff}
+html.dcm[data-theme="dcaero"] #dcRail .sv{background:rgba(20,60,95,.7);box-shadow:inset 0 0 0 1px rgba(120,235,255,.3);color:#dff7ff}
+html.dcm[data-theme="dcaero"] #dcRail .sv:hover,html.dcm[data-theme="dcaero"] #dcRail .sv.cur,html.dcm[data-theme="dcaero"] #dcRail .sv.home{background:linear-gradient(#8ff5ff,#2cc4ea 47%,#0a92c4 53%,#1fb4dc);color:#02283a;
+  box-shadow:0 0 14px rgba(0,210,255,.6),inset 0 1px 0 rgba(255,255,255,.7)}
+html.dcm[data-theme="dcaero"] #dcRail .sv.green{color:#3ff0c0}
+html.dcm[data-theme="dcaero"] #dcRail .sv.green:hover{background:#15c486;color:#fff}
+html.dcm[data-theme="dcaero"] #dcRail .sv::before{background:#8ff5ff;box-shadow:0 0 8px rgba(0,230,255,.8)}
+/* ------------------------------------------------------------ SKYPE 2009 ----
+   Skype 4: a sky of soft clouds, the bright Skype-blue glossy header with
+   the cloud logo, white panels with pale blue edges, a contact list with the
+   green online ticks, chat without bubbles - the name in blue, a hairline
+   between messages - glossy pale-blue buttons, a blue Send and a green Call. */
+:root[data-theme="skype"]{
+  --base:#bfe6f8; --baseTop:#e6f6fd; --baseBot:#8fd0f0;
+  --glow1:rgba(255,255,255,.6); --glow2:rgba(120,210,245,.4); --glow3:rgba(255,255,255,.4); --glow4:rgba(0,175,240,.2);
+  --sel1:#8fd6f6; --sel2:#00aff0; --sel3:#0082c8;
+  --txt:#0b3c5d; --dim:#3b6d8c; --line:rgba(0,120,180,.2);
+  --ink:#1a1a1a; --ink2:#0078b4;
+  --bladeA:#ffffff; --bladeB:#ffffff; --bladeC:#f7fbfe; --bladeD:#f3f9fd;
+  --bladeGlow:rgba(0,175,240,.25); --bladeRing:rgba(0,150,220,.35);
+  --tabA:#eaf6fd; --tabB:#cfe9f8;
+  --tabMainA:#ffffff; --tabMainB:#f2faff; --tabMainC:#dff1fb;
+  --chromeA:#5cc8f5; --chromeB:#1ea8e8; --chromeC:#0a86c8;
+  --btnA:#ffffff; --btnB:#e8f5fc; --btnC:#cfe8f6;
+  --btn2A:#a6e36a; --btn2B:#6cc332; --btn2C:#3a9212;
+  --chipA:#ffffff; --chipB:#eaf5fb; --chipEdge:#9ccbe6; --chipInk:#16537e;
+  --cardA:#ffffff; --cardB:#f4fafe; --cardC:#e3f2fb;
+  --bubbleA:#ffffff; --bubbleB:#ffffff; --bubbleMeA:#f0f9ff; --bubbleMeB:#e3f3fc;
+  --orb1:#ffffff; --orb2:#8fdcff; --orb3:#00aff0; --orb4:#0b4f7a;
+  --orbGlow:rgba(0,175,240,.4); --titleGlow:rgba(255,255,255,.9);
+  --radius:5px;
+  --font:Tahoma,"Segoe UI",Verdana,sans-serif;
+}
+:root[data-theme="skype"] #bg{background-color:#9fdcf7;
+  background-image:
+    radial-gradient(14% 8% at 18% 16%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%),
+    radial-gradient(10% 7% at 24% 13%, rgba(255,255,255,.9), rgba(255,255,255,0) 70%),
+    radial-gradient(16% 9% at 72% 24%, rgba(255,255,255,.9), rgba(255,255,255,0) 70%),
+    radial-gradient(11% 7% at 79% 20%, rgba(255,255,255,.85), rgba(255,255,255,0) 70%),
+    radial-gradient(18% 10% at 46% 78%, rgba(255,255,255,.8), rgba(255,255,255,0) 70%),
+    radial-gradient(12% 8% at 88% 70%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+    linear-gradient(#4cc3f3, #8fd8f6 40%, #d5f0fb 80%, #eef9fe)}
+:root[data-theme="skype"] #bg::after,:root[data-theme="skype"] #orbs{display:none}
+/* the header: Skype blue, glossy, with the cloud "S" */
+:root[data-theme="skype"] .top{border-radius:6px 6px 0 0;border:1px solid #0a86c8;
+  background-image:linear-gradient(#7fd8fa,#2cb8f0 48%,#0a9be0 52%,#23b3ee);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 8px rgba(0,80,130,.25)}
+:root[data-theme="skype"] .top h1{color:#fff;text-shadow:0 1px 2px rgba(0,60,110,.55);letter-spacing:0}
+:root[data-theme="skype"] .top h1 b{color:#fff;background:none;-webkit-background-clip:border-box;background-clip:border-box;filter:none}
+:root[data-theme="skype"] .top h1::before{content:"S";display:inline-grid;place-items:center;width:28px;height:26px;margin-right:9px;vertical-align:-5px;
+  border-radius:52% 48% 50% 50%/58% 58% 42% 42%;background:radial-gradient(circle at 35% 28%,#b5ecff,#27b9f2 45%,#0088cf);
+  color:#fff;font:italic 700 18px/1 Arial,Helvetica,sans-serif;text-shadow:0 1px 1px rgba(0,50,90,.5);box-shadow:0 0 0 2px #fff,0 1px 4px rgba(0,60,110,.45)}
+:root[data-theme="skype"] .clock{color:#fff;text-shadow:0 1px 2px rgba(0,60,110,.55)}
+:root[data-theme="skype"] .orb{box-shadow:0 0 0 2px #fff,0 2px 6px rgba(0,80,130,.35)}
+:root[data-theme="skype"] .tabs .tab{border:1px solid #9ccbe6;border-bottom:none;border-radius:5px 5px 0 0;color:#16537e;text-shadow:none;box-shadow:none;
+  background-image:linear-gradient(#ffffff,#e3f3fc)}
+:root[data-theme="skype"] .tabs .tab.main{color:#0b3c5d;font-weight:700;background-image:linear-gradient(#ffffff,#f2faff)}
+:root[data-theme="skype"] .tab::before{display:none}
+/* the panels: white with pale blue edges */
+:root[data-theme="skype"] .blade{background:#fff;border:1px solid #9ccbe6;border-radius:0 0 6px 6px;box-shadow:0 8px 28px rgba(0,80,130,.28)}
+:root[data-theme="skype"] .blade::before,:root[data-theme="skype"] .blade::after{display:none}
+:root[data-theme="skype"] .row,:root[data-theme="skype"] .mem{color:#1a1a1a;border-bottom-color:#eef5fa;text-shadow:none}
+:root[data-theme="skype"] .row .val{color:#5b87a3;opacity:1}
+:root[data-theme="skype"] .row.action:hover,:root[data-theme="skype"] .row.action.hl,:root[data-theme="skype"] .side .row.cur{background:#dff2fc;background-image:linear-gradient(#eef9fe,#d6effb);color:#0b3c5d;
+  box-shadow:inset 0 0 0 1px #7cc3ea;border-radius:3px;text-shadow:none}
+:root[data-theme="skype"] .row.action:hover::after,:root[data-theme="skype"] .row.action.hl::after{display:none}
+:root[data-theme="skype"] .side{background:#f5fbfe;border-right:1px solid #cfe6f3}
+:root[data-theme="skype"] .side .row{color:#1a1a1a;border-bottom:0}
+:root[data-theme="skype"] .side .row .dot{background:#56b81f;box-shadow:0 0 0 2px #fff,0 0 0 3px #8fcf5f}
+:root[data-theme="skype"] h3{color:#0078b4;background:none;background-image:linear-gradient(#fdfeff,#e8f5fc);box-shadow:none;text-shadow:none;border-bottom:1px solid #cfe6f3}
+/* the conversation */
+:root[data-theme="skype"] .chat{background:#fff;border-top:1px solid #cfe6f3;box-shadow:none}
+:root[data-theme="skype"] .log{background:#fff;box-shadow:none}
+:root[data-theme="skype"] .msg{border-bottom:1px solid #f0f5f9}
+:root[data-theme="skype"] .msg .b{background:none;background-image:none;border:0;box-shadow:none;color:#1a1a1a;padding:2px 0}
+:root[data-theme="skype"] .msg .b::before{display:none}
+:root[data-theme="skype"] .msg .who{color:#0078b4;font-weight:700;text-shadow:none}
+:root[data-theme="skype"] .msg.me .who{color:#6b8fa6}
+:root[data-theme="skype"] .msg.sys,:root[data-theme="skype"] .msg.sys b{color:#4f7892;text-shadow:none}
+:root[data-theme="skype"] .msg.sys b{color:#0b3c5d}
+:root[data-theme="skype"] .compose{background:none;background-image:linear-gradient(#f7fcff,#e3f2fb);border-top:1px solid #b9dcef;box-shadow:none}
+:root[data-theme="skype"] input[type=text],:root[data-theme="skype"] input[type=password],:root[data-theme="skype"] textarea:not([style]),:root[data-theme="skype"] select:not([style]),:root[data-theme="skype"] .sel{
+  background:#fff;color:#1a1a1a;border:1px solid #9ccbe6;border-radius:3px;box-shadow:inset 0 1px 2px rgba(0,60,100,.08)}
+:root[data-theme="skype"] input[type=text]:focus{border-color:#00aff0;outline:0;box-shadow:0 0 0 2px rgba(0,175,240,.25)}
+/* glossy pale buttons; Send in Skype blue, Join in call green */
+:root[data-theme="skype"] .btn,:root[data-theme="skype"] .q,:root[data-theme="skype"] .rb,:root[data-theme="skype"] .duelbtn{border:1px solid #8fc2e3;border-radius:4px;color:#16537e;text-shadow:none;
+  background-image:linear-gradient(#ffffff,#eef8fd 49%,#dcf0fb 51%,#e9f6fd);box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(0,80,130,.12)}
+:root[data-theme="skype"] .btn::before,:root[data-theme="skype"] .q::before{display:none}
+:root[data-theme="skype"] .btn:hover,:root[data-theme="skype"] .q:hover,:root[data-theme="skype"] .duelbtn:hover{border-color:#00aff0;color:#0b3c5d;filter:none;
+  background-image:linear-gradient(#f5fcff,#dff4fe 49%,#c6eafc 51%,#dcf3fe);box-shadow:0 0 6px rgba(0,175,240,.35)}
+:root[data-theme="skype"] .btn.go,:root[data-theme="skype"] #btnSend{border-color:#0a86c8;color:#fff;text-shadow:0 1px 1px rgba(0,60,110,.45);
+  background-image:linear-gradient(#7fd8fa,#2cb8f0 49%,#0a9be0 51%,#26b3ec)}
+:root[data-theme="skype"] #btnJoin{border-color:#3a9212;color:#fff;text-shadow:0 1px 1px rgba(20,70,0,.45);
+  background-image:linear-gradient(#b8ec82,#76c93c 49%,#56b81f 51%,#6fc93a)}
+:root[data-theme="skype"] .btn.go:hover,:root[data-theme="skype"] #btnSend:hover,:root[data-theme="skype"] #btnJoin:hover{color:#fff;filter:brightness(1.07)}
+:root[data-theme="skype"] .q.on{background-image:linear-gradient(#e2f5fe,#bfe6f8);border-color:#00aff0;color:#0b3c5d;box-shadow:inset 0 1px 2px rgba(0,80,130,.2)}
+:root[data-theme="skype"] .card{background:#fff;background-image:none;border:1px solid #7cc3ea;border-radius:6px;color:#1a1a1a;box-shadow:0 12px 40px rgba(0,70,120,.35)}
+:root[data-theme="skype"] .card::before{display:none}
+:root[data-theme="skype"] .modal{background:rgba(0,60,100,.35)}
+:root[data-theme="skype"] .fold{background:#f5fbfe;border-color:#cfe6f3;border-radius:4px}
+:root[data-theme="skype"] #members::before{background:#f5fbfe!important}
+:root[data-theme="skype"] #setToggle{background:#eef7fc}
+:root[data-theme="skype"] .bottombar{color:#16537e;text-shadow:none}
+:root[data-theme="skype"] ::-webkit-scrollbar-track{background:#eef6fb}
+:root[data-theme="skype"] ::-webkit-scrollbar-thumb{border-radius:4px;border:1px solid #9ccbe6;background:linear-gradient(90deg,#eef8fd,#d6ecf8)}
 
 /* ===================== "NOW A WINDOWS APP" ===================== */
 #deskPromo{position:fixed;right:18px;bottom:18px;z-index:60;width:330px;max-width:calc(100vw - 36px);
@@ -3290,10 +3488,14 @@ body{min-height:0}
 .layout>.main>.chat{flex:1 1 0;min-height:42%}
 .layout>.main:has(>#theater.on)>.chat{min-height:30%}
 /* folding the settings strip away for more room (#setToggle) */
-#setToggle{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;height:17px;cursor:pointer;
-  font-size:10.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--ink2);opacity:.75;
-  border-top:1px solid rgba(128,128,128,.25);border-bottom:1px solid rgba(128,128,128,.25);user-select:none}
-#setToggle:hover{opacity:1;background:rgba(255,255,255,.12)}
+/* It was a 17 px strip of faded 10 px capitals, and people could not find
+   their settings. Now it is a proper button in the theme's own button style,
+   so every theme draws it the way it draws its other buttons. */
+#setToggle{flex:none;display:flex;align-items:center;justify-content:center;padding:5px 0;cursor:pointer;user-select:none;
+  border-top:1px solid rgba(128,128,128,.25);border-bottom:1px solid rgba(128,128,128,.25)}
+#setToggle:hover{background:rgba(255,255,255,.08)}
+#setToggle #setToggleBtn{font-size:13px;font-weight:700;letter-spacing:.3px;text-transform:none;padding:5px 22px;min-width:190px;
+  height:auto;line-height:1.3;opacity:1;cursor:pointer;white-space:nowrap}
 .blade.setmin>.setbox{display:none!important}   /* !important: Wii/Wii U make it a grid with a stronger selector */
 html.dcm #setToggle{display:none}
 /* The log's minimum has to be the WRAPPER's minimum too. With the wrapper
@@ -3424,7 +3626,9 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
    pale blue command bar over white content; and the taskbar - dark glass along
    the bottom with the round Start orb, glassy buttons and the clock in the
    tray. The caption buttons, orb and tray clock are small decorations added in
-   JS (#w7caps, #w7start, #w7clock) and only exist while the theme is on. */
+   JS (#w7caps, #w7start, #w7clock) and only exist while the theme is on.
+   The window itself (everything under :root.w7) is shared with Windows 7 Dark
+   and Vista, which recolour it further down. */
 :root[data-theme="win7"]{
   --base:#0d5aa7; --baseTop:#2f8ee0; --baseBot:#08386f;
   --glow1:rgba(150,220,255,.6); --glow2:rgba(60,150,235,.4); --glow3:rgba(120,210,90,.25); --glow4:rgba(255,255,255,.2);
@@ -3447,7 +3651,7 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
   --font:"Segoe UI",Tahoma,sans-serif;
 }
 /* the wallpaper: a bright centre, rays, and the coloured ribbons swirling across */
-:root[data-theme="win7"] #bg{
+:root.w7 #bg{
   background-color:#0d5aa7;
   background-image:
     radial-gradient(18% 26% at 50% 46%, rgba(255,255,255,.75), rgba(200,240,255,.35) 40%, transparent 72%),
@@ -3460,23 +3664,23 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
       transparent 118deg 170deg, rgba(255,255,255,.06) 170deg 176deg, transparent 176deg 240deg, rgba(255,255,255,.05) 240deg 248deg, transparent 248deg),
     radial-gradient(90% 90% at 50% 46%, #3aa2f0 0%, #1a73c8 40%, #0b4a92 75%, #073163 100%);
 }
-:root[data-theme="win7"] #bg::after{background:none;animation:none}
-:root[data-theme="win7"] #orbs{display:none}
+:root.w7 #bg::after{background:none;animation:none}
+:root.w7 #orbs{display:none}
 /* the window: pale sky-blue frosted glass for the caption and the frame */
-:root[data-theme="win7"] .top{position:relative;margin:0;padding:6px 118px 6px 10px;min-height:34px;border-radius:7px 7px 0 0;
+:root.w7 .top{position:relative;margin:0;padding:6px 118px 6px 10px;min-height:34px;border-radius:7px 7px 0 0;
   background-color:rgba(170,212,246,.55);
   background-image:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.12) 45%,rgba(255,255,255,0) 55%,rgba(255,255,255,.12)),
     repeating-linear-gradient(115deg,rgba(255,255,255,0) 0 30px,rgba(255,255,255,.1) 30px 36px,rgba(255,255,255,0) 36px 90px);
   -webkit-backdrop-filter:blur(8px) saturate(1.4);backdrop-filter:blur(8px) saturate(1.4);
   border:1px solid rgba(20,40,70,.65);border-bottom:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 1px 0 0 rgba(255,255,255,.5),inset -1px 0 0 rgba(255,255,255,.5)}
-:root[data-theme="win7"] .top h1{font-size:15px;font-weight:400;color:#000;letter-spacing:0;
+:root.w7 .top h1{font-size:15px;font-weight:400;color:#000;letter-spacing:0;
   text-shadow:0 0 10px #fff,0 0 6px #fff,0 0 2px #fff}
-:root[data-theme="win7"] .top h1 b{font-weight:400;background:none;color:#000;-webkit-background-clip:border-box;background-clip:border-box;filter:none}
-:root[data-theme="win7"] .top .orb,:root[data-theme="win7"] .top .clock{display:none}
-:root[data-theme="win7"] .hub{padding:2px 8px 2px 4px;font-size:12px;border-radius:3px;color:#1e1e1e;text-shadow:none;border:1px solid rgba(40,70,110,.45);
+:root.w7 .top h1 b{font-weight:400;background:none;color:#000;-webkit-background-clip:border-box;background-clip:border-box;filter:none}
+:root.w7 .top .orb,:root.w7 .top .clock{display:none}
+:root.w7 .hub{padding:2px 8px 2px 4px;font-size:12px;border-radius:3px;color:#1e1e1e;text-shadow:none;border:1px solid rgba(40,70,110,.45);
   background-image:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.35) 50%,rgba(200,225,245,.45) 51%,rgba(230,242,252,.6));box-shadow:none}
-:root[data-theme="win7"] .hub::before{display:none}
-:root[data-theme="win7"] .hub .ring{width:16px;height:16px;font-size:9px}
+:root.w7 .hub::before{display:none}
+:root.w7 .hub .ring{width:16px;height:16px;font-size:9px}
 #w7caps{position:absolute;right:6px;top:-1px;display:flex;gap:0}
 #w7caps i{display:grid;place-items:center;width:28px;height:19px;font-style:normal;font-size:11px;color:#fff;font-weight:700;
   border:1px solid rgba(20,40,70,.7);border-top:0;margin-left:-1px;text-shadow:0 0 3px #000,0 0 1px #000;
@@ -3488,58 +3692,58 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
 #w7caps i:hover{filter:brightness(1.18) saturate(1.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 10px rgba(160,220,255,.9)}
 #w7caps i.x:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 12px rgba(255,120,90,.9)}
 /* the command bar: Explorer's pale blue strip */
-:root[data-theme="win7"] .tabs{margin:0;gap:0;padding:3px 6px;border:1px solid rgba(20,40,70,.65);border-top:0;border-bottom:1px solid #a0afc3;
+:root.w7 .tabs{margin:0;gap:0;padding:3px 6px;border:1px solid rgba(20,40,70,.65);border-top:0;border-bottom:1px solid #a0afc3;
   background-image:linear-gradient(#f7fbfe,#e9f1fa 45%,#dbe7f4 50%,#e4edf7);
   box-shadow:inset 1px 0 0 rgba(255,255,255,.7),inset -1px 0 0 rgba(255,255,255,.7)}
-:root[data-theme="win7"] .tabs .tab{background:none;border:1px solid transparent;border-radius:3px;color:#1e395b;text-shadow:none;box-shadow:none;
+:root.w7 .tabs .tab{background:none;border:1px solid transparent;border-radius:3px;color:#1e395b;text-shadow:none;box-shadow:none;
   padding:4px 10px;font-size:13px}
-:root[data-theme="win7"] .tabs .tab::before{display:none}
-:root[data-theme="win7"] .tabs .tab:hover{border-color:#8bb4e0;background-image:linear-gradient(#f5fbff,#e0effd 50%,#cfe6fd 51%,#e5f2fe)}
-:root[data-theme="win7"] .tabs .tab.main{background:none;font-weight:600;font-size:13px}
+:root.w7 .tabs .tab::before{display:none}
+:root.w7 .tabs .tab:hover{border-color:#8bb4e0;background-image:linear-gradient(#f5fbff,#e0effd 50%,#cfe6fd 51%,#e5f2fe)}
+:root.w7 .tabs .tab.main{background:none;font-weight:600;font-size:13px}
 /* the frame: a band of the same pale glass around white content */
-:root[data-theme="win7"] .blade{border:6px solid rgba(170,212,246,.62);border-top:0;border-radius:0 0 7px 7px;background-clip:padding-box;
+:root.w7 .blade{border:6px solid rgba(170,212,246,.62);border-top:0;border-radius:0 0 7px 7px;background-clip:padding-box;
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
   box-shadow:0 0 0 1px rgba(20,40,70,.65),inset 0 0 0 1px rgba(140,170,205,.9),0 14px 40px rgba(0,20,50,.45)}
-:root[data-theme="win7"] .blade::before,:root[data-theme="win7"] .blade::after{display:none}
-:root[data-theme="win7"] .row,:root[data-theme="win7"] .mem{color:#1e1e1e;border-bottom-color:rgba(0,0,0,.05);text-shadow:none}
-:root[data-theme="win7"] .row .val{color:#5a6b7d;opacity:1}
-:root[data-theme="win7"] .row.action:hover,:root[data-theme="win7"] .row.action.hl,:root[data-theme="win7"] .side .row.cur{
+:root.w7 .blade::before,:root.w7 .blade::after{display:none}
+:root.w7 .row,:root.w7 .mem{color:#1e1e1e;border-bottom-color:rgba(0,0,0,.05);text-shadow:none}
+:root.w7 .row .val{color:#5a6b7d;opacity:1}
+:root.w7 .row.action:hover,:root.w7 .row.action.hl,:root.w7 .side .row.cur{
   background-image:linear-gradient(#f1f7fe,#dcebfc 50%,#cde3fb);color:#1e1e1e;text-shadow:none;
   box-shadow:inset 0 0 0 1px #84acdd,inset 0 1px 0 rgba(255,255,255,.95);border-radius:3px}
-:root[data-theme="win7"] .row.action:hover::after,:root[data-theme="win7"] .row.action.hl::after{display:none}
-:root[data-theme="win7"] .side{background:#fff;border-right:1px solid #d5dfe5}
-:root[data-theme="win7"] .side .row{color:#1e1e1e;border-bottom:0}
-:root[data-theme="win7"] .side .row.cur .dot{background:#3c7fb1;box-shadow:none}
-:root[data-theme="win7"] h3{color:#1e395b;border-bottom-color:#e2e8ef;font-weight:600}
-:root[data-theme="win7"] .chat{background:#fff;border-top-color:#d8e2ee;box-shadow:none}
-:root[data-theme="win7"] .log{background:#fff;box-shadow:none}
-:root[data-theme="win7"] .msg .b{border-radius:4px;border:1px solid #d9e3ed;color:#1e1e1e;box-shadow:none;
+:root.w7 .row.action:hover::after,:root.w7 .row.action.hl::after{display:none}
+:root.w7 .side{background:#fff;border-right:1px solid #d5dfe5}
+:root.w7 .side .row{color:#1e1e1e;border-bottom:0}
+:root.w7 .side .row.cur .dot{background:#3c7fb1;box-shadow:none}
+:root.w7 h3{color:#1e395b;border-bottom-color:#e2e8ef;font-weight:600}
+:root.w7 .chat{background:#fff;border-top-color:#d8e2ee;box-shadow:none}
+:root.w7 .log{background:#fff;box-shadow:none}
+:root.w7 .msg .b{border-radius:4px;border:1px solid #d9e3ed;color:#1e1e1e;box-shadow:none;
   background-image:linear-gradient(#ffffff,#f6f9fc)}
-:root[data-theme="win7"] .msg.me .b{background-image:linear-gradient(#f6fbff,#e3effc);border-color:#b9d1ec}
-:root[data-theme="win7"] .msg.sys{color:#4a5f78}
-:root[data-theme="win7"] .compose{border-top:1px solid #a0afc3;background-image:linear-gradient(#f7fbfe,#e9f1fa 45%,#dbe7f4 50%,#e4edf7);box-shadow:none}
-:root[data-theme="win7"] input[type=text],:root[data-theme="win7"] input[type=password],:root[data-theme="win7"] select{
+:root.w7 .msg.me .b{background-image:linear-gradient(#f6fbff,#e3effc);border-color:#b9d1ec}
+:root.w7 .msg.sys{color:#4a5f78}
+:root.w7 .compose{border-top:1px solid #a0afc3;background-image:linear-gradient(#f7fbfe,#e9f1fa 45%,#dbe7f4 50%,#e4edf7);box-shadow:none}
+:root.w7 input[type=text],:root.w7 input[type=password],:root.w7 select{
   border:1px solid #abadb3;border-top-color:#8e8f8f;border-radius:2px;background:#fff;color:#1e1e1e;box-shadow:none}
-:root[data-theme="win7"] input[type=text]:focus{border-color:#3d7bad;outline:0;box-shadow:0 0 0 1px rgba(61,123,173,.25)}
+:root.w7 input[type=text]:focus{border-color:#3d7bad;outline:0;box-shadow:0 0 0 1px rgba(61,123,173,.25)}
 /* the Win7 push button */
-:root[data-theme="win7"] .btn,:root[data-theme="win7"] .q,:root[data-theme="win7"] .rb,:root[data-theme="win7"] .duelbtn{
+:root.w7 .btn,:root.w7 .q,:root.w7 .rb,:root.w7 .duelbtn{
   border-radius:3px;border:1px solid #707070;color:#1e1e1e;text-shadow:none;
   background-image:linear-gradient(#f2f2f2,#ebebeb 49%,#dddddd 50%,#cfcfcf);box-shadow:inset 0 0 0 1px rgba(255,255,255,.75)}
-:root[data-theme="win7"] .btn::before,:root[data-theme="win7"] .q::before{display:none}
-:root[data-theme="win7"] .btn:hover,:root[data-theme="win7"] .q:hover,:root[data-theme="win7"] .duelbtn:hover{
+:root.w7 .btn::before,:root.w7 .q::before{display:none}
+:root.w7 .btn:hover,:root.w7 .q:hover,:root.w7 .duelbtn:hover{
   border-color:#3c7fb1;background-image:linear-gradient(#eaf6fd,#d9f0fc 49%,#bee6fd 50%,#a7d9f5);filter:none;color:#1e1e1e}
-:root[data-theme="win7"] .q.on{border-color:#2c628b;background-image:linear-gradient(#e5f4fc,#c4e5f6 49%,#98d1ef 50%,#68b3db);color:#1e1e1e;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+:root.w7 .q.on{border-color:#2c628b;background-image:linear-gradient(#e5f4fc,#c4e5f6 49%,#98d1ef 50%,#68b3db);color:#1e1e1e;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
 /* the taskbar */
-:root[data-theme="win7"] .wrap>.bottombar{position:relative;margin:8px -12px -16px;padding:0 90px 0 60px;min-height:40px;border-radius:0;
+:root.w7 .wrap>.bottombar{position:relative;margin:8px -12px -16px;padding:0 90px 0 60px;min-height:40px;border-radius:0;
   background-color:rgba(20,40,64,.72);
   background-image:linear-gradient(rgba(255,255,255,.2),rgba(255,255,255,.05) 50%,rgba(0,0,0,.08) 51%,rgba(0,0,0,.02));
   -webkit-backdrop-filter:blur(10px) saturate(1.5);backdrop-filter:blur(10px) saturate(1.5);
   border-top:1px solid rgba(255,255,255,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 -1px 0 rgba(0,0,0,.5);
   color:#fff;text-shadow:0 0 6px rgba(0,0,0,.8);gap:3px}
-:root[data-theme="win7"] .bottombar .hint{height:36px;padding:0 12px;border-radius:3px;border:1px solid transparent}
-:root[data-theme="win7"] .bottombar .hint:hover{text-decoration:none;border-color:rgba(255,255,255,.4);
+:root.w7 .bottombar .hint{height:36px;padding:0 12px;border-radius:3px;border:1px solid transparent}
+:root.w7 .bottombar .hint:hover{text-decoration:none;border-color:rgba(255,255,255,.4);
   background-image:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.08) 50%,rgba(140,200,255,.2));box-shadow:0 0 14px rgba(130,200,255,.55),inset 0 0 0 1px rgba(255,255,255,.18)}
-:root[data-theme="win7"] .bottombar .grow{color:#dfeaf6}
+:root.w7 .bottombar .grow{color:#dfeaf6}
 #w7start{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;cursor:pointer;
   background:radial-gradient(circle at 50% 30%,#d9f5ff 0,#78c8ff 18%,#1f86d8 45%,#0c4f9a 72%,#062e5c 100%);
   box-shadow:0 0 0 1px rgba(0,0,0,.55),inset 0 1px 1px rgba(255,255,255,.8),inset 0 -6px 10px rgba(0,30,80,.55),0 0 14px rgba(120,200,255,.55)}
@@ -3547,16 +3751,173 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
   background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,0))}
 #w7start:hover{box-shadow:0 0 0 1px rgba(0,0,0,.55),inset 0 1px 1px rgba(255,255,255,.9),0 0 22px rgba(150,220,255,.95)}
 /* the tiny status line under the page would sit on top of the Start orb */
-:root[data-theme="win7"] .wrap>div:last-child{display:none}
+:root.w7 .wrap>div:last-child{display:none}
 #w7clock{position:absolute;right:10px;top:50%;transform:translateY(-50%);text-align:center;font-size:12px;line-height:1.25;color:#fff}
-:root[data-theme="win7"] .card{border-radius:7px;border:6px solid rgba(170,212,246,.75);background-clip:padding-box;color:#1e1e1e;
+:root.w7 .card{border-radius:7px;border:6px solid rgba(170,212,246,.75);background-clip:padding-box;color:#1e1e1e;
   box-shadow:0 0 0 1px rgba(20,40,70,.7),inset 0 0 0 1px rgba(140,170,205,.9),0 20px 60px rgba(0,20,50,.55)}
-:root[data-theme="win7"] .modal{background:rgba(8,40,80,.35)}
-:root[data-theme="win7"] ::-webkit-scrollbar-track{background:#f0f0f0}
-:root[data-theme="win7"] ::-webkit-scrollbar-thumb{border-radius:2px;border:1px solid #9c9c9c;background:linear-gradient(90deg,#f4f4f4,#dcdcdc)}
-:root[data-theme="win7"] .fold{background:#fff;border-color:#cbd6e4;border-radius:3px}
-:root[data-theme="win7"] #setToggle{color:#1e395b;background:#eef4fb}
-:root[data-theme="win7"] #members::before{background:#fff!important}
+:root.w7 .modal{background:rgba(8,40,80,.35)}
+:root.w7 ::-webkit-scrollbar-track{background:#f0f0f0}
+:root.w7 ::-webkit-scrollbar-thumb{border-radius:2px;border:1px solid #9c9c9c;background:linear-gradient(90deg,#f4f4f4,#dcdcdc)}
+:root.w7 .fold{background:#fff;border-color:#cbd6e4;border-radius:3px}
+:root.w7 #setToggle{color:#1e395b;background:#eef4fb}
+:root.w7 #members::before{background:#fff!important}
+
+/* --------------------------------------------- WINDOWS 7 DARK, and VISTA ----
+   Both use the Windows 7 window above and turn the inside dark. Windows 7
+   Dark is Windows 7 with a smoky slate glass colour picked in Personalize.
+   Vista is Vista: black-tinted glass with the diagonal streaks, Explorer's
+   dark teal toolbar, the black glass taskbar with the dark Start orb, and the
+   Aurora wallpaper. */
+:root[data-theme="win7dark"]{
+  --base:#101820; --baseTop:#1d2a38; --baseBot:#070b10;
+  --glow1:rgba(90,150,210,.35); --glow2:rgba(50,100,160,.3); --glow3:rgba(80,140,90,.18); --glow4:rgba(255,255,255,.08);
+  --sel1:#6fb1f5; --sel2:#3d8ee5; --sel3:#1d5fa8;
+  --txt:#ffffff; --dim:#c9d6e3; --line:rgba(255,255,255,.18);
+  --ink:#e8edf2; --ink2:#9cc7f0;
+  --bladeA:#1e2329; --bladeB:#1e2329; --bladeC:#1e2329; --bladeD:#1e2329;
+  --bladeGlow:rgba(60,120,190,.3); --bladeRing:rgba(120,160,210,.35);
+  --tabA:#2b323b; --tabB:#20262d;
+  --tabMainA:#2b323b; --tabMainB:#252b33; --tabMainC:#1e2329;
+  --chromeA:rgba(70,82,98,.8); --chromeB:rgba(46,56,68,.8); --chromeC:rgba(28,35,44,.8);
+  --btnA:#4a525c; --btnB:#363d45; --btnC:#2a3037;
+  --btn2A:#3f6890; --btn2B:#2f5378; --btn2C:#234062;
+  --chipA:#2e353d; --chipB:#252b32; --chipEdge:#56606b; --chipInk:#e8edf2;
+  --cardA:#23292f; --cardB:#1e2329; --cardC:#1a1e23;
+  --bubbleA:#262c33; --bubbleB:#22282e; --bubbleMeA:#223c5c; --bubbleMeB:#1c3352;
+  --orb1:#ffffff; --orb2:#a8e2ff; --orb3:#2f8ee0; --orb4:#0b3a6e;
+  --orbGlow:rgba(150,220,255,.5); --titleGlow:rgba(255,255,255,.9);
+  --radius:6px;
+  --font:"Segoe UI",Tahoma,sans-serif;
+}
+:root[data-theme="vista"]{
+  --base:#02070c; --baseTop:#06241f; --baseBot:#010307;
+  --glow1:rgba(40,210,130,.35); --glow2:rgba(20,170,220,.35); --glow3:rgba(30,90,200,.3); --glow4:rgba(255,255,255,.06);
+  --sel1:#7fd4ff; --sel2:#2b9be8; --sel3:#1462b0;
+  --txt:#ffffff; --dim:#c3d3dd; --line:rgba(255,255,255,.16);
+  --ink:#e9eef2; --ink2:#8fd0ff;
+  --bladeA:#171b1f; --bladeB:#171b1f; --bladeC:#171b1f; --bladeD:#171b1f;
+  --bladeGlow:rgba(40,160,230,.3); --bladeRing:rgba(110,190,240,.35);
+  --tabA:#26303a; --tabB:#1a2129;
+  --tabMainA:#26303a; --tabMainB:#1f272f; --tabMainC:#171b1f;
+  --chromeA:rgba(60,70,80,.75); --chromeB:rgba(30,38,46,.78); --chromeC:rgba(10,14,18,.8);
+  --btnA:#565e66; --btnB:#33393f; --btnC:#1e2226;
+  --btn2A:#3aa7ee; --btn2B:#1f7fcf; --btn2C:#135a9c;
+  --chipA:#2a3036; --chipB:#20252a; --chipEdge:#56606a; --chipInk:#e9eef2;
+  --cardA:#1d2227; --cardB:#171b1f; --cardC:#121518;
+  --bubbleA:#22282d; --bubbleB:#1d2227; --bubbleMeA:#173a52; --bubbleMeB:#123048;
+  --orb1:#ffffff; --orb2:#7fd4ff; --orb3:#1f7fcf; --orb4:#02070c;
+  --orbGlow:rgba(60,190,255,.5); --titleGlow:rgba(255,255,255,.9);
+  --radius:6px;
+  --font:"Segoe UI",Tahoma,sans-serif;
+}
+/* ---- the dark inside, shared ---- */
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .row,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .mem{color:#e8edf2;border-bottom-color:rgba(255,255,255,.05)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .row .val{color:#9fb0c2}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .row.action:hover,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .row.action.hl,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .side .row.cur{
+  background-color:#1f3b5c;background-image:linear-gradient(rgba(90,160,235,.34),rgba(60,130,215,.26) 50%,rgba(45,110,195,.3));color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(120,180,245,.75),inset 0 1px 0 rgba(255,255,255,.18)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .side{background:var(--bladeA);border-right:1px solid rgba(255,255,255,.08)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .side .row{color:#e8edf2}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .side .row.cur .dot{background:#6fb1f5}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) h3{color:var(--ink2);border-bottom-color:rgba(255,255,255,.08)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .chat{background:var(--bladeA);border-top-color:rgba(255,255,255,.08)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .log{background:var(--bladeA)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .msg .b{border:1px solid rgba(255,255,255,.09);color:#e8edf2;background-image:linear-gradient(var(--bubbleA),var(--bubbleB))}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .msg.me .b{background-image:linear-gradient(var(--bubbleMeA),var(--bubbleMeB));border-color:rgba(110,170,235,.35)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .msg.sys{color:#8fa7c2}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) input[type=text],:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) input[type=password],:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) select{
+  border:1px solid #4a525c;border-top-color:#3a4048;background:#101316;color:#eef2f5}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) input[type=text]:focus{border-color:#5d9be0;box-shadow:0 0 0 1px rgba(93,155,224,.35)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .btn,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .q,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .rb,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .duelbtn{
+  border:1px solid #16191c;color:#eef2f5;
+  background-image:linear-gradient(#5a626b,#454c54 49%,#343a41 50%,#2b3036);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .btn:hover,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .q:hover,:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .duelbtn:hover{
+  border-color:#1d4f80;color:#fff;background-image:linear-gradient(#5d8fbf,#3f74a8 49%,#2c5d91 50%,#3a70a6);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 8px rgba(90,170,245,.45)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .q.on{border-color:#0f2f50;color:#fff;background-image:linear-gradient(#3f76ad,#2b5f94 49%,#1d4a7a 50%,#24558a);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .card{color:#e8edf2}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .modal{background:rgba(0,0,0,.5)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) ::-webkit-scrollbar-track{background:#15181b}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) ::-webkit-scrollbar-thumb{border:1px solid #0c0e10;background:linear-gradient(90deg,#4a5159,#3a4047)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .fold{background:var(--cardA);border-color:rgba(255,255,255,.1)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) #setToggle{color:var(--ink2);background:var(--tabA)}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) #members::before{background:var(--bladeA)!important}
+:root.w7:is([data-theme="win7dark"],[data-theme="vista"]) .top .hub{color:#fff;text-shadow:0 0 4px #000;border-color:rgba(0,0,0,.7);
+  background-image:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.08) 50%,rgba(0,0,0,.18) 51%,rgba(255,255,255,.06))}
+
+/* ---- Windows 7 Dark: slate glass ---- */
+:root.w7[data-theme="win7dark"] #bg{background-color:#0b1826;
+  background-image:
+    radial-gradient(18% 26% at 50% 46%, rgba(170,210,255,.28), rgba(120,170,230,.12) 40%, transparent 72%),
+    radial-gradient(60% 18% at 38% 58%, transparent 55%, rgba(110,190,80,.28) 62%, rgba(110,190,80,0) 70%),
+    radial-gradient(62% 16% at 40% 60%, transparent 57%, rgba(230,190,70,.24) 63%, rgba(230,190,70,0) 70%),
+    radial-gradient(58% 15% at 62% 36%, transparent 55%, rgba(230,100,70,.22) 62%, rgba(230,100,70,0) 69%),
+    radial-gradient(64% 17% at 60% 34%, transparent 56%, rgba(100,170,240,.3) 62%, rgba(100,170,240,0) 70%),
+    radial-gradient(90% 90% at 50% 46%, #173d66 0%, #0e2946 40%, #081a2e 75%, #040d18 100%)}
+:root.w7[data-theme="win7dark"] .top{background-color:rgba(52,62,76,.72)}
+:root.w7[data-theme="win7dark"] .tabs{border-bottom-color:#15191e;
+  background-image:linear-gradient(#46505c,#38414c 45%,#2c343e 50%,#333c47);
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.08),inset -1px 0 0 rgba(255,255,255,.08)}
+:root.w7[data-theme="win7dark"] .tabs .tab{color:#e6eef7}
+:root.w7[data-theme="win7dark"] .tabs .tab:hover{border-color:rgba(140,185,235,.6);background-image:linear-gradient(rgba(255,255,255,.18),rgba(255,255,255,.06) 50%,rgba(110,170,235,.18) 51%,rgba(255,255,255,.08))}
+:root.w7[data-theme="win7dark"] .blade{border-color:rgba(52,62,76,.72);box-shadow:0 0 0 1px rgba(8,12,18,.85),inset 0 0 0 1px rgba(255,255,255,.1),0 14px 40px rgba(0,0,0,.55)}
+:root.w7[data-theme="win7dark"] .compose{border-top-color:#15191e;background-image:linear-gradient(#3b444f,#313943 45%,#282f37 50%,#2e353e)}
+:root.w7[data-theme="win7dark"] .card{border-color:rgba(52,62,76,.8);box-shadow:0 0 0 1px rgba(8,12,18,.85),inset 0 0 0 1px rgba(255,255,255,.1),0 20px 60px rgba(0,0,0,.6)}
+
+/* ---- Vista: black glass ---- */
+/* Aurora, the Vista wallpaper: curtains of green and blue light on black */
+:root.w7[data-theme="vista"] #bg{background-color:#02070c;
+  background-image:
+    linear-gradient(112deg, transparent 22%, rgba(110,255,180,.16) 34%, transparent 40%, transparent 50%, rgba(80,220,255,.16) 58%, transparent 64%),
+    repeating-linear-gradient(98deg, rgba(255,255,255,0) 0 18px, rgba(170,255,215,.035) 18px 21px),
+    radial-gradient(38% 58% at 28% 62%, rgba(40,210,130,.42), transparent 70%),
+    radial-gradient(34% 55% at 52% 44%, rgba(20,175,215,.38), transparent 70%),
+    radial-gradient(30% 50% at 76% 56%, rgba(40,95,210,.4), transparent 72%),
+    radial-gradient(22% 30% at 40% 30%, rgba(160,255,120,.18), transparent 70%),
+    radial-gradient(130% 95% at 50% 105%, #07302a 0%, #041621 48%, #01050a 100%)}
+/* the glass: dark, see-through, with Vista's long diagonal streaks */
+:root.w7[data-theme="vista"] .top{background-color:rgba(14,20,26,.6);
+  background-image:linear-gradient(rgba(255,255,255,.24),rgba(255,255,255,.07) 45%,rgba(255,255,255,0) 55%,rgba(255,255,255,.05)),
+    repeating-linear-gradient(118deg,rgba(255,255,255,0) 0 44px,rgba(255,255,255,.08) 44px 49px,rgba(255,255,255,0) 49px 78px,rgba(255,255,255,.045) 78px 80px,rgba(255,255,255,0) 80px 140px);
+  border-color:rgba(0,0,0,.9);box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 1px 0 0 rgba(255,255,255,.2),inset -1px 0 0 rgba(255,255,255,.2)}
+:root.w7[data-theme="vista"] .blade{border-color:rgba(14,20,26,.62);
+  box-shadow:0 0 0 1px rgba(0,0,0,.9),inset 0 0 0 1px rgba(255,255,255,.16),0 16px 46px rgba(0,0,0,.7)}
+:root.w7[data-theme="vista"] .card{border-color:rgba(14,20,26,.72);box-shadow:0 0 0 1px rgba(0,0,0,.9),inset 0 0 0 1px rgba(255,255,255,.16),0 20px 60px rgba(0,0,0,.7)}
+/* Vista's caption buttons: dark glass, and the red close */
+:root.w7[data-theme="vista"] #w7caps i{border-color:rgba(0,0,0,.9);
+  background-image:linear-gradient(rgba(255,255,255,.34),rgba(255,255,255,.1) 48%,rgba(0,0,0,.3) 52%,rgba(90,110,130,.3));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
+:root.w7[data-theme="vista"] #w7caps i.x{background-image:linear-gradient(#e3a095,#c5584a 48%,#a8210f 52%,#c43c24 80%,#e27a64)}
+:root.w7[data-theme="vista"] #w7caps i:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 12px rgba(90,190,255,.9)}
+:root.w7[data-theme="vista"] #w7caps i.x:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 14px rgba(255,90,60,.95)}
+/* Explorer's toolbar in Vista: the dark teal glossy strip with white text */
+:root.w7[data-theme="vista"] .tabs{border-color:rgba(0,0,0,.9);border-bottom:1px solid #000;
+  background-image:linear-gradient(#57788a,#35596c 47%,#1b3a4c 50%,#234759);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 1px 0 0 rgba(255,255,255,.1),inset -1px 0 0 rgba(255,255,255,.1)}
+:root.w7[data-theme="vista"] .tabs .tab{color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.6)}
+:root.w7[data-theme="vista"] .tabs .tab:hover{border-color:rgba(255,255,255,.45);
+  background-image:linear-gradient(rgba(255,255,255,.32),rgba(255,255,255,.1) 50%,rgba(120,210,255,.22) 51%,rgba(255,255,255,.12));
+  box-shadow:0 0 8px rgba(120,210,255,.4)}
+:root.w7[data-theme="vista"] .compose{border-top:1px solid #000;background-image:linear-gradient(#3e5d6e,#29485a 47%,#15303f 50%,#1c3a4b)}
+:root.w7[data-theme="vista"] .btn:hover,:root.w7[data-theme="vista"] .q:hover,:root.w7[data-theme="vista"] .duelbtn:hover{border-color:#0b3d66;
+  background-image:linear-gradient(#6cc4f5,#2e9be0 49%,#1a7cc4 50%,#3fa6e6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3),0 0 10px rgba(60,180,255,.6)}
+:root.w7[data-theme="vista"] .row.action:hover,:root.w7[data-theme="vista"] .row.action.hl,:root.w7[data-theme="vista"] .side .row.cur{
+  background-color:#12384f;background-image:linear-gradient(rgba(80,190,255,.34),rgba(40,150,230,.24) 50%,rgba(30,130,215,.3));
+  box-shadow:inset 0 0 0 1px rgba(110,200,255,.75),inset 0 1px 0 rgba(255,255,255,.2)}
+/* the taskbar: black glass */
+:root.w7[data-theme="vista"] .wrap>.bottombar{background-color:rgba(0,0,0,.8);
+  background-image:linear-gradient(rgba(255,255,255,.2),rgba(255,255,255,.05) 50%,rgba(0,0,0,.3) 51%,rgba(0,0,0,.1));
+  border-top:1px solid rgba(255,255,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 -1px 0 #000}
+:root.w7[data-theme="vista"] .bottombar .hint:hover{box-shadow:0 0 14px rgba(90,190,255,.55),inset 0 0 0 1px rgba(255,255,255,.18)}
+/* Vista's Start orb: a black glass pearl with a silver rim and the flag */
+:root.w7[data-theme="vista"] #w7start{background:radial-gradient(circle at 50% 32%,#6f7d88 0,#303a42 30%,#0c1115 64%,#000 100%);
+  box-shadow:0 0 0 1px #000,0 0 0 2px rgba(150,170,190,.55),inset 0 1px 1px rgba(255,255,255,.6),inset 0 -6px 10px rgba(0,0,0,.6),0 0 12px rgba(70,170,255,.35)}
+:root.w7[data-theme="vista"] #w7start::before{content:"";position:absolute;left:50%;top:50%;width:17px;height:17px;transform:translate(-50%,-50%) perspective(40px) rotateY(-14deg) skewY(-4deg);
+  background:linear-gradient(#f65314,#f65314) 0 0/8px 8px no-repeat,linear-gradient(#7cbb00,#7cbb00) 9px 0/8px 8px no-repeat,
+    linear-gradient(#00a1f1,#00a1f1) 0 9px/8px 8px no-repeat,linear-gradient(#ffbb00,#ffbb00) 9px 9px/8px 8px no-repeat;
+  border-radius:3px 5px 3px 5px;filter:drop-shadow(0 0 3px rgba(255,255,255,.35))}
+:root.w7[data-theme="vista"] #w7start::after{z-index:1}
+:root.w7[data-theme="vista"] #w7start:hover{box-shadow:0 0 0 1px #000,0 0 0 2px rgba(170,200,230,.7),inset 0 1px 1px rgba(255,255,255,.7),0 0 24px rgba(80,190,255,.95)}
 
 /* ------------------------------------------------- PUMPKIN PATCH, AT NIGHT ----
    The palette-only "Pumpkin Patch" is a dashboard in orange. This is the
@@ -3967,7 +4328,7 @@ body.noorbs #pumpFx .wisp{display:none}
     </div>
 
     </div>
-    <div id="setToggle" title="fold the settings away for more chat, or bring them back"></div>
+    <div id="setToggle" title="show your settings, or fold them away for more chat"><button type="button" class="btn" id="setToggleBtn"></button></div>
     <div class="layout">
       <div class="side">
         <h3>Channels</h3>
@@ -4050,7 +4411,7 @@ body.noorbs #pumpFx .wisp{display:none}
           <div id="tQueue"></div>
         </div>
 
-        <details class="fold radio" id="radio" title="Anyone can queue. Admins and mods control playback and can scrub; admins set volume, bass and bitrate. It goes out over the host's voice to this channel and to Discord — hosts, wear headphones.">
+        <details class="fold radio" id="radio" title="Anyone can queue. Admins and mods control playback and can scrub; admins set volume, bass and bitrate. Everyone plays it on their own machine, in step with the host, and it reaches Discord through whoever holds the bridge.">
           <summary>📻 Radio <span class="rnow" id="rNowMini">off</span>
             <span class="cnt2" id="rHostLbl">nobody is hosting</span></summary>
           <div class="foldbody rbody">
@@ -4073,12 +4434,12 @@ body.noorbs #pumpFx .wisp{display:none}
               <span class="radm" id="rAdm">
                 <label title="how loud the radio is for EVERYONE">vol <input type="range" id="rVol" min="0" max="100" step="1" value="70"><span id="rVolVal">70%</span></label>
                 <label title="bass boost (or cut) for everyone">bass <input type="range" id="rBass" min="-12" max="18" step="1" value="0"><span id="rBassVal">0 dB</span></label>
-                <label title="how much bandwidth the host sends the music at — go all the way down for a laugh">kbps <input type="range" id="rKbps" min="6" max="192" step="2" value="96"><span id="rKbpsVal">96</span></label>
+                <label title="how the music sounds, from studio down to a crunchy phone line — go all the way down for a laugh">kbps <input type="range" id="rKbps" min="6" max="192" step="2" value="96"><span id="rKbpsVal">96</span></label>
               </span>
-              <button class="rb rhost" id="rHost" title="play the radio from your machine — it goes out over your voice, to this channel and to Discord">📻 Host</button>
+              <button class="rb rhost" id="rHost" title="run the radio from your machine — you keep the queue and the time, and everyone's radio follows yours">📻 Host</button>
             </div>
             <div class="rrow">
-              <span class="radm rmine"><label title="how loud the radio is for YOU only - nobody else hears the change. The radio arrives inside the host's voice, so while a song plays this turns the host down with it">my vol <input type="range" id="rMine" min="0" max="150" step="5" value="100"><span id="rMineVal">100%</span></label></span>
+              <span class="radm rmine"><label title="how loud the radio is for YOU only - it changes the music, nobody's voice">my vol <input type="range" id="rMine" min="0" max="150" step="5" value="100"><span id="rMineVal">100%</span></label></span>
               <input type="text" id="rUrl" maxlength="600" placeholder="paste a YouTube / SoundCloud / Bandcamp / audio link…">
               <button class="rb" id="rAdd">＋ Queue</button>
             </div>
@@ -5450,6 +5811,7 @@ function connectRoom(){
       setStatus('online as '+id+' via '+srv+(forceRelay?' · TURN only':''));
       $('#btnDiag').querySelector('.val').textContent='you are '+id;
       sys('you joined <b>'+esc(room)+'</b> · build '+BUILD);
+      try{radioRestoreSoon();}catch(e){}
       /* muted before a reload: stay muted, rather than waiting to be told */
       if(isNameMuted(me.name))setTimeout(function(){
         try{applyMod({t:'mod',k:ADMIN_PASS,action:'mute',name:me.name,id:me.id},true);}catch(e){}
@@ -6215,9 +6577,10 @@ function dropPeer(id){
   try{p.call&&p.call.close();}catch(e){}
   if(p.name){sys('<b>'+esc(p.name)+'</b> left the party');blip(330,.08);verityEvent('left',p.name);}
   try{arcPeerGone(id);}catch(e){}
-  /* the radio plays from its host's browser, so it goes quiet when they leave */
+  /* the host is the radio's clock and queue, so it stops when they leave */
   if(p.name&&RADIO.host===p.name&&!radioIsHost()){
-    RADIO.host='';RADIO.playing=false;
+    RADIO.host='';RADIO.playing=false;RADIO.tok='';
+    try{radioFollow();}catch(e){}
     sys('📻 the radio host left — an admin or mod can press <b>Host the radio here</b> to carry on');
     try{radioRender();}catch(e){}
   }
@@ -6254,8 +6617,8 @@ function leaveParty(silent){
   for(var k in pending){clearTimeout(pending[k]);}
   pending={};probe={};slotMiss={};warnedNoRoute=false;
   /* the radio belongs to the channel you are leaving */
-  try{if(radioIsHost())radioUngraph();}catch(e){}
-  RADIO.q=[];RADIO.idx=-1;RADIO.playing=false;RADIO.host='';RADIO.pos=0;RADIO.dur=0;
+  try{radioUngraph();}catch(e){}
+  RADIO.q=[];RADIO.idx=-1;RADIO.playing=false;RADIO.host='';RADIO.pos=0;RADIO.dur=0;RADIO.tok='';
   try{radioRender();}catch(e){}
   /* the old room's roster is not this room's */
   lastRoster=[];rosterSince={};
@@ -6766,8 +7129,7 @@ function wireFx(){
        be mixed into, or tapped off, the outgoing chain: VERITY, the Discord
        return, screen audio, the self-monitor, or an admin's forced limiter. */
     if(fxMode==='none'&&!scrAudioNode&&!monOn&&!forceLimS&&!dnActive()&&
-       !(typeof VERITY!=='undefined'&&VERITY.on)&&!(typeof BR!=='undefined'&&BR.bus)&&
-       !(typeof RADIO!=='undefined'&&RADIO.bus)){
+       !(typeof VERITY!=='undefined'&&VERITY.on)&&!(typeof BR!=='undefined'&&BR.bus)){
       setOut('audio',localStream.getAudioTracks()[0]);
       monTap(null);
       return true;
@@ -6869,7 +7231,7 @@ function stopMic(){
   disposeFx();
   if(fxSource){try{fxSource.disconnect();}catch(e){}fxSource=null;}
   $('#micState').textContent='Off';
-  if((scrAudioNode||(typeof BR!=='undefined'&&BR.bus)||(typeof RADIO!=='undefined'&&RADIO.bus))&&fxDest&&fxDest.stream.getAudioTracks()[0])
+  if((scrAudioNode||(typeof BR!=='undefined'&&BR.bus))&&fxDest&&fxDest.stream.getAudioTracks()[0])
     setOut('audio',fxDest.stream.getAudioTracks()[0]);
   else setOut('audio',phAudio);
   bc({t:'mute',on:true});renderMembers();
@@ -7283,13 +7645,7 @@ function applyBitrate(call){
       var p=s.getParameters();
       if(!p.encodings||!p.encodings.length)p.encodings=[{}];
       if(s.track.kind==='audio'){
-        /* The radio host's voice and the music share one connection. The
-           slider's low end is done by radioCrunch() on the music itself, so
-           the connection only ever goes UP for the radio - capping it down
-           to 6 kbps was crunching the DJ's own voice along with the music. */
-        var ak=Q[quality].k;
-        if(typeof RADIO!=='undefined'&&RADIO.bus&&radioIsHost())ak=Math.max(ak,RADIO.kbps);
-        p.encodings[0].maxBitrate=ak*1000;
+        p.encodings[0].maxBitrate=Q[quality].k*1000;
       }
       else{
         p.encodings[0].maxBitrate=clampKbps(VIDEO_KBPS)*1000;
@@ -7424,7 +7780,6 @@ function applyVol(p){
   /* rawOn solos one person for an admin; monOn solos you. Both mean "mute
      everybody, I am listening to one thing on purpose". */
   var v=(deaf||monOn||RAW.id||p.srvMuted)?0:(p.vol==null?1:p.vol);
-  v*=radioMineFor(p);
   if(p.gain)p.gain.gain.value=v;
   else if(p.audioEl)p.audioEl.volume=Math.min(1,v);
 }
@@ -10532,35 +10887,29 @@ setInterval(function(){
 },2500);
 
 /* ================================ RADIO ================================
-   A radio for the whole channel, carried over voice.
+   A radio for the whole channel.
 
-   One person hosts it (an admin or mod presses Host). Their browser pulls the
-   audio from our server (radio.js resolves YouTube/SoundCloud/etc. with
-   yt-dlp and pipes the stream), plays it through Web Audio, and mixes it into
-   the same outgoing voice bus that VERITY and screen-share audio use. So:
-     - everybody in the channel hears it, with nothing to load themselves
-     - the Discord bridge hears it too: if the host holds the bridge it is
-       wired straight into the Discord mix, and if somebody else does, it
-       reaches them inside the host's voice like any other speaker
+   One person hosts it (an admin or mod presses Host): their browser keeps the
+   queue and the clock. The server (radio.js) resolves YouTube/SoundCloud/etc.
+   with yt-dlp and hands back a stream token, and EVERYONE's browser plays that
+   stream itself, kept in step with the host. It used to be mixed into the
+   host's voice instead, which meant turning the radio down turned the host
+   down with it, and the music cost the host's upload. Now:
+     - each person's "my vol" is the music only
+     - the host's voice is just their voice
+     - the Discord bridge gets the radio from whoever holds the bridge, wired
+       straight into the Discord mix
    The host is the authority. Anyone may QUEUE; admins and mods send signed
    control messages (play, pause, skip, jump, remove, stop); only admins may
    change the volume and bitrate. The host applies them and broadcasts the
    resulting state, which is all everybody else ever displays. */
-var RADIO={mine:(function(){try{var v=+localStorage.getItem('mingusRadioMine');
+var RADIO={tok:'',lerr:0,mine:(function(){try{var v=+localStorage.getItem('mingusRadioMine');
              return (localStorage.getItem('mingusRadioMine')!=null&&isFinite(v))?Math.max(0,Math.min(150,v)):100;}
              catch(e){return 100;}})(),q:[],idx:-1,playing:false,vol:70,kbps:96,bass:0,host:'',pos:0,dur:0,posAt:0,loading:false,retried:null,
            el:null,src:null,gain:null,bassNode:null,an:null,bus:null,local:null,gen:0,seekTo:0};
-/* "my vol": the radio at your own level. The host hears the radio from its
-   own branch of the graph, so theirs is exact. Everyone else gets it inside
-   the host's voice - one stream - so while a song is playing the host's
-   whole stream is scaled for them, and put back when it stops. */
-function radioMineFor(p){
-  if(typeof RADIO==='undefined'||!RADIO||!p||!RADIO.host||p.name!==RADIO.host)return 1;
-  return (RADIO.idx>=0&&RADIO.playing)?RADIO.mine/100:1;
-}
+/* "my vol": the radio at your own level - your player, your speakers only */
 function radioMineApply(){
   if(RADIO.local)RADIO.local.gain.value=RADIO.mine/100;
-  for(var id in peers){try{applyVol(peers[id]);}catch(e){}}
 }
 function radioIsHost(){return !!RADIO.host&&RADIO.host===me.name&&!!peer;}
 function radioKey(){return isAdmin()?ADMIN_PASS:(isMod()?MOD_PASS:'');}
@@ -10584,10 +10933,35 @@ function radioPosNow(){
   return RADIO.pos+(RADIO.playing?(Date.now()-RADIO.posAt)/1000:0);
 }
 function radioState(){
-  return {t:'rstate',q:RADIO.q,idx:RADIO.idx,playing:RADIO.playing,vol:RADIO.vol,
+  return {t:'rstate',tok:RADIO.tok,q:RADIO.q,idx:RADIO.idx,playing:RADIO.playing,vol:RADIO.vol,
           kbps:RADIO.kbps,bass:RADIO.bass,host:RADIO.host,pos:radioPosNow(),dur:RADIO.dur};
 }
-function radioBroadcast(){if(radioIsHost())bc(radioState());}
+function radioBroadcast(){if(radioIsHost()){bc(radioState());radioSave();}}
+/* The queue lived only in the host's page, so a reload - or an update, which
+   reloads everybody - threw it away. The host keeps a copy here, and after a
+   reload picks the radio back up at the same song and the same spot. */
+function radioSave(){
+  if(!radioIsHost())return;
+  try{localStorage.setItem('mc_radio',JSON.stringify({at:Date.now(),room:room,host:me.name,q:RADIO.q,idx:RADIO.idx,
+    pos:radioPosNow(),playing:RADIO.playing,vol:RADIO.vol,kbps:RADIO.kbps,bass:RADIO.bass}));}catch(e){}
+}
+function radioRestoreSoon(){
+  var s=null;try{s=JSON.parse(localStorage.getItem('mc_radio')||'null');}catch(e){}
+  if(!s||!Array.isArray(s.q)||!s.q.length||s.room!==room||s.host!==me.name||Date.now()-s.at>30*60000)return;
+  /* give the room a moment to say whether somebody else is hosting now */
+  setTimeout(function(){
+    if(RADIO.host||!peer||!isMod()||RADIO.q.length)return;
+    RADIO.q=s.q.slice(0,100).filter(function(it){return it&&/^https?:\/\//i.test(String(it.url||''));});
+    if(!RADIO.q.length)return;
+    RADIO.idx=Math.max(-1,Math.min(s.idx|0,RADIO.q.length-1));
+    RADIO.pos=+s.pos||0;RADIO.posAt=Date.now();RADIO.playing=!!s.playing;
+    if(typeof s.vol==='number')RADIO.vol=s.vol;
+    if(typeof s.kbps==='number')RADIO.kbps=s.kbps;
+    if(typeof s.bass==='number')RADIO.bass=s.bass;
+    sys('📻 picked the radio back up where it was — '+RADIO.q.length+' song'+(RADIO.q.length===1?'':'s')+' in the queue');
+    radioTakeHost();
+  },5000);
+}
 function radioResolve(url){
   return fetch(adminBase()+'/radio/resolve',{method:'POST',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})})
@@ -10597,7 +10971,6 @@ function radioResolve(url){
 /* ---- the host's audio graph -------------------------------------------- */
 function radioGraph(){
   var c=ctx();
-  ensureFxGraph();
   if(!RADIO.el){
     var a=new Audio();
     a.crossOrigin='anonymous';          /* required, or Web Audio hears silence */
@@ -10612,7 +10985,18 @@ function radioGraph(){
       radioFinish(true);
     });
     a.addEventListener('error',function(){
-      if(!radioIsHost()||!a.getAttribute('src'))return;
+      if(!a.getAttribute('src'))return;
+      if(!radioIsHost()){
+        /* a listener's copy dropped: pick the host's stream up again, at
+           most every 15 s (the host's 5-second updates retry it too) */
+        if(Date.now()-RADIO.lerr<15000)return;
+        RADIO.lerr=Date.now();
+        setTimeout(function(){
+          try{RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}
+          radioFollow();
+        },2000);
+        return;
+      }
       /* Usually not the song's fault: SoundCloud's link ran out, the
          connection blinked, or the server restarted (every deploy) and
          forgot the stream. These used to skip the song on the spot. Pick it
@@ -10624,6 +11008,11 @@ function radioGraph(){
       setTimeout(function(){if(g===RADIO.gen)radioFinish(true);},1500);
     });
     a.addEventListener('loadedmetadata',function(){
+      if(!radioIsHost()){
+        /* a listener joins the song where the host is NOW */
+        if(RADIO.idx>=0){try{a.currentTime=Math.max(0,radioPosNow());}catch(e){}}
+        return;
+      }
       if(isFinite(a.duration)&&a.duration>0)RADIO.dur=a.duration;
       if(RADIO.seekTo){try{a.currentTime=RADIO.seekTo;}catch(e){}RADIO.seekTo=0;}
       radioRender();radioBroadcast();
@@ -10632,7 +11021,7 @@ function radioGraph(){
       a.addEventListener(ev,function(){
         /* letting go of the old song fires a late 'pause' - it is not the
            host pausing, and it would leave the next song sitting paused */
-        if(RADIO.loading||!a.getAttribute('src'))return;
+        if(!radioIsHost()||RADIO.loading||!a.getAttribute('src'))return;
         RADIO.playing=!a.paused;radioRender();radioBroadcast();
       });
     });
@@ -10656,20 +11045,41 @@ function radioGraph(){
   if(!RADIO.bus){
     RADIO.bus=c.createGain();
     RADIO.crush.connect(RADIO.bus);
-    RADIO.bus.connect(fxDest);                     /* out to the channel */
-    RADIO.local=c.createGain();                    /* and to the host's own ears */
+    RADIO.local=c.createGain();                    /* to your own speakers, at "my vol" */
     RADIO.local.gain.value=RADIO.mine/100;
     RADIO.bus.connect(RADIO.local);RADIO.local.connect(spk());
-    MIX.rHooked=false;try{mixSync();}catch(e){}   /* and into the Discord mix */
+    /* and into the Discord mix, if this browser holds the bridge */
+    MIX.rHooked=false;
+    if(typeof BR!=='undefined'&&BR.on){try{mixSync();}catch(e){}}
   }
   RADIO.gain.gain.value=RADIO.vol/100;
-  /* same trap as VERITY: with no voice FX the mic is sent bare and is not on
-     fxDest, so switching the outgoing track to fxDest without this would put
-     the radio on air and take the host's own voice off it */
-  if(micOn&&localStream&&!fxSource){try{wireFx();}catch(e){}}
-  var t=fxDest.stream.getAudioTracks()[0];
-  if(t)setOut('audio',t);
   return RADIO.bus;
+}
+/* everyone but the host: play what the host is playing, where they are in it */
+function radioFollow(){
+  if(radioIsHost())return;
+  var a=RADIO.el;
+  if(!RADIO.host||RADIO.idx<0||!RADIO.tok){
+    if(a&&a.getAttribute('src')){try{a.pause();a.removeAttribute('src');a.load();}catch(e){}}
+    return;
+  }
+  radioGraph();a=RADIO.el;
+  var url=adminBase()+'/radio/stream/'+RADIO.tok;
+  if(a.getAttribute('src')!==url){a.src=url;}
+  else if(a.readyState>=1&&isFinite(a.currentTime)&&Math.abs(a.currentTime-radioPosNow())>2.5){
+    try{a.currentTime=Math.max(0,radioPosNow());}catch(e){}
+  }
+  if(RADIO.playing&&a.paused){
+    a.play().catch(function(){
+      if(RADIO.warnedAuto)return;RADIO.warnedAuto=true;
+      toast('click anywhere to hear the radio — your browser blocked autoplay');
+      document.addEventListener('pointerdown',function once(){
+        document.removeEventListener('pointerdown',once,true);
+        try{ctx().resume();}catch(e){}
+        RADIO.warnedAuto=false;radioFollow();
+      },true);
+    });
+  }else if(!RADIO.playing&&!a.paused){a.pause();}
 }
 /* host: reload the current song from where it got to. Once per song, so a
    song that really is broken still gets skipped. */
@@ -10682,30 +11092,17 @@ function radioResume(why){
   radioLoad(RADIO.idx,true,Math.max(0,at-1));
   return true;
 }
+/* stop this browser's player (hosting ended, or leaving the channel) */
 function radioUngraph(){
-  RADIO.gen++;
+  RADIO.gen++;RADIO.loading=false;
   if(RADIO.el){try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}}
-  if(RADIO.bus){
-    try{RADIO.crush.disconnect(RADIO.bus);}catch(e){}
-    try{RADIO.bus.disconnect();}catch(e){}
-    RADIO.bus=null;MIX.rHooked=false;
-  }
-  if(RADIO.local){try{RADIO.local.disconnect();}catch(e){}RADIO.local=null;}
-  /* give the outgoing track back to whatever the mic wants */
-  try{
-    if(micOn)wireFx();
-    else if(scrAudioNode||(typeof BR!=='undefined'&&BR.bus)||(VERITY.on&&VERITY.host))
-      setOut('audio',fxDest.stream.getAudioTracks()[0]);
-    else setOut('audio',phAudio);
-  }catch(e){}
-  for(var id in peers)applyBitrate(peers[id].call);
 }
 /* host: start item i */
 function radioLoad(i,play,startAt){
   if(!radioIsHost())return;
   if(i<0||i>=RADIO.q.length){
     /* ran off the end of the queue */
-    RADIO.gen++;RADIO.loading=false;
+    RADIO.gen++;RADIO.loading=false;RADIO.tok='';
     if(RADIO.el){try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}}
     RADIO.idx=-1;RADIO.playing=false;RADIO.pos=0;RADIO.dur=0;
     radioRender();radioBroadcast();
@@ -10720,7 +11117,7 @@ function radioLoad(i,play,startAt){
   if(RADIO.el&&RADIO.el.getAttribute('src')){
     try{RADIO.el.pause();RADIO.el.removeAttribute('src');RADIO.el.load();}catch(e){}
   }
-  RADIO.loading=true;
+  RADIO.loading=true;RADIO.tok='';
   RADIO.idx=i;RADIO.playing=!!play;RADIO.pos=startAt||0;RADIO.posAt=Date.now();RADIO.dur=it.dur||0;
   radioRender();radioBroadcast();
   var tries=0;
@@ -10737,9 +11134,10 @@ function radioLoad(i,play,startAt){
     radioGraph();
     var a=RADIO.el;
     RADIO.seekTo=startAt||0;
-    a.src=adminBase()+'/radio/stream/'+j.token;
+    RADIO.tok=String(j.token||'');
+    a.src=adminBase()+'/radio/stream/'+RADIO.tok;
     if(RADIO.playing)a.play().catch(function(){toast('click ▶ to start the radio — your browser blocked autoplay');});
-    for(var id in peers)applyBitrate(peers[id].call);
+    radioBroadcast();
   }).catch(function(e){
     if(gen!==RADIO.gen)return;
     RADIO.loading=false;
@@ -10907,7 +11305,6 @@ function radioExec(cmd,arg,by,key){
   else if(cmd==='kbps'){
     var kb=Math.max(6,Math.min(192,arg|0));
     RADIO.kbps=kb;
-    for(var id in peers)applyBitrate(peers[id].call);
     radioCrunch();
   }
   else if(cmd==='bass'){
@@ -10936,8 +11333,8 @@ function radioTakeHost(){
   var pos=radioPosNow(), wasPlaying=RADIO.playing, idx=RADIO.idx;
   RADIO.host=me.name;
   bc({t:'rctl',k:radioKey(),cmd:'host',by:me.name});
-  sys('📻 <b>'+esc(me.name)+'</b> is hosting the radio'+
-      (micOn?'':' — your mic is off, but the radio still goes out over your voice connection'));
+  sys('📻 <b>'+esc(me.name)+'</b> is hosting the radio');
+  radioUngraph();   /* stop playing along as a listener; we are the clock now */
   radioGraph();
   if(idx>=0)radioLoad(idx,wasPlaying,pos);
   else if(RADIO.q.length)radioLoad(0,true);
@@ -10946,6 +11343,7 @@ function radioTakeHost(){
 }
 function radioDropHost(){
   if(!radioIsHost())return;
+  try{localStorage.removeItem('mc_radio');}catch(e){}   /* stopped on purpose: nothing to pick back up */
   radioUngraph();
   RADIO.host='';RADIO.playing=false;
   bc({t:'rctl',k:radioKey(),cmd:'unhost',by:me.name});
@@ -11028,7 +11426,7 @@ function radioOnData(id,p,d){
       radioRender();return;
     }
     if(d.cmd==='unhost'){
-      if(RADIO.host===by){RADIO.host='';RADIO.playing=false;
+      if(RADIO.host===by){RADIO.host='';RADIO.playing=false;RADIO.tok='';radioFollow();
         sys('📻 <b>'+esc(by)+'</b> stopped hosting the radio — an admin or mod can pick it up');}
       radioRender();return;
     }
@@ -11048,6 +11446,7 @@ function radioOnData(id,p,d){
               thumb:(/^https:\/\//.test(String(it.thumb||''))?String(it.thumb).slice(0,400):''),
               src:String(it.src||'').slice(0,24),by:String(it.by||'').slice(0,18)};});
     RADIO.idx=(typeof d.idx==='number')?d.idx:-1;
+    RADIO.tok=String(d.tok||'').replace(/[^a-f0-9]/gi,'').slice(0,64);
     RADIO.playing=!!d.playing;
     RADIO.vol=(typeof d.vol==='number')?d.vol:RADIO.vol;
     RADIO.kbps=(typeof d.kbps==='number')?d.kbps:RADIO.kbps;
@@ -11055,6 +11454,11 @@ function radioOnData(id,p,d){
     RADIO.pos=+d.pos||0;RADIO.posAt=Date.now();
     RADIO.dur=+d.dur||0;
     radioRender();
+    /* the host's volume, bass and crunch apply to everyone's copy */
+    if(RADIO.gain){
+      RADIO.gain.gain.value=RADIO.vol/100;RADIO.bassNode.gain.value=RADIO.bass;radioCrunch();
+    }
+    radioFollow();
     return;
   }
 }
@@ -11077,7 +11481,7 @@ function radioRender(){
   var hb=$('#rHost');
   hb.textContent=me2?'⏏ Stop hosting':(host?'📻 Take over':'📻 Host');
   var hn=$('#rHostNote');
-  hn.textContent=me2?('📻 you are hosting — it goes out over your voice'+(micOn?'; wear headphones':'')):'';
+  hn.textContent=me2?'📻 you are hosting — everyone\'s radio follows yours':'';
   hn.style.display=me2?'':'none';
   function slider(id,val,lbl){
     var e=$(id);if(document.activeElement===e)return;
@@ -11133,11 +11537,7 @@ setInterval(function(){if(radioIsHost()&&RADIO.idx>=0)radioBroadcast();},5000);
    bars move with exactly what they are hearing. Only runs while the panel
    is open and something is playing. */
 var RVIZ={raf:0,data:null};
-function radioVizSource(){
-  if(radioIsHost())return RADIO.an;
-  for(var id in peers)if(peers[id].name&&peers[id].name===RADIO.host)return peers[id].analyser||null;
-  return null;
-}
+function radioVizSource(){return RADIO.an||null;}
 function radioVizKick(){if(!RVIZ.raf)RVIZ.raf=requestAnimationFrame(radioVizDraw);}
 function radioVizDraw(){
   RVIZ.raf=0;
@@ -12083,6 +12483,29 @@ var ARC_SKINS={
       g.save();g.translate(W/2,H*0.45);g.fillStyle='rgba(255,255,255,.05)';
       for(var k=0;k<9;k++){g.rotate(Math.PI*2/9);g.beginPath();g.moveTo(0,0);g.lineTo(W,-26);g.lineTo(W,26);g.fill();}
       g.restore();
+    }},
+  dcaero:{slab:'gel',fx:'bubble',
+    bg:function(g,W,H,C,now){ARC_SKINS.aerodark.bg(g,W,H,C,now);}},
+  skype:{font:'Tahoma,"Segoe UI",sans-serif',slab:'gloss',
+    bg:function(g,W,H){
+      var b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#4cc3f3');b.addColorStop(.5,'#8fd8f6');b.addColorStop(1,'#eef9fe');g.fillStyle=b;g.fillRect(0,0,W,H);
+      g.fillStyle='rgba(255,255,255,.85)';
+      [[120,70,40],[160,60,30],[560,110,50],[610,100,34],[330,300,46]].forEach(function(c){g.beginPath();g.arc(c[0],c[1],c[2]*.7,0,Math.PI*2);g.fill();});
+    }},
+  win7dark:{font:'"Segoe UI",Tahoma,sans-serif',slab:'gloss',
+    bg:function(g,W,H){
+      var b=g.createLinearGradient(0,0,W,H);b.addColorStop(0,'#173d66');b.addColorStop(1,'#040d18');g.fillStyle=b;g.fillRect(0,0,W,H);
+      var c=g.createRadialGradient(W/2,H*0.45,10,W/2,H*0.45,W*0.45);c.addColorStop(0,'rgba(140,190,255,.25)');c.addColorStop(1,'rgba(140,190,255,0)');
+      g.fillStyle=c;g.fillRect(0,0,W,H);
+    }},
+  vista:{font:'"Segoe UI",Tahoma,sans-serif',slab:'gloss',
+    bg:function(g,W,H,C,now){
+      g.fillStyle='#02070c';g.fillRect(0,0,W,H);
+      [['rgba(40,210,130,.38)',.28],['rgba(20,175,215,.34)',.52],['rgba(40,95,210,.36)',.76]].forEach(function(a,k){
+        var x=W*a[1]+Math.sin((now||0)/3000+k)*12;
+        var r=g.createRadialGradient(x,H*.55,4,x,H*.55,W*.32);r.addColorStop(0,a[0]);r.addColorStop(1,'rgba(0,0,0,0)');
+        g.fillStyle=r;g.fillRect(0,0,W,H);
+      });
     }},
   pumpnight:{slab:'gel',fx:'dot',
     bg:function(g,W,H,C,now){
@@ -15507,9 +15930,8 @@ function mixSync(){
   if(!MIX.vHooked&&typeof VERITY!=='undefined'&&VERITY.bus){
     try{VERITY.bus.connect(MIX.disc);MIX.vHooked=true;}catch(e){}
   }
-  /* the radio -> Discord, when the host is also the one holding the bridge.
-     (If somebody else holds it, the radio reaches them inside the host's
-     voice, which is already in this mix as a peer.) */
+  /* the radio -> Discord: every browser plays its own copy of the radio,
+     so the one holding the bridge sends theirs */
   if(!MIX.rHooked&&typeof RADIO!=='undefined'&&RADIO.bus){
     try{RADIO.bus.connect(MIX.disc);MIX.rHooked=true;}catch(e){}
   }
@@ -17599,7 +18021,7 @@ var THEMES=[
   {id:'',          n:'Mingus Purple', a:'#8b5cff', b:'#1e1050', c:'#c9b9f8'},
   {id:'xbox360',   n:'Xbox 360',      a:'#5fbf17', b:'#0d1a06', c:'#d6e8cc'},
   {id:'nxe',       n:'NXE Silver',    a:'#8e9aa2', b:'#1d2124', c:'#dde3e7'},
-  {id:'vista',     n:'Vista Aero',    a:'#2b8ef0', b:'#071c3d', c:'#c5e2fb'},
+  {id:'vista',     n:'Vista Aero',    a:'#3aa7ee', b:'#02070c', c:'#1d2227'},
   {id:'aqua',      n:'Frutiger Aqua', a:'#14c49a', b:'#053430', c:'#c2f6e6'},
   {id:'zune',      n:'Zune Orange',   a:'#f07316', b:'#2a1104', c:'#fbd9b4'},
   {id:'bubblegum', n:'Y2K Bubblegum', a:'#f03cb0', b:'#2b0c35', c:'#fcc8ee'},
@@ -17619,7 +18041,10 @@ var THEMES=[
   {id:'aerodark',  n:'Dark Aero',     a:'#17b3d8', b:'#04142a', c:'#12385c'},
   {id:'win95',     n:'Windows 95',    a:'#000080', b:'#008080', c:'#c0c0c0'},
   {id:'win7',      n:'Windows 7',     a:'#6fc3f5', b:'#0b3a6e', c:'#f4f7fc'},
+  {id:'win7dark',  n:'Windows 7 Dark', a:'#6fb1f5', b:'#0e2946', c:'#1e2329'},
   {id:'discord',   n:'Discord',       a:'#5865f2', b:'#1e1f22', c:'#313338'},
+  {id:'dcaero',    n:'Discord Dark Aero', a:'#17b3d8', b:'#04142a', c:'#0b2a44'},
+  {id:'skype',     n:'Skype 2009',    a:'#00aff0', b:'#8fd8f6', c:'#ffffff'},
   {id:'roblox',    n:'Old Roblox',    a:'#02b757', b:'#1d7fcf', c:'#ffffff'},
   {id:'steam',     n:'Steam',         a:'#958831', b:'#3e4637', c:'#4c5844'},
   {id:'wii',       n:'Wii',           a:'#34beed', b:'#dcdcdc', c:'#ffffff'},
@@ -17690,7 +18115,7 @@ function dcMode(on){
     '<span class="hi" id="dcInv" title="Invite people">🔗</span>'+
     '<span class="hi on" id="dcMemT" title="Member list">👥</span>'+
     '<input class="srch" id="dcSearch" placeholder="Search" title="search this channel’s messages">'+
-    '<span class="hi" id="dcGear" title="User Settings">⚙</span>';
+    '<span class="hi dcsetbtn" id="dcGear" title="User Settings">⚙ Settings</span>';
   blade.insertBefore(head,blade.firstChild);
   head.querySelector('.burger').onclick=function(){r.classList.toggle('dc-nav');};
   $('#dcInv').onclick=click('#btnInvite');
@@ -17844,7 +18269,7 @@ function skinFont(t){
   document.head.appendChild(l);
 }
 /* the dark, glowing themes - where bloom reads as light */
-var BLOOM_THEMES={'':1,pumpnight:1,xbox360:1,vista:1,aqua:1,zune:1,bubblegum:1,midnight:1,matrix:1,crimson:1,gold:1,sunset:1,
+var BLOOM_THEMES={'':1,pumpnight:1,xbox360:1,aqua:1,zune:1,bubblegum:1,midnight:1,matrix:1,crimson:1,gold:1,sunset:1,
                   frost:1,sakura:1,pumpkin:1,ocean:1,aerodark:1,steam:1};
 var SKIN_BOOTED=false;
 function skinExtras(prev){
@@ -17905,7 +18330,7 @@ function skinApply(){
     (SKIN.crt?' · CRT':'')+(SKIN.compact?' · compact':'');
   skinSyncUI();
   skinSave();
-  try{dcMode(SKIN.theme==='discord');}catch(e){}
+  try{dcMode(SKIN.theme==='discord'||SKIN.theme==='dcaero');}catch(e){}
   try{skinExtras(prevTheme);}catch(e){}
 }
 function skinSyncUI(){
@@ -17926,8 +18351,8 @@ function skinSyncUI(){
   var box=document.getElementById('swatches');
   if(box){
     var GROUPS=[
-      ['Operating systems',['xp','win95','win7','vista','aero','aerodark','osx']],
-      ['Consoles & apps',['xbox360','nxe','wii','wiiu','discord','steam','roblox','c64','zune']],
+      ['Operating systems',['xp','win95','win7','win7dark','vista','aero','aerodark','osx']],
+      ['Consoles & apps',['xbox360','nxe','wii','wiiu','discord','dcaero','skype','steam','roblox','c64','zune']],
       ['Moods',['','bubblegum','midnight','matrix','noir','sunset','frost','sakura','ocean','aqua','crimson','gold','pumpkin','pumpnight']]
     ];
     var placed={};
@@ -20142,9 +20567,13 @@ function pumpFxSync(){
   var bg=document.getElementById('bg');
   if(bg&&bg.nextSibling)bg.parentNode.insertBefore(fx,bg.nextSibling);else document.body.insertBefore(fx,document.body.firstChild);
 }
-/* Windows 7's caption buttons, Start orb and tray clock - only while it is on */
+/* Windows 7's caption buttons, Start orb and tray clock - only while it is on.
+   Windows 7 Dark and Vista are the same window, so they get them too, and
+   html.w7 switches the shared window styling on for all three. */
+var W7_THEMES={win7:1,win7dark:1,vista:1};
 function win7Sync(){
-  var on=document.documentElement.getAttribute('data-theme')==='win7';
+  var on=!!W7_THEMES[document.documentElement.getAttribute('data-theme')];
+  document.documentElement.classList.toggle('w7',on);
   ['w7caps','w7start','w7clock'].forEach(function(id){var e=document.getElementById(id);if(e&&!on)e.remove();});
   if(!on)return;
   var top=document.querySelector('.wrap>.top'), bar=document.querySelector('.wrap>.bottombar');
@@ -20192,7 +20621,8 @@ try{
   var pref=null;try{pref=localStorage.getItem('mc_setmin');}catch(e){}
   function paint(){
     var min=b.classList.contains('setmin');
-    t.textContent=min?'\u25be  settings':'\u25b4  hide settings';
+    var bt=document.getElementById('setToggleBtn')||t;
+    bt.textContent=min?'\u2699  Settings  \u25be':'\u2699  Hide settings  \u25b4';
   }
   function set(min,save){
     b.classList.toggle('setmin',!!min);paint();

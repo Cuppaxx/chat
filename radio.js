@@ -237,6 +237,51 @@ async function searchSoundCloud(q, excludeId) {
   }
   return null;
 }
+// The same song on YouTube. A label track that is DRM-locked on SoundCloud is
+// almost always on YouTube unlocked - usually as the artist's "- Topic"
+// upload, which is the studio recording itself, not somebody's re-upload. So
+// that is tried before the SoundCloud stand-ins. It needs YouTube to be
+// talking to this server (YTDLP_COOKIES set, or not bot-checked lately).
+function youtubeUsable() { return !!cookiesFile || Date.now() >= ytBlockedUntil; }
+async function searchYouTube(artist, title) {
+  if (!youtubeUsable()) return null;
+  const q = (artist ? artist + ' ' : '') + title;
+  let list;
+  try { list = await ytdlp('ytsearch8:' + q + ' audio', ['--flat-playlist']); }
+  catch (e) { if (BOT.test(String(e.message)) && !cookiesFile) ytBlockedUntil = Date.now() + 30 * 60 * 1000; return null; }
+  const words = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
+  const want = words(title), who = String(artist || '').toLowerCase();
+  const VARIANT = /\b(cover|remix|nightcore|sped up|speed up|slowed|reverb|8d|karaoke|instrumental|mashup|bootleg|edit|flip|rework|type beat|live|reaction|lesson|tutorial|drum|guitar|bass cover)\b/i;
+  const askedVariant = VARIANT.test(title);
+  const score = (e) => {
+    const t = words(e.title);
+    let hit = 0; for (const w of want) if (t.indexOf(w) >= 0) hit++;
+    let s = want.length ? hit / want.length : 0;
+    const ch = String(e.channel || e.uploader || '').toLowerCase();
+    if (who && ch.indexOf(who) >= 0) s += 0.5;                 // the artist's own channel
+    if (/ - topic$/.test(ch)) s += 0.6;                          // the studio recording
+    if (/official (audio|video)|\baudio\b/i.test(String(e.title || ''))) s += 0.2;
+    if (!askedVariant && VARIANT.test(String(e.title || ''))) s -= 1;
+    return s;
+  };
+  const cands = (list.entries || []).filter((e) => e && (e.url || e.id) &&
+    !(Number(e.duration) > 0 && (Number(e.duration) <= 35 || Number(e.duration) > 20 * 60)))
+    .map((e) => ({ e, s: score(e) }))
+    .filter((x) => x.s > 0.5)
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.e);
+  for (const c of cands.slice(0, 3)) {
+    const u = c.url && /^https?:/.test(c.url) ? c.url : 'https://www.youtube.com/watch?v=' + c.id;
+    try {
+      const r = fromYtdlp(await ytdlp(u), u);
+      if (r.meta.duration && r.meta.duration <= 35) continue;
+      return r;
+    } catch (e) {
+      if (BOT.test(String(e.message))) { if (!cookiesFile) ytBlockedUntil = Date.now() + 30 * 60 * 1000; return null; }
+    }
+  }
+  return null;
+}
 function cleanTitle(t) {
   return String(t || '')
     .replace(/\((official|lyric|lyrics|audio|video|music video|visualizer|hd|4k)[^)]*\)/ig, '')
@@ -256,7 +301,9 @@ async function resolveDrm(url, original) {
   if (!title) throw original;
   const who = String((meta && (meta.artist || meta.uploader)) || '').trim();
   const q = (who && title.toLowerCase().indexOf(who.toLowerCase()) < 0) ? (who + ' ' + title) : title;
-  let hit = await searchSoundCloud(q, meta.id);
+  // the real recording from YouTube first, then another SoundCloud upload
+  let hit = await searchYouTube(who, title);
+  if (!hit) hit = await searchSoundCloud(q, meta.id);
   if (!hit && q !== title) hit = await searchSoundCloud(title, meta.id);
   if (!hit) {
     throw new Error('"' + title.slice(0, 80) + '" is locked on SoundCloud (a label or Go+ upload - DRM or a ' +
