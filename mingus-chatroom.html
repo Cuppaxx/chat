@@ -20166,6 +20166,8 @@ function sendGif(g){
   blip(640,.03);
   gifPanel(false);
 }
+/* what the panel shows before you type anything (and when the box is cleared) */
+var GIF_DEFAULT='snowysandwich';
 var GIFS={t:0,q:null,seq:0};
 function gifPanel(on){
   var p=$('#gifPanel');if(!p)return;
@@ -20174,10 +20176,11 @@ function gifPanel(on){
   if(on){var q=$('#gifQ');q.value='';q.focus();gifSearch('');}
 }
 function gifSearch(q){
+  q=q||GIF_DEFAULT;
   var grid=$('#gifGrid'), seq=++GIFS.seq;
   if(GIFS.q===q&&grid.children.length)return;
   GIFS.q=q;
-  grid.innerHTML='<div class="gifnote">'+(q?'searching\u2026':'trending on Tenor\u2026')+'</div>';
+  grid.innerHTML='<div class="gifnote">'+'searching\u2026'+'</div>';
   fetch(adminBase()+'/gif/search?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){
     if(seq!==GIFS.seq)return;
     grid.innerHTML='';
