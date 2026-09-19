@@ -3371,14 +3371,19 @@ html.dcm #setToggle{display:none}
      theatre is now the point of the page: it takes the middle column, the
      stage stretches to whatever height is there, the controls stay pinned
      under it, and the chat keeps a strip below. */
-  html:not(.dcm) .layout:has(>.main>#theater.on){grid-template-rows:auto minmax(0,1fr) auto clamp(130px,24cqh,300px)}
+  html:not(.dcm) .layout:has(>.main>#theater.on){grid-template-rows:auto minmax(0,1fr) auto minmax(96px,22cqh)}
   html:not(.dcm) .layout:has(>.main>#theater.on)>.main>#cams{max-height:22cqh}
-  html:not(.dcm) .layout>.main>#theater.on{grid-column:2;grid-row:2;min-width:0;min-height:0;max-height:none;overflow:hidden;
+  html:not(.dcm) .layout>.main>#theater.on{grid-column:2;grid-row:2;min-width:0;min-height:0;max-height:none;overflow-x:hidden;overflow-y:auto;
     display:flex;flex-direction:column}
   html:not(.dcm) #theater.on>*{flex:none}
-  html:not(.dcm) #theater.on>.tmain{flex:1 1 auto;min-height:0;align-items:stretch}
+  /* The stage NEVER gives way. With the settings open it used to be the only
+     thing allowed to shrink, and it shrank to 5 px - the page was there, you
+     just could not see it. It keeps at least 40% of the layout (170 px at the
+     very least); the controls, the queue and the chat give way instead, and
+     if that is still not enough the theatre panel scrolls. */
+  html:not(.dcm) #theater.on>.tmain{flex:1 0 auto;min-height:max(170px,40cqh);align-items:stretch}
   html:not(.dcm) #theater.on .tstagewrap{display:flex;flex-direction:column;min-height:0}
-  html:not(.dcm) #theater.on .tstage:not(:fullscreen){flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  html:not(.dcm) #theater.on .tstage:not(:fullscreen){flex:1 1 auto;min-height:max(160px,38cqh);display:flex;flex-direction:column}
   html:not(.dcm) #theater.on .tstage.empty:not(:fullscreen){display:grid}
   html:not(.dcm) #theater.on .tstage:not(:fullscreen) :is(#tvid,#tframe,#tytwrap,#tshare){height:auto;max-height:none;min-height:0;flex:1 1 auto}
   html:not(.dcm) #theater.on .tside{overflow-y:auto}
@@ -3411,105 +3416,146 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
 }
 
 /* ------------------------------------------------------------- WINDOWS 7 ----
-   Aero glass the way the Windows 7 taskbar and window frames did it: dark,
-   see-through, blurred glass with a bright top edge, faint diagonal streaks
-   and a soft glow, around light Explorer-style content panes. The bottom bar
-   becomes the taskbar; buttons are the grey Win7 buttons that light up blue;
-   selection is the pale-blue Explorer highlight. The wallpaper is a nod to
-   the default one - deep blue with a light burst - without the logo. */
+   The first go used DARK glass everywhere, which is Vista's taskbar, not a
+   Windows 7 window. Windows 7 is: a bright blue wallpaper with a burst of light
+   and coloured ribbons; windows framed in pale sky-blue frosted glass with a
+   glowing caption and the three caption buttons (close in red); Explorer's
+   pale blue command bar over white content; and the taskbar - dark glass along
+   the bottom with the round Start orb, glassy buttons and the clock in the
+   tray. The caption buttons, orb and tray clock are small decorations added in
+   JS (#w7caps, #w7start, #w7clock) and only exist while the theme is on. */
 :root[data-theme="win7"]{
-  --base:#0b3a6e; --baseTop:#1a5ea0; --baseBot:#062446;
-  --glow1:rgba(120,210,255,.55); --glow2:rgba(40,140,230,.45); --glow3:rgba(90,200,120,.25); --glow4:rgba(255,255,255,.18);
+  --base:#0d5aa7; --baseTop:#2f8ee0; --baseBot:#08386f;
+  --glow1:rgba(150,220,255,.6); --glow2:rgba(60,150,235,.4); --glow3:rgba(120,210,90,.25); --glow4:rgba(255,255,255,.2);
   --sel1:#dcebfc; --sel2:#c1dbfc; --sel3:#9fc4f0;
-  --txt:#ffffff; --dim:#d6e8fa; --line:rgba(255,255,255,.35);
-  --ink:#1e1e1e; --ink2:#1e5aa0;
-  --bladeA:rgba(255,255,255,.96); --bladeB:rgba(250,252,255,.95); --bladeC:rgba(245,249,255,.95); --bladeD:rgba(238,244,252,.96);
-  --bladeGlow:rgba(120,200,255,.35); --bladeRing:rgba(255,255,255,.55);
-  --tabA:rgba(90,150,210,.5); --tabB:rgba(30,80,140,.55);
-  --tabMainA:rgba(255,255,255,.95); --tabMainB:rgba(236,244,252,.95); --tabMainC:rgba(214,230,248,.95);
-  --chromeA:rgba(120,170,220,.55); --chromeB:rgba(40,90,150,.6); --chromeC:rgba(20,50,100,.65);
+  --txt:#ffffff; --dim:#e3f0fb; --line:rgba(255,255,255,.4);
+  --ink:#1e1e1e; --ink2:#1e395b;
+  --bladeA:#ffffff; --bladeB:#ffffff; --bladeC:#ffffff; --bladeD:#ffffff;
+  --bladeGlow:rgba(150,210,255,.4); --bladeRing:rgba(255,255,255,.7);
+  --tabA:#f3f8fd; --tabB:#dde9f6;
+  --tabMainA:#ffffff; --tabMainB:#eef5fd; --tabMainC:#dbe8f7;
+  --chromeA:rgba(200,228,250,.75); --chromeB:rgba(150,195,235,.7); --chromeC:rgba(110,165,220,.7);
   --btnA:#f2f2f2; --btnB:#e3e3e3; --btnC:#cfcfcf;
   --btn2A:#eaf6fd; --btn2B:#bee6fd; --btn2C:#a7d9f5;
   --chipA:#fbfbfb; --chipB:#e9e9e9; --chipEdge:#8e8f8f; --chipInk:#1e1e1e;
-  --cardA:rgba(255,255,255,.97); --cardB:rgba(246,249,253,.97); --cardC:rgba(236,243,251,.97);
-  --bubbleA:#ffffff; --bubbleB:#f4f8fd; --bubbleMeA:#f1f8ff; --bubbleMeB:#dcebfc;
-  --orb1:#ffffff; --orb2:#9fdcff; --orb3:#1f7ad0; --orb4:#0b3a6e;
-  --orbGlow:rgba(120,210,255,.6); --titleGlow:rgba(160,220,255,.9);
-  --radius:8px;
+  --cardA:#ffffff; --cardB:#f7fafd; --cardC:#eef4fb;
+  --bubbleA:#ffffff; --bubbleB:#f5f9fd; --bubbleMeA:#f2f8ff; --bubbleMeB:#dcebfc;
+  --orb1:#ffffff; --orb2:#a8e2ff; --orb3:#2f8ee0; --orb4:#0b3a6e;
+  --orbGlow:rgba(150,220,255,.6); --titleGlow:rgba(255,255,255,.95);
+  --radius:6px;
   --font:"Segoe UI",Tahoma,sans-serif;
 }
+/* the wallpaper: a bright centre, rays, and the coloured ribbons swirling across */
 :root[data-theme="win7"] #bg{
-  background-color:#0b3a6e;
+  background-color:#0d5aa7;
   background-image:
-    radial-gradient(38% 46% at 50% 44%, rgba(160,230,255,.55), rgba(60,160,240,.18) 45%, transparent 70%),
-    radial-gradient(70% 22% at 30% 70%, rgba(120,220,160,.22), transparent 70%),
-    radial-gradient(60% 20% at 75% 30%, rgba(255,210,120,.16), transparent 70%),
-    conic-gradient(from 200deg at 50% 44%, transparent 0 20deg, rgba(255,255,255,.07) 26deg, transparent 34deg, transparent 80deg,
-      rgba(255,255,255,.06) 88deg, transparent 96deg, transparent 150deg, rgba(255,255,255,.05) 158deg, transparent 166deg),
-    linear-gradient(160deg,#1a5ea0 0%,#0b3a6e 55%,#062446 100%);
+    radial-gradient(18% 26% at 50% 46%, rgba(255,255,255,.75), rgba(200,240,255,.35) 40%, transparent 72%),
+    radial-gradient(60% 18% at 38% 58%, transparent 55%, rgba(140,230,90,.55) 62%, rgba(140,230,90,0) 70%),
+    radial-gradient(62% 16% at 40% 60%, transparent 57%, rgba(255,215,70,.5) 63%, rgba(255,215,70,0) 70%),
+    radial-gradient(58% 15% at 62% 36%, transparent 55%, rgba(255,110,70,.42) 62%, rgba(255,110,70,0) 69%),
+    radial-gradient(64% 17% at 60% 34%, transparent 56%, rgba(120,210,255,.55) 62%, rgba(120,210,255,0) 70%),
+    conic-gradient(from 0deg at 50% 46%, rgba(255,255,255,.07) 0 8deg, transparent 8deg 28deg, rgba(255,255,255,.06) 28deg 34deg,
+      transparent 34deg 60deg, rgba(255,255,255,.07) 60deg 66deg, transparent 66deg 110deg, rgba(255,255,255,.05) 110deg 118deg,
+      transparent 118deg 170deg, rgba(255,255,255,.06) 170deg 176deg, transparent 176deg 240deg, rgba(255,255,255,.05) 240deg 248deg, transparent 248deg),
+    radial-gradient(90% 90% at 50% 46%, #3aa2f0 0%, #1a73c8 40%, #0b4a92 75%, #073163 100%);
 }
 :root[data-theme="win7"] #bg::after{background:none;animation:none}
-/* the glass, as on the taskbar: tinted, blurred, streaked, bright at the top edge */
-:root[data-theme="win7"] .top,:root[data-theme="win7"] .tabs .tab:not(.main),:root[data-theme="win7"] .wrap>.bottombar{
-  background-color:rgba(30,70,120,.42);
-  background-image:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.06) 48%,rgba(0,0,0,.08) 52%,rgba(0,0,0,.02)),
-    repeating-linear-gradient(115deg,rgba(255,255,255,0) 0 22px,rgba(255,255,255,.05) 22px 26px,rgba(255,255,255,0) 26px 70px);
-  -webkit-backdrop-filter:blur(10px) saturate(1.6);backdrop-filter:blur(10px) saturate(1.6);
-  border:1px solid rgba(0,0,0,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.18),0 2px 10px rgba(0,0,0,.35);
-  color:#fff;text-shadow:0 0 8px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.8)}
-:root[data-theme="win7"] .top{border-radius:8px 8px 0 0;padding:4px 10px;margin-bottom:0}
-:root[data-theme="win7"] .top h1{color:#fff;text-shadow:0 0 10px rgba(255,255,255,.7),0 0 3px rgba(0,0,0,.6)}
-:root[data-theme="win7"] .top h1 b{background:none;color:#fff;-webkit-background-clip:border-box;background-clip:border-box}
-/* the taskbar */
-:root[data-theme="win7"] .wrap>.bottombar{margin:6px -12px -16px;padding:5px 12px;border-radius:0;border-left:0;border-right:0;
-  border-top:1px solid rgba(255,255,255,.45)}
-:root[data-theme="win7"] .bottombar .hint{padding:3px 10px;border-radius:4px;border:1px solid transparent}
-:root[data-theme="win7"] .bottombar .hint:hover{text-decoration:none;border-color:rgba(255,255,255,.45);
-  background:linear-gradient(rgba(255,255,255,.3),rgba(255,255,255,.08) 50%,rgba(120,200,255,.18));box-shadow:0 0 12px rgba(120,200,255,.5)}
-/* the window frame: the blade sits inside a thick band of the same glass */
-:root[data-theme="win7"] .blade{border:7px solid rgba(40,90,150,.5);border-top-width:4px;border-radius:0 0 8px 8px;
-  background-clip:padding-box;box-shadow:0 0 0 1px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.6),0 12px 40px rgba(0,0,0,.5)}
+:root[data-theme="win7"] #orbs{display:none}
+/* the window: pale sky-blue frosted glass for the caption and the frame */
+:root[data-theme="win7"] .top{position:relative;margin:0;padding:6px 118px 6px 10px;min-height:34px;border-radius:7px 7px 0 0;
+  background-color:rgba(170,212,246,.55);
+  background-image:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.12) 45%,rgba(255,255,255,0) 55%,rgba(255,255,255,.12)),
+    repeating-linear-gradient(115deg,rgba(255,255,255,0) 0 30px,rgba(255,255,255,.1) 30px 36px,rgba(255,255,255,0) 36px 90px);
+  -webkit-backdrop-filter:blur(8px) saturate(1.4);backdrop-filter:blur(8px) saturate(1.4);
+  border:1px solid rgba(20,40,70,.65);border-bottom:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 1px 0 0 rgba(255,255,255,.5),inset -1px 0 0 rgba(255,255,255,.5)}
+:root[data-theme="win7"] .top h1{font-size:15px;font-weight:400;color:#000;letter-spacing:0;
+  text-shadow:0 0 10px #fff,0 0 6px #fff,0 0 2px #fff}
+:root[data-theme="win7"] .top h1 b{font-weight:400;background:none;color:#000;-webkit-background-clip:border-box;background-clip:border-box;filter:none}
+:root[data-theme="win7"] .top .orb,:root[data-theme="win7"] .top .clock{display:none}
+:root[data-theme="win7"] .hub{padding:2px 8px 2px 4px;font-size:12px;border-radius:3px;color:#1e1e1e;text-shadow:none;border:1px solid rgba(40,70,110,.45);
+  background-image:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.35) 50%,rgba(200,225,245,.45) 51%,rgba(230,242,252,.6));box-shadow:none}
+:root[data-theme="win7"] .hub::before{display:none}
+:root[data-theme="win7"] .hub .ring{width:16px;height:16px;font-size:9px}
+#w7caps{position:absolute;right:6px;top:-1px;display:flex;gap:0}
+#w7caps i{display:grid;place-items:center;width:28px;height:19px;font-style:normal;font-size:11px;color:#fff;font-weight:700;
+  border:1px solid rgba(20,40,70,.7);border-top:0;margin-left:-1px;text-shadow:0 0 3px #000,0 0 1px #000;
+  background-image:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.18) 48%,rgba(80,130,190,.25) 52%,rgba(160,210,250,.45));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)}
+#w7caps i:first-child{border-radius:0 0 0 5px}
+#w7caps i.x{width:44px;border-radius:0 0 5px 0;
+  background-image:linear-gradient(#e8a493,#d56e5b 48%,#c1391f 52%,#d9613f 80%,#ee9278)}
+#w7caps i:hover{filter:brightness(1.18) saturate(1.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 10px rgba(160,220,255,.9)}
+#w7caps i.x:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 12px rgba(255,120,90,.9)}
+/* the command bar: Explorer's pale blue strip */
+:root[data-theme="win7"] .tabs{margin:0;gap:0;padding:3px 6px;border:1px solid rgba(20,40,70,.65);border-top:0;border-bottom:1px solid #a0afc3;
+  background-image:linear-gradient(#f7fbfe,#e9f1fa 45%,#dbe7f4 50%,#e4edf7);
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.7),inset -1px 0 0 rgba(255,255,255,.7)}
+:root[data-theme="win7"] .tabs .tab{background:none;border:1px solid transparent;border-radius:3px;color:#1e395b;text-shadow:none;box-shadow:none;
+  padding:4px 10px;font-size:13px}
+:root[data-theme="win7"] .tabs .tab::before{display:none}
+:root[data-theme="win7"] .tabs .tab:hover{border-color:#8bb4e0;background-image:linear-gradient(#f5fbff,#e0effd 50%,#cfe6fd 51%,#e5f2fe)}
+:root[data-theme="win7"] .tabs .tab.main{background:none;font-weight:600;font-size:13px}
+/* the frame: a band of the same pale glass around white content */
+:root[data-theme="win7"] .blade{border:6px solid rgba(170,212,246,.62);border-top:0;border-radius:0 0 7px 7px;background-clip:padding-box;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 0 0 1px rgba(20,40,70,.65),inset 0 0 0 1px rgba(140,170,205,.9),0 14px 40px rgba(0,20,50,.45)}
 :root[data-theme="win7"] .blade::before,:root[data-theme="win7"] .blade::after{display:none}
-:root[data-theme="win7"] .tabs .tab{border-radius:6px 6px 0 0}
-:root[data-theme="win7"] .tabs .tab.main{color:#1e1e1e;text-shadow:none;box-shadow:inset 0 1px 0 #fff,0 0 12px rgba(160,220,255,.5)}
-:root[data-theme="win7"] .row,:root[data-theme="win7"] .mem{color:#1e1e1e;border-bottom-color:rgba(0,0,0,.06)}
+:root[data-theme="win7"] .row,:root[data-theme="win7"] .mem{color:#1e1e1e;border-bottom-color:rgba(0,0,0,.05);text-shadow:none}
 :root[data-theme="win7"] .row .val{color:#5a6b7d;opacity:1}
-/* Explorer selection: pale blue, a thin blue border, dark text */
 :root[data-theme="win7"] .row.action:hover,:root[data-theme="win7"] .row.action.hl,:root[data-theme="win7"] .side .row.cur{
-  background-image:linear-gradient(#f2f8ff,#dcebfc 45%,#c1dbfc);color:#1e1e1e;text-shadow:none;
-  box-shadow:inset 0 0 0 1px #7da2ce,inset 0 1px 0 rgba(255,255,255,.9)}
+  background-image:linear-gradient(#f1f7fe,#dcebfc 50%,#cde3fb);color:#1e1e1e;text-shadow:none;
+  box-shadow:inset 0 0 0 1px #84acdd,inset 0 1px 0 rgba(255,255,255,.95);border-radius:3px}
 :root[data-theme="win7"] .row.action:hover::after,:root[data-theme="win7"] .row.action.hl::after{display:none}
-:root[data-theme="win7"] .side{background:#f4f7fc}
-:root[data-theme="win7"] .side .row{color:#1e1e1e}
+:root[data-theme="win7"] .side{background:#fff;border-right:1px solid #d5dfe5}
+:root[data-theme="win7"] .side .row{color:#1e1e1e;border-bottom:0}
 :root[data-theme="win7"] .side .row.cur .dot{background:#3c7fb1;box-shadow:none}
-:root[data-theme="win7"] h3{color:#1e5aa0;border-bottom-color:rgba(0,0,0,.08)}
+:root[data-theme="win7"] h3{color:#1e395b;border-bottom-color:#e2e8ef;font-weight:600}
 :root[data-theme="win7"] .chat{background:#fff;border-top-color:#d8e2ee;box-shadow:none}
-:root[data-theme="win7"] .log{background:#fff;box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
-:root[data-theme="win7"] .msg .b{border-radius:6px;border:1px solid #d5dfe9;color:#1e1e1e;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+:root[data-theme="win7"] .log{background:#fff;box-shadow:none}
+:root[data-theme="win7"] .msg .b{border-radius:4px;border:1px solid #d9e3ed;color:#1e1e1e;box-shadow:none;
+  background-image:linear-gradient(#ffffff,#f6f9fc)}
+:root[data-theme="win7"] .msg.me .b{background-image:linear-gradient(#f6fbff,#e3effc);border-color:#b9d1ec}
 :root[data-theme="win7"] .msg.sys{color:#4a5f78}
-:root[data-theme="win7"] .compose{background:linear-gradient(#f9fbfe,#e9f0f8);box-shadow:inset 0 1px 0 #fff;border-top:1px solid #cbd6e4}
+:root[data-theme="win7"] .compose{border-top:1px solid #a0afc3;background-image:linear-gradient(#f7fbfe,#e9f1fa 45%,#dbe7f4 50%,#e4edf7);box-shadow:none}
 :root[data-theme="win7"] input[type=text],:root[data-theme="win7"] input[type=password],:root[data-theme="win7"] select{
   border:1px solid #abadb3;border-top-color:#8e8f8f;border-radius:2px;background:#fff;color:#1e1e1e;box-shadow:none}
-:root[data-theme="win7"] input[type=text]:focus{border-color:#3d7bad;box-shadow:0 0 0 1px rgba(61,123,173,.25)}
-/* the Win7 button: grey and quiet until you point at it, then blue */
+:root[data-theme="win7"] input[type=text]:focus{border-color:#3d7bad;outline:0;box-shadow:0 0 0 1px rgba(61,123,173,.25)}
+/* the Win7 push button */
 :root[data-theme="win7"] .btn,:root[data-theme="win7"] .q,:root[data-theme="win7"] .rb,:root[data-theme="win7"] .duelbtn{
   border-radius:3px;border:1px solid #707070;color:#1e1e1e;text-shadow:none;
-  background-image:linear-gradient(#f2f2f2,#ebebeb 49%,#dddddd 50%,#cfcfcf);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
+  background-image:linear-gradient(#f2f2f2,#ebebeb 49%,#dddddd 50%,#cfcfcf);box-shadow:inset 0 0 0 1px rgba(255,255,255,.75)}
 :root[data-theme="win7"] .btn::before,:root[data-theme="win7"] .q::before{display:none}
 :root[data-theme="win7"] .btn:hover,:root[data-theme="win7"] .q:hover,:root[data-theme="win7"] .duelbtn:hover{
   border-color:#3c7fb1;background-image:linear-gradient(#eaf6fd,#d9f0fc 49%,#bee6fd 50%,#a7d9f5);filter:none;color:#1e1e1e}
-:root[data-theme="win7"] .q.on{border-color:#2c628b;background-image:linear-gradient(#e5f4fc,#c4e5f6 49%,#98d1ef 50%,#68b3db);color:#1e1e1e;box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
-:root[data-theme="win7"] .hub{border-radius:50%;width:38px;height:38px;padding:0;justify-content:center;font-size:0;
-  background-image:radial-gradient(circle at 50% 35%,#b9ecff,#3fa2e8 45%,#0d5da8 75%,#0a3f78);border:1px solid rgba(0,0,0,.5);
-  box-shadow:0 0 14px rgba(120,210,255,.8),inset 0 1px 0 rgba(255,255,255,.8)}
-:root[data-theme="win7"] .hub .ring{font-size:11px}
-:root[data-theme="win7"] .card{border-radius:8px;border:7px solid rgba(40,90,150,.55);background-clip:padding-box;
-  box-shadow:0 0 0 1px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.7),0 20px 60px rgba(0,0,0,.55);color:#1e1e1e}
-:root[data-theme="win7"] .modal{background:rgba(8,30,60,.45)}
+:root[data-theme="win7"] .q.on{border-color:#2c628b;background-image:linear-gradient(#e5f4fc,#c4e5f6 49%,#98d1ef 50%,#68b3db);color:#1e1e1e;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+/* the taskbar */
+:root[data-theme="win7"] .wrap>.bottombar{position:relative;margin:8px -12px -16px;padding:0 90px 0 60px;min-height:40px;border-radius:0;
+  background-color:rgba(20,40,64,.72);
+  background-image:linear-gradient(rgba(255,255,255,.2),rgba(255,255,255,.05) 50%,rgba(0,0,0,.08) 51%,rgba(0,0,0,.02));
+  -webkit-backdrop-filter:blur(10px) saturate(1.5);backdrop-filter:blur(10px) saturate(1.5);
+  border-top:1px solid rgba(255,255,255,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 -1px 0 rgba(0,0,0,.5);
+  color:#fff;text-shadow:0 0 6px rgba(0,0,0,.8);gap:3px}
+:root[data-theme="win7"] .bottombar .hint{height:36px;padding:0 12px;border-radius:3px;border:1px solid transparent}
+:root[data-theme="win7"] .bottombar .hint:hover{text-decoration:none;border-color:rgba(255,255,255,.4);
+  background-image:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.08) 50%,rgba(140,200,255,.2));box-shadow:0 0 14px rgba(130,200,255,.55),inset 0 0 0 1px rgba(255,255,255,.18)}
+:root[data-theme="win7"] .bottombar .grow{color:#dfeaf6}
+#w7start{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;cursor:pointer;
+  background:radial-gradient(circle at 50% 30%,#d9f5ff 0,#78c8ff 18%,#1f86d8 45%,#0c4f9a 72%,#062e5c 100%);
+  box-shadow:0 0 0 1px rgba(0,0,0,.55),inset 0 1px 1px rgba(255,255,255,.8),inset 0 -6px 10px rgba(0,30,80,.55),0 0 14px rgba(120,200,255,.55)}
+#w7start::after{content:"";position:absolute;left:18%;top:8%;width:64%;height:42%;border-radius:50%;
+  background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,0))}
+#w7start:hover{box-shadow:0 0 0 1px rgba(0,0,0,.55),inset 0 1px 1px rgba(255,255,255,.9),0 0 22px rgba(150,220,255,.95)}
+/* the tiny status line under the page would sit on top of the Start orb */
+:root[data-theme="win7"] .wrap>div:last-child{display:none}
+#w7clock{position:absolute;right:10px;top:50%;transform:translateY(-50%);text-align:center;font-size:12px;line-height:1.25;color:#fff}
+:root[data-theme="win7"] .card{border-radius:7px;border:6px solid rgba(170,212,246,.75);background-clip:padding-box;color:#1e1e1e;
+  box-shadow:0 0 0 1px rgba(20,40,70,.7),inset 0 0 0 1px rgba(140,170,205,.9),0 20px 60px rgba(0,20,50,.55)}
+:root[data-theme="win7"] .modal{background:rgba(8,40,80,.35)}
 :root[data-theme="win7"] ::-webkit-scrollbar-track{background:#f0f0f0}
 :root[data-theme="win7"] ::-webkit-scrollbar-thumb{border-radius:2px;border:1px solid #9c9c9c;background:linear-gradient(90deg,#f4f4f4,#dcdcdc)}
-:root[data-theme="win7"] .fold{background:#fff;border-color:#cbd6e4;border-radius:4px}
-:root[data-theme="win7"] #setToggle{color:#1e5aa0}
+:root[data-theme="win7"] .fold{background:#fff;border-color:#cbd6e4;border-radius:3px}
+:root[data-theme="win7"] #setToggle{color:#1e395b;background:#eef4fb}
+:root[data-theme="win7"] #members::before{background:#fff!important}
 
 /* ------------------------------------------------- PUMPKIN PATCH, AT NIGHT ----
    The palette-only "Pumpkin Patch" is a dashboard in orange. This is the
@@ -3579,7 +3625,7 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
 @media (prefers-reduced-motion:reduce){#pumpFx{display:none}}
 :root[data-theme="pumpnight"] #orbs{display:none}
 :root[data-theme="pumpnight"] .top h1{color:#ffe0b8;text-shadow:0 0 14px rgba(255,120,20,.8),0 2px 3px #000}
-:root[data-theme="pumpnight"] .top h1 b{background:linear-gradient(#fff6d0,#ffc46a 50%,#ff8a1c);-webkit-background-clip:text;background-clip:text;color:transparent;
+:root[data-theme="pumpnight"] .top h1 b{text-shadow:none;background:linear-gradient(#fff6d0,#ffc46a 50%,#ff8a1c);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 8px rgba(255,120,20,.7))}
 :root[data-theme="pumpnight"] .blade{border:1px solid rgba(255,150,60,.35);
   -webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
@@ -3638,6 +3684,63 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
    'safe' centring falls back to the top as soon as it would overflow. */
 .modal{place-items:safe center}
 .modal>.card{margin:auto 0}
+
+/* ---- Pumpkin Night, livelier (10.8) ----
+   The Floating orbs and Light sweep switches did nothing here (the gutter orbs
+   were hidden), so the night now has its own: jack-o'-lantern wisps that
+   drift across the whole screen and flicker (Floating orbs), and a pale
+   moonlight sweep (Light sweep). Plus autumn leaves falling, bats crossing
+   the moon and fog rolling along the bottom - all in #pumpFx, behind panels
+   that are a little clearer now so the glow comes through. */
+:root[data-theme="pumpnight"]{
+  --bladeA:rgba(34,18,40,.74); --bladeB:rgba(26,13,32,.74); --bladeC:rgba(20,10,26,.78); --bladeD:rgba(14,7,18,.82);
+}
+:root[data-theme="pumpnight"] #bg::after{background:linear-gradient(115deg,transparent 40%,rgba(210,220,255,.06) 48%,rgba(255,240,210,.1) 50%,transparent 60%)}
+#pumpFx .wisp{position:absolute;border-radius:50%;width:var(--s,40px);height:var(--s,40px);bottom:-10vh;
+  background:radial-gradient(circle at 45% 40%,#fff6c8 0 12%,#ffc04a 30%,rgba(255,120,20,.55) 55%,rgba(255,90,10,0) 72%);
+  filter:blur(.4px);animation:pumpWisp linear infinite,pumpFlick 1.3s ease-in-out infinite alternate;box-shadow:none}
+#pumpFx .wisp::after{content:"";position:absolute;inset:-60%;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,140,30,.28),rgba(255,120,20,0) 65%)}
+@keyframes pumpWisp{
+  0%{transform:translate(0,0);opacity:0}
+  10%{opacity:.95}
+  50%{transform:translate(var(--dx,60px),-58vh)}
+  90%{opacity:.8}
+  100%{transform:translate(calc(var(--dx,60px) * -.5),-118vh);opacity:0}}
+@keyframes pumpFlick{from{filter:blur(.4px) brightness(1)}to{filter:blur(.8px) brightness(1.35)}}
+body.noorbs #pumpFx .wisp{display:none}
+#pumpFx .leaf{position:absolute;top:-6vh;width:14px;height:9px;border-radius:0 80% 0 80%;
+  background:linear-gradient(135deg,var(--c,#e8621a),#7a2a08);opacity:.85;animation:pumpLeaf linear infinite}
+@keyframes pumpLeaf{
+  0%{transform:translate(0,0) rotate(0)}
+  25%{transform:translate(var(--sw,40px),27vh) rotate(160deg)}
+  50%{transform:translate(0,54vh) rotate(320deg)}
+  75%{transform:translate(calc(var(--sw,40px) * -1),81vh) rotate(480deg)}
+  100%{transform:translate(0,110vh) rotate(640deg)}}
+#pumpFx .bat{position:absolute;top:var(--y,14%);left:-60px;font-size:var(--fs,18px);filter:brightness(0) drop-shadow(0 0 2px rgba(255,190,90,.4));
+  animation:pumpBat linear infinite;opacity:.85}
+@keyframes pumpBat{
+  0%{transform:translate(0,0) scaleY(1)}
+  10%{transform:translate(12vw,-2vh) scaleY(.6)}
+  20%{transform:translate(24vw,1vh) scaleY(1)}
+  30%{transform:translate(36vw,-3vh) scaleY(.6)}
+  40%{transform:translate(48vw,0) scaleY(1)}
+  50%{transform:translate(60vw,-2vh) scaleY(.6)}
+  60%{transform:translate(72vw,1vh) scaleY(1)}
+  70%,100%{transform:translate(115vw,-4vh) scaleY(.7)}}
+#pumpFx .fog{position:absolute;left:-20%;right:-20%;bottom:0;height:26vh;pointer-events:none;
+  background:radial-gradient(40% 60% at 20% 80%,rgba(190,170,220,.16),transparent 70%),
+             radial-gradient(35% 50% at 60% 90%,rgba(190,170,220,.14),transparent 70%),
+             radial-gradient(30% 55% at 90% 85%,rgba(190,170,220,.12),transparent 70%);
+  animation:pumpFog 38s ease-in-out infinite alternate}
+#pumpFx .fog.b{animation-duration:54s;animation-direction:alternate-reverse;opacity:.8;bottom:-4vh}
+@keyframes pumpFog{from{transform:translateX(-6%)}to{transform:translateX(6%)}}
+@media (prefers-reduced-motion:reduce){#pumpFx .wisp,#pumpFx .leaf,#pumpFx .bat,#pumpFx .fog{animation:none;display:none}}
+
+/* member status lines ("Mic off", "in voice") were a fixed dark purple, which
+   disappeared on every dark theme - they follow the row's own colour now */
+.mem .st{color:inherit}
+.mem .st>span:not(.volnum):not([class*="lim"]){opacity:.72}
 </style>
 </head>
 <body>
@@ -4295,7 +4398,7 @@ html.dcm .main>#cams{max-height:50vh;overflow-y:auto}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.7';
+var BUILD='10.8';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -9881,7 +9984,18 @@ var tLoadedUrl='';
    else's copy is stopped behind a card until the host resumes */
 var tSitePaused=false;
 function tBroadcast(){if(inTheater())bc(tState());}
+/* entering the theatre room folds the settings away (the stage needs the
+   height), and leaving puts them back how they were - without touching the
+   saved preference */
+var TFOLD={on:false,was:false};
+function theatreFold(){
+  var b=document.querySelector('.blade');if(!b||typeof window.setFold!=='function')return;
+  var inT=inTheater();
+  if(inT&&!TFOLD.on){TFOLD.on=true;TFOLD.was=b.classList.contains('setmin');if(!TFOLD.was)window.setFold(true,false);}
+  else if(!inT&&TFOLD.on){TFOLD.on=false;if(!TFOLD.was)window.setFold(false,false);}
+}
 function renderTheater(){
+  try{theatreFold();}catch(e){}
   try{if(typeof tNavHint==='function')setTimeout(tNavHint,0);}catch(e){}
   var box=document.getElementById('theater');
   if(!box)return;
@@ -19308,9 +19422,62 @@ function pumpFxSync(){
     b.style.animationDuration=dur+'s';b.style.animationDelay=(-Math.random()*dur).toFixed(1)+'s';
     fx.appendChild(b);
   }
+  var R=Math.random, k;
+  for(k=0;k<9;k++){                    /* jack-o'-lantern wisps (the Floating orbs switch) */
+    var w=document.createElement('i');w.className='wisp';
+    var sz=Math.round(18+R()*46);w.style.setProperty('--s',sz+'px');
+    w.style.left=(R()*100).toFixed(1)+'%';w.style.setProperty('--dx',Math.round(-80+R()*160)+'px');
+    var d1=(18+R()*16).toFixed(1);w.style.animationDuration=d1+'s,'+(0.9+R()*0.9).toFixed(2)+'s';
+    w.style.animationDelay=(-R()*d1).toFixed(1)+'s,0s';fx.appendChild(w);
+  }
+  var leafCols=['#e8621a','#c8401a','#d9a02a','#a8521c','#e07a2a'];
+  for(k=0;k<14;k++){                   /* autumn leaves */
+    var l=document.createElement('i');l.className='leaf';
+    l.style.left=(R()*100).toFixed(1)+'%';l.style.setProperty('--c',leafCols[k%leafCols.length]);
+    l.style.setProperty('--sw',Math.round(20+R()*60)+'px');
+    var d2=(11+R()*12).toFixed(1);l.style.animationDuration=d2+'s';l.style.animationDelay=(-R()*d2).toFixed(1)+'s';
+    l.style.transform='scale('+(0.7+R()*0.7).toFixed(2)+')';fx.appendChild(l);
+  }
+  for(k=0;k<3;k++){                    /* bats crossing the moon now and then */
+    var bt=document.createElement('i');bt.className='bat';bt.textContent='\ud83e\udd87';
+    bt.style.setProperty('--y',(6+R()*22).toFixed(1)+'%');bt.style.setProperty('--fs',Math.round(14+R()*12)+'px');
+    var d3=(14+R()*14).toFixed(1);bt.style.animationDuration=d3+'s';bt.style.animationDelay=(-R()*d3+k*4).toFixed(1)+'s';
+    fx.appendChild(bt);
+  }
+  ['fog','fog b'].forEach(function(c){var f=document.createElement('div');f.className=c;fx.appendChild(f);});
   var bg=document.getElementById('bg');
   if(bg&&bg.nextSibling)bg.parentNode.insertBefore(fx,bg.nextSibling);else document.body.insertBefore(fx,document.body.firstChild);
 }
+/* Windows 7's caption buttons, Start orb and tray clock - only while it is on */
+function win7Sync(){
+  var on=document.documentElement.getAttribute('data-theme')==='win7';
+  ['w7caps','w7start','w7clock'].forEach(function(id){var e=document.getElementById(id);if(e&&!on)e.remove();});
+  if(!on)return;
+  var top=document.querySelector('.wrap>.top'), bar=document.querySelector('.wrap>.bottombar');
+  if(top&&!document.getElementById('w7caps')){
+    var c=document.createElement('div');c.id='w7caps';
+    c.innerHTML='<i title="minimise">\u2012</i><i title="maximise">\u25a2</i><i class="x" title="close">\u2715</i>';
+    var D=window.mingusDesktop;
+    c.children[0].onclick=function(){if(D&&D.minimizeToTray)D.minimizeToTray();};
+    c.children[1].onclick=function(){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(e){}};
+    c.children[2].onclick=function(){if(D&&D.minimizeToTray)D.minimizeToTray();else toast('close the tab to leave');};
+    top.appendChild(c);
+  }
+  if(bar&&!document.getElementById('w7start')){
+    var o=document.createElement('div');o.id='w7start';o.title='Appearance';
+    o.onclick=function(){var b=document.getElementById('btnSkin');if(b)b.click();};
+    bar.appendChild(o);
+    var ck=document.createElement('div');ck.id='w7clock';bar.appendChild(ck);
+    (function tick(){
+      var el2=document.getElementById('w7clock');if(!el2)return;
+      var d=new Date();
+      el2.innerHTML=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'<br>'+d.toLocaleDateString();
+      setTimeout(tick,15000);
+    })();
+  }
+}
+try{new MutationObserver(win7Sync).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+win7Sync();
 try{new MutationObserver(pumpFxSync).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
 pumpFxSync();
 
@@ -19338,6 +19505,7 @@ try{
     if(save)try{localStorage.setItem('mc_setmin',min?'1':'0');}catch(e){}
   }
   t.onclick=function(){set(!b.classList.contains('setmin'),true);};
+  window.setFold=set;
   set(pref==='1',false);
   /* no choice made yet: fold it on joining - the chat is what matters then */
   if(pref===null){
