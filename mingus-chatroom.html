@@ -2981,6 +2981,116 @@ html.dcm.dc-set #dcSetHead{display:flex;align-items:center;margin:0 0 20px;color
 #wiiFade{position:fixed;inset:0;z-index:9990;pointer-events:none;background:#fff;animation:wiiFade .9s ease-out forwards}
 @keyframes wiiFade{from{opacity:1}to{opacity:0}}
 @media (prefers-reduced-motion:reduce){:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action:hover,:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action.hl{animation:none}#wiiFade{display:none}}
+/* ---- Wii, rebuilt (11.9) ----
+   The bottom bar had its pieces at three different heights: the round
+   buttons off-centre, the title squeezed in beside one of them, and the clock
+   dome floating over a line it did not join. Now it is built to the Wii
+   Menu's shape: a pinstriped bar with the blue line along its top, the two
+   round buttons set into it at its exact middle, and the clock in an arch
+   that grows out of the bar - same colour, so the blue line runs up and over
+   it without a seam. The setting tiles are channel windows: a grey frame, a
+   recessed screen with a slowly moving scanline, a glass reflection, and the
+   blue ring with a sweep of light when you point at one. These rules use
+   .wrap>.top (one step more specific than the old ones), so they win at every
+   window height. */
+:root[data-theme="wii"] .wrap>.top{order:99;position:relative;display:flex;align-items:center;justify-content:space-between;
+  box-sizing:border-box;height:104px;min-height:0;margin:84px -12px -16px;padding:0 34px;overflow:visible;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.025) 0 1px,transparent 1px 3px),linear-gradient(#fbfbfb,#ececec 40%,#d8d8d8);
+  border-top:3px solid #34beed;box-shadow:0 -1px 0 #c6ecfa,0 -12px 26px rgba(0,0,0,.07)}
+:root[data-theme="wii"] .wrap>.top h1{display:none}
+/* the round buttons, set into the bar */
+:root[data-theme="wii"] .wrap>.top .hub,:root[data-theme="wii"] .wrap>.top .orb{position:relative;z-index:1;flex:none;
+  width:80px;height:80px;margin:0;padding:0;border-radius:50%;border:3px solid #34beed;box-sizing:border-box;
+  display:grid;place-items:center;font-size:0;
+  background:radial-gradient(circle at 50% 32%,#ffffff 0 42%,#efefef 72%,#e2e2e2);
+  box-shadow:0 0 0 6px #f6f6f6,0 0 0 7px #cdcdcd,inset 0 -5px 10px rgba(0,0,0,.07),0 7px 14px rgba(0,0,0,.14);
+  transition:transform .2s cubic-bezier(.25,1.6,.45,1),box-shadow .2s}
+:root[data-theme="wii"] .wrap>.top .hub::after{content:"Mingus";font-size:15px;font-weight:900;letter-spacing:.3px;color:#9d9d9d;
+  text-shadow:0 1px 0 #fff}
+:root[data-theme="wii"] .wrap>.top .orb::after{content:"✉";position:static;display:block;width:auto;height:auto;background:none;
+  font-size:30px;line-height:1;color:#a2a2a2;text-shadow:0 1px 0 #fff}
+:root[data-theme="wii"] .wrap>.top .hub:hover,:root[data-theme="wii"] .wrap>.top .orb:hover{transform:scale(1.08);
+  box-shadow:0 0 0 6px #f6f6f6,0 0 0 7px #9fdcf3,0 0 22px 8px rgba(52,190,237,.55),0 7px 14px rgba(0,0,0,.14)}
+/* the clock's arch */
+:root[data-theme="wii"] .wrap>.top .clock{position:absolute;z-index:2;left:50%;top:auto;bottom:calc(100% - 34px);transform:translateX(-50%);
+  box-sizing:border-box;width:300px;min-width:0;height:108px;margin:0;padding:18px 0 0;text-align:center;
+  border:3px solid #34beed;border-bottom:0;border-radius:50% 50% 0 0/100% 100% 0 0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.025) 0 1px,transparent 1px 3px),linear-gradient(#fdfdfd,#f0f0f0);
+  box-shadow:0 -1px 0 #c6ecfa,0 -10px 22px rgba(0,0,0,.06);
+  font-size:44px!important;font-weight:800;line-height:1;letter-spacing:1px;color:#a0a0a0;
+  text-shadow:0 1px 0 #fff,0 -1px 0 rgba(0,0,0,.10)}
+:root[data-theme="wii"] .wrap>.top .clock::after{content:attr(data-date);display:block;margin-top:6px;font-size:17px;font-weight:800;
+  letter-spacing:.5px;color:#b6b6b6;text-shadow:0 1px 0 #fff}
+@media (max-height:820px){
+  :root[data-theme="wii"] .wrap>.top{height:88px;margin-top:68px;padding:0 26px}
+  :root[data-theme="wii"] .wrap>.top .hub,:root[data-theme="wii"] .wrap>.top .orb{width:66px;height:66px}
+  :root[data-theme="wii"] .wrap>.top .hub::after{font-size:12.5px}
+  :root[data-theme="wii"] .wrap>.top .orb::after{font-size:25px}
+  :root[data-theme="wii"] .wrap>.top .clock{width:250px;height:90px;padding-top:14px;bottom:calc(100% - 28px);font-size:36px!important}
+  :root[data-theme="wii"] .wrap>.top .clock::after{font-size:14px;margin-top:4px}
+}
+@media (max-width:820px){
+  :root[data-theme="wii"] .wrap>.top{padding:0 14px}
+  :root[data-theme="wii"] .wrap>.top .clock{width:200px;height:80px;font-size:30px!important;padding-top:12px}
+  :root[data-theme="wii"] .wrap>.top .clock::after{font-size:12.5px}
+}
+/* the channel windows */
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action{position:relative;isolation:isolate;height:112px;padding:16px 14px;
+  border:0;border-radius:24px;color:#737373;font-weight:800;text-shadow:0 1px 0 #fff;
+  background:linear-gradient(#fafafa,#e3e3e3);
+  box-shadow:0 5px 14px rgba(0,0,0,.10),inset 0 1px 0 #fff,inset 0 -2px 0 rgba(0,0,0,.07),0 0 0 1px #cfcfcf;
+  transition:transform .2s cubic-bezier(.25,1.6,.45,1),box-shadow .2s,color .2s;animation:none}
+/* the screen: recessed, with a slow scanline going by */
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action::before{content:"";display:block!important;position:absolute;inset:7px;z-index:-1;
+  border-radius:17px;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.035) 0 1px,transparent 1px 3px),
+    linear-gradient(transparent 0 40%,rgba(52,190,237,.06) 50%,transparent 60%),
+    radial-gradient(130% 110% at 50% 8%,#ffffff 0 42%,#eef2f5 78%,#e1e7eb);
+  background-size:auto,100% 300%,auto;
+  box-shadow:inset 0 0 0 1px #d2d2d2,inset 0 3px 7px rgba(0,0,0,.09);
+  animation:wiiScan 7s linear infinite}
+@keyframes wiiScan{from{background-position:0 0,0 0,0 0}to{background-position:0 0,0 -300%,0 0}}
+/* the glass over it, which carries the sweep of light on hover */
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action::after{content:""!important;display:block!important;position:absolute!important;
+  inset:7px!important;z-index:-1;border-radius:17px;pointer-events:none;opacity:1!important;transform:none!important;
+  background:linear-gradient(rgba(255,255,255,.7) 0,rgba(255,255,255,.18) 40%,rgba(255,255,255,0) 44%)}
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action:hover::after{
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.95) 50%,transparent 65%) -150% 0/250% 100% no-repeat,
+    linear-gradient(rgba(255,255,255,.7) 0,rgba(255,255,255,.18) 40%,rgba(255,255,255,0) 44%);
+  animation:wiiShine .9s ease-out 1 forwards}
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action:hover,:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action.hl{
+  transform:scale(1.06);color:#1c9fd0;background:linear-gradient(#fdfdfd,#e8f6fc);animation:none;
+  box-shadow:0 0 0 3px #34beed,0 0 24px 5px rgba(52,190,237,.5),inset 0 1px 0 #fff}
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action.hl:not(:hover){transform:none;animation:wiiPulse2 1.8s ease-in-out infinite}
+@keyframes wiiPulse2{
+  0%,100%{box-shadow:0 0 0 3px #34beed,0 0 12px 2px rgba(52,190,237,.3),inset 0 1px 0 #fff}
+  50%{box-shadow:0 0 0 3px #34beed,0 0 28px 8px rgba(52,190,237,.6),inset 0 1px 0 #fff}}
+:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action .val{position:relative;color:#a8a8a8}
+/* putting the theme on: the channels pop in one after another */
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action{animation:wiiTileIn .5s cubic-bezier(.25,1.5,.45,1) backwards}
+@keyframes wiiTileIn{from{opacity:0;transform:scale(.8)}}
+html.wiiboot[data-theme="wii"] .wrap>.top{animation:wiiBarIn .6s cubic-bezier(.2,.9,.3,1) backwards}
+@keyframes wiiBarIn{from{transform:translateY(60px);opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  :root[data-theme="wii"] .wrap>.blade>.setbox>.row.action,:root[data-theme="wii"] .wrap>.blade>.setbox>.row.action::before,
+  :root[data-theme="wii"] .wrap>.blade>.setbox>.row.action::after,html.wiiboot[data-theme="wii"] .wrap>.top{animation:none!important}}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(1){animation-delay:125ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(2){animation-delay:170ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(3){animation-delay:215ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(4){animation-delay:260ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(5){animation-delay:305ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(6){animation-delay:350ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(7){animation-delay:395ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(8){animation-delay:440ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(9){animation-delay:485ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(10){animation-delay:530ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(11){animation-delay:575ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(12){animation-delay:620ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(13){animation-delay:665ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(14){animation-delay:710ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(15){animation-delay:755ms}
+html.wiiboot[data-theme="wii"] .wrap>.blade>.setbox>.row.action:nth-child(16){animation-delay:800ms}
+
 :root[data-theme="wii"] .tabs{margin-top:0}
 :root[data-theme="wii"] .tabs .tab{background:linear-gradient(#fff,#ececec);border-radius:14px 14px 0 0}
 :root[data-theme="wii"] .msg .ava{border-radius:12px;border:2px solid #cfcfcf;background:#fff}
@@ -5026,7 +5136,7 @@ body.noorbs #pumpFx .wisp{display:none}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='11.8';
+var BUILD='11.9';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -18477,6 +18587,21 @@ function sfxWarm(){
   var p=sfxPack();if(!p||p==='mute')return;
   for(var k in SFX_PACKS[p]){var u=SFX_PACKS[p][k];if(!SFX_CACHE[u]){try{var a=new Audio(u);a.preload='auto';SFX_CACHE[u]=a;}catch(e){}}}
 }
+/* the Wii ticks as the pointer passes over a channel */
+var SFX_OVER=null;
+document.addEventListener('pointerover',function(e){
+  if(e.pointerType==='touch')return;
+  var t=e.target&&e.target.closest&&e.target.closest('.setbox>.row.action');
+  if(!t||t===SFX_OVER)return;
+  SFX_OVER=t;
+  if(sfxPack()!=='wii')return;
+  try{var u=SFX_PACKS.wii.click, a=SFX_CACHE[u];if(!a){a=new Audio(u);SFX_CACHE[u]=a;}
+    var n=a.cloneNode();n.volume=0.22;n.play().catch(function(){});}catch(x){}
+},true);
+document.addEventListener('pointerout',function(e){
+  var t=e.target&&e.target.closest&&e.target.closest('.setbox>.row.action');
+  if(t&&t===SFX_OVER&&!(e.relatedTarget&&t.contains(e.relatedTarget)))SFX_OVER=null;
+},true);
 /* clicking anything clickable */
 document.addEventListener('pointerdown',function(e){
   var t=e.target&&e.target.closest&&e.target.closest('.btn,.q,.rb,.row.action,.arctile,.sw,.tab,.hint,.sv,#dcAct .row,.dcmenu div,.mem,#dcUser .ic,#dcUser .vcb span,#dcHead .hi,#mTabs .mtab');
@@ -19209,6 +19334,9 @@ function skinApply(){
       var wf=document.getElementById('wiiFade');if(wf)wf.remove();
       wf=document.createElement('div');wf.id='wiiFade';document.body.appendChild(wf);
       setTimeout(function(){if(wf.parentNode)wf.remove();},1000);
+      /* the channels pop in one after another, and the bar slides up */
+      document.documentElement.classList.add('wiiboot');
+      setTimeout(function(){document.documentElement.classList.remove('wiiboot');},1600);
     }
   }catch(e){}
   try{skinExtras(prevTheme);}catch(e){}
