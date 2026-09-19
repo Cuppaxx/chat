@@ -117,3 +117,17 @@ Note: the server files are syntax-checked but were not run end-to-end — the
 sandbox they were written in can't reach the npm registry, so `npm install`
 couldn't be tested here. If the deploy errors on boot, the log will say which
 package.
+
+## Credits
+
+- **Cards Against the Chatroom packs** (`cah-packs.json`): official Cards
+  Against Humanity® card text, © Cards Against Humanity LLC, licensed
+  [CC BY-NC-SA 2.0](https://creativecommons.org/licenses/by-nc-sa/2.0/), via the
+  [json-against-humanity](https://github.com/crhallberg/json-against-humanity)
+  compilation (CC BY-NC-SA 4.0). Used non-commercially; trimmed to the official
+  boxes, with cards containing hard slurs removed. The "Mingus Originals" pack
+  is this room's own.
+- **Sniper shot sound**: a single Mosin-Nagant shot from Vincent Sevedge's
+  [Gunshot Sounds](https://opengameart.org/content/gunshot-sounds)
+  (listed CC0 on OpenGameArt; the pack's own notice says CC BY 3.0 — credited
+  here either way).

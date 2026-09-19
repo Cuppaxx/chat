@@ -382,6 +382,14 @@ app.get('/desktop/latest', async (req, res) => {
   res.json(desktopLatest);
 });
 
+// Card packs for Cards Against the Chatroom. The official Cards Against
+// Humanity boxes are Creative Commons BY-NC-SA (see the licence field inside);
+// fetched by the page the first time somebody opens a table.
+app.get('/cah-packs.json', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.sendFile(__dirname + '/cah-packs.json', (err) => { if (err) res.status(404).json({ packs: [] }); });
+});
+
 // The chatroom page. MUST be declared above app.use('/', peerServer) at the
 // bottom — that mount matches every path, so anything registered after it
 // never gets reached.
