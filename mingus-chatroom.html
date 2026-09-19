@@ -3274,11 +3274,35 @@ body{min-height:0}
 /* channels + chat take every pixel that is left */
 .wrap>.blade>.layout{flex:1 1 0;min-height:160px;grid-template-rows:minmax(0,1fr)}
 .layout>.side,.layout>.main{min-height:0}
-/* a theatre, radio or big member list scrolls here rather than the window */
-.layout>.main{overflow-y:auto;overflow-x:hidden}
-.layout>.main>.chat{flex:1 1 0;min-height:150px}
-.chat>.logwrap{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
-.wrap .log,body.compact .wrap .log{height:0;flex:1 1 0;min-height:90px}
+/* The main column hands out space by priority. It used to let everything
+   above the chat take its full height and give the chat whatever was left,
+   so a busy room - eleven members with the Discord ones, a camera tile, the
+   radio - squeezed the chat down to two lines. Now the chat is guaranteed a
+   share of the column, and the member list and camera row are the ones that
+   give way: they shrink and scroll inside themselves instead. */
+.layout>.main{overflow:hidden}
+.layout>.main>*{flex-shrink:0}
+.layout>.main>#members{flex:0 1 auto;min-height:70px;max-height:30%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+/* a camera cut in half looks broken, so faces win over the member list */
+.layout>.main>#cams{flex:0 0 auto;max-height:34%;overflow-y:auto;overscroll-behavior:contain}
+.layout>.main>#theater.on{flex:0 1 auto;min-height:0;max-height:62%;overflow-y:auto}
+.layout>.main>.chat{flex:1 1 0;min-height:42%}
+.layout>.main:has(>#theater.on)>.chat{min-height:30%}
+/* folding the settings strip away for more room (#setToggle) */
+#setToggle{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;height:17px;cursor:pointer;
+  font-size:10.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--ink2);opacity:.75;
+  border-top:1px solid rgba(128,128,128,.25);border-bottom:1px solid rgba(128,128,128,.25);user-select:none}
+#setToggle:hover{opacity:1;background:rgba(255,255,255,.12)}
+.blade.setmin>.setbox{display:none}
+html.dcm #setToggle{display:none}
+/* The log's minimum has to be the WRAPPER's minimum too. With the wrapper
+   allowed to shrink to nothing, opening the whisper bar (or a file transfer
+   row) in a tight chat squeezed the wrapper while the log inside kept its
+   height and spilled down over the whisper bar. Everything else in the chat
+   column keeps its own height; the log is the only thing that gives. */
+.chat>.logwrap{flex:1 1 0;min-height:70px;display:flex;flex-direction:column;overflow:hidden}
+.chat>:not(.logwrap){flex-shrink:0}
+.wrap .log,body.compact .wrap .log{height:0;flex:1 1 0;min-height:70px}
 @media (max-width:820px){
   .wrap>.blade>.layout{grid-template-rows:auto minmax(0,1fr)}
   .blade>.setbox{max-height:34%}
@@ -3459,6 +3483,7 @@ body{min-height:0}
     </div>
 
     </div>
+    <div id="setToggle" title="fold the settings away for more chat, or bring them back"></div>
     <div class="layout">
       <div class="side">
         <h3>Channels</h3>
@@ -3942,7 +3967,7 @@ body{min-height:0}
    deploys, which meant neither of us could tell from a screenshot whether a
    fix was actually running or the browser was serving a cached copy - and a
    bug report against an unknown build is very hard to act on. */
-var BUILD='10.4';
+var BUILD='10.5';
 /* ===== YOUR SIGNALING SERVER — baked in =====================================
    Every copy of this page uses this automatically. Nobody pastes anything,
    nobody opens settings, nobody needs a special invite link. Change this one
@@ -12737,8 +12762,8 @@ var TRUMP_PERSONA=[
   "Rally cadence. Short, punchy, repetitive sentences. Superlatives on everything: tremendous, huge, the best, the worst, total disaster, like nobody's ever seen before, believe me, many people are saying, frankly, by the way, a lot of people don't know this. Say the key phrase twice. Wander off on a tangent mid-sentence and snap back like nothing happened.",
   "",
   "HOW HE TREATS PEOPLE",
-  "He is not nice. He is combative, thin-skinned and a total braggart. When somebody disagrees, they are a loser, a total lightweight, low energy, very nasty, a disaster, sad. When somebody asks a question he does not like, it is a nasty question and they should be ashamed. When somebody is right, he takes credit for it. When somebody is wrong, he says nobody has ever been more wrong, maybe in history.",
-  "Every person in the room gets a mocking nickname based on what they actually said or did - 'Low Energy Jake', 'Crooked Kevin', 'Little Tommy' - and he uses it every time after that. Make them sting a bit. Roast people. This room wants him mean and funny, not polite.",
+  "He is not nice. He is combative, thin-skinned and a total braggart. When somebody disagrees, what they said is weak, a total disaster, very nasty, sad. When somebody asks a question he does not like, it is a nasty question and they should be ashamed. When somebody is right, he takes credit for it. When somebody is wrong, he says nobody has ever been more wrong, maybe in history.",
+  "He roasts people - make it sting a bit, this room wants him mean and funny, not polite - but he calls every person by their real name, exactly as written. NO nicknames, no titles, no 'Low Energy' anything: roast what they said, not what they are called.",
   "Everything about him is the best: his ratings, his brain, his voice, his chatroom, his deals. Everyone else's anything is a disaster. He is always the victim and always the winner at the same time. Nobody has ever been treated worse, and he is doing better than ever.",
   "Trivial things in the room are historic: somebody's mic crackling is the biggest scandal in the history of chatrooms; somebody joining is a massive, record-breaking crowd.",
   "",
@@ -12746,13 +12771,12 @@ var TRUMP_PERSONA=[
   "'Look, nobody knows headsets better than me, nobody. Terrible headset, a disaster, everybody says so.'",
   "'That's a nasty question. Very nasty. You should be ashamed, and frankly I'm not surprised.'",
   "'We had the biggest crowd ever just now, record numbers, and the fake news won't tell you that.'",
-  "Invent a DIFFERENT nickname for each person, built from what they actually said or did - Sleepy, Crooked, Little, Lyin', Crazy, Lightweight, Weak, Nervous, Dopey, and so on - and never give two people the same one.",
   "",
   "LIMITS OF THE BIT",
   "It is an impression. Do not state real-world political claims as facts, and do not go after real groups of people - he roasts the people IN THIS ROOM, about things they said or did. If somebody genuinely needs a real answer, give the correct answer, in the voice.",
   "",
   "IN THIS ROOM",
-  "You are in a voice chatroom with several people. Lines marked [heard] were spoken aloud and transcribed, so they may be misheard - if one is garbled, say so in the voice ('I have no idea what you just said, and frankly neither do you'). Reply ONLY to the line marked JUST SAID; the earlier lines are context. Lines marked YOU said are your own earlier replies - do not repeat their jokes. Never keep coming back to one detail about somebody.",
+  "You are on a live group voice call - people are talking out loud, and everything you say is played out loud to all of them. Lines marked [heard] were spoken aloud and transcribed, so they may be misheard - if one is garbled, say so in the voice ('I have no idea what you just said, and frankly neither do you'). Reply ONLY to the line marked JUST SAID; the earlier lines are context. Lines marked YOU said are your own earlier replies - do not repeat their jokes. Never keep coming back to one detail about somebody.",
   "Every line is read aloud: one or two sentences, almost always."
 ].join('\n');
 function verityHello(hi){
@@ -18486,6 +18510,42 @@ function aeroFxSync(){
 }
 try{new MutationObserver(aeroFxSync).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
 aeroFxSync();
+
+/* Whatever resizes the chat - the whisper bar opening, the settings folding,
+   somebody joining and the member list growing - it stays on the newest
+   message if that is where you were, instead of leaving it half hidden. */
+try{
+  new ResizeObserver(function(){
+    var l=document.getElementById('log');
+    if(l&&typeof stick!=='undefined'&&stick)l.scrollTop=l.scrollHeight;
+  }).observe(document.getElementById('log'));
+}catch(e){}
+/* the settings fold: remembered, and folded by default on short windows once
+   you are in a room, which is exactly when the chat needs the space */
+(function(){
+  var t=document.getElementById('setToggle'), b=document.querySelector('.blade');
+  if(!t||!b)return;
+  var pref=null;try{pref=localStorage.getItem('mc_setmin');}catch(e){}
+  function paint(){
+    var min=b.classList.contains('setmin');
+    t.textContent=min?'\u25be  settings':'\u25b4  hide settings';
+  }
+  function set(min,save){
+    b.classList.toggle('setmin',!!min);paint();
+    if(save)try{localStorage.setItem('mc_setmin',min?'1':'0');}catch(e){}
+  }
+  t.onclick=function(){set(!b.classList.contains('setmin'),true);};
+  set(pref==='1',false);
+  /* no choice made yet: fold it when joining on a window under 900px tall */
+  if(pref===null){
+    var iv=setInterval(function(){
+      if(typeof peer!=='undefined'&&peer){
+        clearInterval(iv);
+        try{if(localStorage.getItem('mc_setmin')===null&&innerHeight<900)set(true,false);}catch(e){}
+      }
+    },1000);
+  }
+})();
 
 /* ============================================================================
    AUTO-UPDATE - forced, and seamless
